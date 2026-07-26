@@ -1,0 +1,41 @@
+{
+  "schema_version": "aads.public_sample.v1",
+  "samples": [
+    {
+      "path": "synthetic_plant_1.png",
+      "sha256": "5531fb2fcfe2760a441eab50667788cb26c9b2ddcd7e897c1c9aacc2376946a0",
+      "width": 512,
+      "height": 384,
+      "source_kind": "programmatic_synthetic",
+      "license": "MIT",
+      "evidence_role": "io_smoke_only"
+    },
+    {
+      "path": "synthetic_plant_2.png",
+      "sha256": "877908a4b0eebeab79fff36ae6468e35b21bea4d4e8b09c944c82562799e9afa",
+      "width": 512,
+      "height": 384,
+      "source_kind": "programmatic_synthetic",
+      "license": "MIT",
+      "evidence_role": "io_smoke_only"
+    },
+    {
+      "path": "synthetic_plant_3.png",
+      "sha256": "2a82e6683a6681eef69d9decfab8a73019670e310e3a4a816fb357194321ac34",
+      "width": 512,
+      "height": 384,
+      "source_kind": "programmatic_synthetic",
+      "license": "MIT",
+      "evidence_role": "io_smoke_only"
+    },
+    {
+      "path": "synthetic_plant_4.png",
+      "sha256": "ea8245949a10dbdc5cf5754d42c8f08660f288a191469b4bdebd4f2e90673829",
+      "width": 512,
+      "height": 384,
+      "source_kind": "programmatic_synthetic",
+      "license": "MIT",
+      "evidence_role": "io_smoke_only"
+    }
+  ]
+}
