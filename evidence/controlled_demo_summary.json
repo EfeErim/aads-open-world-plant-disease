@@ -1,8 +1,11 @@
 {
-  "schema_version": "aads.public_controlled_demo.v1",
+  "schema_version": "aads.public_controlled_demo.v2",
   "run_id": "20260706T153334Z",
   "source_surface": "controlled_customer_demo",
   "manifest_sha256": "be31975d197e98ff4376b03fac45d4cdde4c6040f29458de783a7ec579bb5d06",
+  "source_summary_sha256": "c26515bbbef07a1fe73b09d0baf431b0cf9ef64fc8cd9503bd9d9e428b7d715c",
+  "source_rows_sha256": "01954ab73437e37e36c8769166e374682b041e222e129e009444fa740eee192d",
+  "rows_file_sha256": "ddf3cf57cf1e3632c474682d4b676c2af7a147e2b46ba0da152ee852ddfe15fd",
   "runtime": "cuda",
   "runner_exit_code": 0,
   "total": 48,
@@ -13,19 +16,55 @@
   "negative_false_accepts": 0,
   "wrong_part_disease_labels": 0,
   "production_ready": false,
-  "scope_note": "Frozen controlled-demo evidence; not a field-performance or production-readiness claim.",
+  "scope_note": "Frozen row-level controlled-demo snapshot; this validates recorded decisions, not fresh inference, field performance, or production readiness.",
   "per_target": {
-    "apricot__fruit": {"total": 4, "passed": 4},
-    "apricot__leaf": {"total": 6, "passed": 6},
-    "grape__fruit": {"total": 4, "passed": 4},
-    "grape__leaf": {"total": 6, "passed": 6},
-    "grape__unknown_part": {"total": 2, "passed": 2},
-    "non_plant": {"total": 4, "passed": 4},
-    "strawberry__fruit": {"total": 2, "passed": 2},
-    "strawberry__leaf": {"total": 6, "passed": 6},
-    "tomato__fruit": {"total": 4, "passed": 4},
-    "tomato__leaf": {"total": 4, "passed": 4},
-    "tomato__unknown_part": {"total": 2, "passed": 2},
-    "unknown_crop": {"total": 4, "passed": 4}
+    "apricot__fruit": {
+      "total": 4,
+      "passed": 4
+    },
+    "apricot__leaf": {
+      "total": 6,
+      "passed": 6
+    },
+    "grape__fruit": {
+      "total": 4,
+      "passed": 4
+    },
+    "grape__leaf": {
+      "total": 6,
+      "passed": 6
+    },
+    "grape__unknown_part": {
+      "total": 2,
+      "passed": 2
+    },
+    "non_plant": {
+      "total": 4,
+      "passed": 4
+    },
+    "strawberry__fruit": {
+      "total": 2,
+      "passed": 2
+    },
+    "strawberry__leaf": {
+      "total": 6,
+      "passed": 6
+    },
+    "tomato__fruit": {
+      "total": 4,
+      "passed": 4
+    },
+    "tomato__leaf": {
+      "total": 4,
+      "passed": 4
+    },
+    "tomato__unknown_part": {
+      "total": 2,
+      "passed": 2
+    },
+    "unknown_crop": {
+      "total": 4,
+      "passed": 4
+    }
   }
 }

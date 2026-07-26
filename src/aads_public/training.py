@@ -17,6 +17,11 @@ class LossWeights:
     distillation: float = 0.5
     adapter_l2: float = 1e-4
 
+    def __post_init__(self) -> None:
+        values = (self.classification, self.distillation, self.adapter_l2)
+        if not all(np.isfinite(value) and value >= 0 for value in values):
+            raise ValueError("loss weights must be finite and non-negative")
+
 
 @dataclass(frozen=True)
 class ContinualLoss:
@@ -29,8 +34,14 @@ class ContinualLoss:
 def _cross_entropy(logits: FloatArray, labels: IntArray) -> float:
     if logits.ndim != 2 or labels.ndim != 1 or logits.shape[0] != labels.shape[0]:
         raise ValueError("logits must be [batch, classes] and labels must be [batch]")
-    if logits.shape[0] == 0:
-        raise ValueError("empty batches are not valid")
+    if logits.shape[0] == 0 or logits.shape[1] == 0:
+        raise ValueError("empty batch or class dimensions are not valid")
+    if not np.issubdtype(labels.dtype, np.integer):
+        raise ValueError("labels must use an integer dtype")
+    if np.any(labels < 0) or np.any(labels >= logits.shape[1]):
+        raise ValueError("labels must be within the logits class range")
+    if not np.all(np.isfinite(logits)):
+        raise ValueError("logits must contain only finite values")
     shifted = logits - logits.max(axis=1, keepdims=True)
     log_probabilities = shifted - np.log(np.exp(shifted).sum(axis=1, keepdims=True))
     return float(-log_probabilities[np.arange(labels.size), labels].mean())
@@ -48,6 +59,15 @@ def continual_loss(
     """Combine task learning, feature retention, and bounded adapter movement."""
     if current_features.shape != teacher_features.shape:
         raise ValueError("current and teacher feature tensors must have identical shapes")
+    if current_features.ndim == 0 or current_features.shape[0] != logits.shape[0] or current_features.size == 0:
+        raise ValueError("feature tensors must contain one non-empty row per logit row")
+    if adapter_parameters.size == 0:
+        raise ValueError("adapter_parameters must not be empty")
+    if not all(
+        np.all(np.isfinite(values))
+        for values in (current_features, teacher_features, adapter_parameters)
+    ):
+        raise ValueError("features and adapter_parameters must contain only finite values")
     classification = _cross_entropy(logits, labels)
     distillation = float(np.mean(np.square(current_features - teacher_features)))
     adapter_l2 = float(np.mean(np.square(adapter_parameters)))

@@ -1,86 +1,111 @@
 # AADS — Open-World Plant Disease Recognition
 
 [![CI](https://github.com/EfeErim/bitirmeprojesi/actions/workflows/ci.yml/badge.svg)](https://github.com/EfeErim/bitirmeprojesi/actions/workflows/ci.yml)
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python 3.11–3.13](https://img.shields.io/badge/Python-3.11--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Controlled demo: 48/48](https://img.shields.io/badge/controlled_demo-48%2F48-brightgreen)](evidence/controlled_demo_summary.json)
+[![Scope: controlled demo](https://img.shields.io/badge/scope-controlled_demo-blue)](evidence/controlled_demo_summary.json)
 
-> A thesis project about the harder part of visual recognition: knowing when **not** to predict.
+> A graduation-thesis project about the harder part of visual recognition: knowing when **not** to predict.
 
-AADS routes a plant image to a crop/part specialist, applies a lightweight continual-learning adapter, and returns
-either a disease label or a safe `review` decision. The public edition is a compact, recruiter-friendly extraction of
-the full research system.
+**Role:** ML / Computer Vision engineering · **Full-system stack:** Python, PyTorch, DINOv3, PEFT/LoRA, Colab
+**Public scope:** a dependency-light engineering extract; not the private training dataset or full inference monorepo
 
-## What I built
+AADS routes a plant image to a crop/part specialist, applies a target adapter, and returns either a disease label or a
+safe `review` decision. I designed the selective-routing contract, continual adapter workflow, OOD gates, evidence
+validation, and immutable artifact delivery around that decision.
 
-- **Open-world selective routing** — unknown crops, unsupported parts, low-margin cases, and negative-prototype
-  conflicts fail closed instead of being forced into a known disease.
-- **Continual SD-LoRA adapter design** — eight crop/part specialists with replay, distillation, and bounded adapter
-  updates to reduce forgetting.
-- **Evidence-first ML delivery** — immutable release manifests, checksum verification, held-out OOD gates, and a
-  GPU-free replay path separate engineering evidence from unsupported production claims.
+## What is demonstrated here
 
-## Verified snapshot
+- **Fail-closed selective routing** — unknown crops, unsupported parts, low-margin cases, invalid numeric scores, and
+  negative-prototype conflicts are reviewed instead of being forced into a known disease.
+- **Continual SD-LoRA design** — eight crop/part specialists use bounded replay, feature distillation, and adapter
+  regularization to reduce forgetting.
+- **Evidence-first delivery** — sanitized row-level decisions, immutable release identities, SHA-256 verification, and
+  explicit deployment blockers keep a successful demo separate from unsupported production claims.
 
-| Surface | Result |
-|---|---:|
-| Controlled acceptance rows | **48 / 48 passed** |
-| Correct disease answers | **36 / 36** |
-| Safe review / abstain rows | **12 / 12** |
-| Negative false accepts | **0** |
-| Wrong-part disease labels | **0** |
-| Full private regression suite at public-transition snapshot | **1,132 passed** |
+## Evidence — without overselling it
 
-These are controlled-demo results, not a production-readiness claim. The exact run identity and integrity fields live
-in [`evidence/controlled_demo_summary.json`](evidence/controlled_demo_summary.json).
+| Evidence surface | Result | What it proves |
+|---|---:|---|
+| Frozen controlled-demo decisions | **48 / 48 passed** | One curated CUDA demo run met its expected answer/review contract |
+| Correct disease answers in that run | **36 / 36** | Correct labels on the supported rows selected for the demo |
+| Safe review / abstain decisions | **12 / 12** | The selected unknown-crop, wrong-part, and non-plant rows were not diagnosed |
+| Independent production-readiness gates | **0 / 8 passed** | No adapter is approved for autonomous deployment |
+| Held-out ID accuracy across adapters | **0.785–0.950** | Classification quality varies materially by target |
+| Held-out OOD false-positive rate | **0.283–0.873** | Unknown-disease rejection remains the primary blocker |
 
-## Try it in 30 seconds
+The `48/48` result is real, but it is a small controlled acceptance surface—not a field-performance estimate. The
+public command validates the frozen identity and recomputes totals from 48 sanitized decision rows; it does **not**
+rerun GPU inference. The original private system passed 1,132 regression tests at the public-transition snapshot, but
+that is code-regression evidence, not additional model-accuracy evidence.
+
+Machine-readable evidence:
+
+- [`controlled_demo_summary.json`](evidence/controlled_demo_summary.json)
+- [`controlled_demo_rows.json`](evidence/controlled_demo_rows.json)
+- [`public_asset_manifest.json`](evidence/public_asset_manifest.json)
+
+## Try the public contract
 
 ```bash
 git clone https://github.com/EfeErim/bitirmeprojesi.git
 cd bitirmeprojesi
 python -m pip install -e ".[dev]"
 python -m aads_public replay
-pytest -q
+python -m pytest
 ```
 
-[Open the GPU-free evidence demo in Colab](https://colab.research.google.com/github/EfeErim/bitirmeprojesi/blob/master/notebooks/demo.ipynb)
-or inspect the concise [`train_adapter.ipynb`](notebooks/train_adapter.ipynb) objective walkthrough.
+Expected CLI scope:
 
-[Download the checksum-pinned controlled-demo adapters](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.0.0)
-or inspect their machine-readable [`public_asset_manifest.json`](evidence/public_asset_manifest.json).
+```text
+AADS | GPU-free row snapshot validation
+Manifest identity       PASS
+Sanitized rows          48/48  PASS
+Scope                    recorded decisions, not fresh inference | NOT production-ready
+```
+
+[Open the pinned evidence notebook in Colab](https://colab.research.google.com/github/EfeErim/bitirmeprojesi/blob/master/notebooks/evidence_snapshot.ipynb)
+or inspect the [`continual_objective.ipynb`](notebooks/continual_objective.ipynb) walkthrough.
 
 ## System shape
 
 ```mermaid
 flowchart LR
     A["Image"] --> B["Crop + part router"]
-    B --> C{"Supported and confident?"}
+    B --> C{"Supported, finite, confident?"}
     C -- "No" --> D["Review / abstain"]
     C -- "Yes" --> E["Target SD-LoRA adapter"]
-    E --> F{"OOD safety gate"}
+    E --> F{"Held-out OOD safety gate"}
     F -- "Reject" --> D
     F -- "Accept" --> G["Disease label + evidence"]
 ```
 
-The public package keeps the most interview-relevant ideas small:
+The compact public package keeps four interview-relevant contracts executable:
 
-- [`policy.py`](src/aads_public/policy.py) — fail-closed routing contract
-- [`training.py`](src/aads_public/training.py) — continual objective and replay buffer
-- [`evidence.py`](src/aads_public/evidence.py) — reproducible acceptance checks
-- [`release.py`](src/aads_public/release.py) — anonymous public assets with SHA-256 verification
+- [`policy.py`](src/aads_public/policy.py) — fail-closed routing
+- [`training.py`](src/aads_public/training.py) — continual objective and deterministic replay
+- [`evidence.py`](src/aads_public/evidence.py) — strict row-level snapshot validation
+- [`release.py`](src/aads_public/release.py) — bounded anonymous downloads with SHA-256 verification
 
 Deeper context: [`MODEL_CARD.md`](docs/MODEL_CARD.md) · [`ENGINEERING_NOTES.md`](docs/ENGINEERING_NOTES.md)
 
-## Scope and limitations
+## Model artifacts
 
-- Supported targets: apricot, grape, strawberry, and tomato; fruit/leaf specialists where evidence exists.
-- The 48-row set is a frozen customer-demo acceptance surface, not a statistical estimate of field performance.
-- The larger stress surface exposed accuracy/coverage trade-offs; the system intentionally abstains on uncertain input.
-- Public sample images are programmatically generated smoke inputs. They are not training or accuracy evidence.
-- Model assets, when published, are controlled-demo artifacts and are explicitly marked **not production-ready**.
+The [v1.1.0 controlled-demo release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.0)
+contains checksum-pinned adapter artifacts and complete per-target model cards. These artifacts are published for
+engineering review and reproducibility of the artifact contract. They are explicitly `production_ready=false`, and
+the full backbone/inference runtime is outside this compact public edition.
+
+## Limitations
+
+- Supported research targets are apricot, grape, strawberry, and tomato fruit/leaf specialists.
+- The public repository does not redistribute the original datasets because file-level public redistribution rights
+  are not sufficiently documented.
+- The controlled snapshot cannot establish robustness across farms, cameras, seasons, geographies, or unseen diseases.
+- The weights must not be used for treatment advice or autonomous agricultural decisions.
+- Passing unit tests, checksums, or the 48-row snapshot does not override the failed production-readiness gates.
 
 ## License
 
-Code and generated smoke assets are released under the [MIT License](LICENSE). Third-party model licenses remain
-separate and must be followed when downloading their weights.
+Public code is released under the [MIT License](LICENSE). DINOv3-derived artifacts remain subject to the DINOv3
+license distributed with each release bundle.

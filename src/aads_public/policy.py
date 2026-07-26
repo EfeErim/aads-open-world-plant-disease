@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -40,11 +41,19 @@ class SafetyPolicy:
     min_margin: float = 0.02
     min_negative_gap: float = 0.0
 
+    def __post_init__(self) -> None:
+        if not self.supported_targets:
+            raise ValueError("supported_targets must not be empty")
+        if not all(math.isfinite(value) for value in (self.min_similarity, self.min_margin, self.min_negative_gap)):
+            raise ValueError("policy thresholds must be finite")
+
     def decide(self, candidate: Candidate | None) -> PolicyResult:
         if candidate is None:
             return PolicyResult(Decision.REVIEW, "router_uncertain")
         if candidate.target_id not in self.supported_targets:
             return PolicyResult(Decision.REVIEW, "unsupported_crop_or_part")
+        if not all(math.isfinite(value) for value in (candidate.similarity, candidate.margin, candidate.negative_gap)):
+            return PolicyResult(Decision.REVIEW, "invalid_numeric_score")
         if candidate.similarity < self.min_similarity:
             return PolicyResult(Decision.REVIEW, "low_similarity")
         if candidate.margin < self.min_margin:
