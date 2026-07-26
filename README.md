@@ -7,8 +7,6 @@
 
 > A thesis project about the harder part of visual recognition: knowing when **not** to predict.
 
-![AADS evidence replay](assets/demo.gif)
-
 AADS routes a plant image to a crop/part specialist, applies a lightweight continual-learning adapter, and returns
 either a disease label or a safe `review` decision. The public edition is a compact, recruiter-friendly extraction of
 the full research system.
