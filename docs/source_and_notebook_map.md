@@ -10,26 +10,28 @@ necessary changes for anonymous Release access, safer defaults and cross-platfor
 
 | Surface | Maintained project | Public repository | Public coverage |
 |---|---:|---:|---:|
-| `src/` files | 130 | 130 | 100% |
+| maintained `src/` files | 130 | 130 | 100% |
+| public-only sample-data module | 0 | 1 | added for public use |
 | authored Colab notebooks | 11 | 11 | 100% |
 | `colab_notebooks/requirements_colab.txt` | 1 | 1 | 100% |
 | `config/` files | 3 | 3 | 100% |
 | operational scripts shared by both trees | 177 | 177 | 100% |
-| public-only adapter downloader | 0 | 1 | added for public use |
+| public-only operational scripts | 0 | 3 | added for public use |
 | tests shared by both trees | 166 | 166 | 100% |
+| public-only focused tests | 0 | 2 | added for public use |
 
 The application implementation is not embedded only in notebooks. Notebooks call the same maintained modules used by
 the CLI and tests.
 
 ## Application source
 
-The 130 files under [`src/`](../src/) are grouped as follows:
+The 131 files under [`src/`](../src/) are grouped as follows:
 
 | Package | Files | Responsibility |
 |---|---:|---|
 | [`src/training/`](../src/training/) | 27 | continual SD-LoRA training, validation, persistence and reporting |
 | [`src/router/`](../src/router/) | 26 | crop/part routing, taxonomy, prototypes, calibration and abstention |
-| [`src/data/`](../src/data/) | 15 | dataset contracts, lineage, releases, OOD splits and integrity |
+| [`src/data/`](../src/data/) | 16 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
 | [`src/ood/`](../src/ood/) | 14 | OOD scoring, conformal prediction and behavioral acceptance |
 | [`src/pipeline/`](../src/pipeline/) | 13 | adapter discovery, release loading, inference payloads and evidence analysis |
 | [`src/shared/`](../src/shared/) | 10 | typed contracts and shared serialization/path utilities |
@@ -72,6 +74,12 @@ Notebook 8 differs intentionally from the maintained private-project version: it
 public adapter Release and start in single-image mode. The model and routing implementation it calls remains in
 `src/`.
 
+Notebook 2 defaults to a deterministic synthetic dataset generated locally, so a public user can exercise the
+training workflow without the private dataset Release. The sample is smoke-test data, is explicitly ineligible for
+production evidence and does not support accuracy claims. Notebook 0 defaults to the user's own class-root data.
+Notebooks 6, 16 and 17 are internal batch/research workflows whose original private experiment inputs are not
+redistributed; their source remains public for inspection.
+
 ## Notebook support code
 
 The public repository also includes:
@@ -79,7 +87,8 @@ The public repository also includes:
 - 36 extracted notebook cell scripts under [`scripts/notebook_cells/`](../scripts/notebook_cells/);
 - 15 reusable notebook helpers under [`scripts/notebook_helpers/`](../scripts/notebook_helpers/);
 - the remaining operational, validation, calibration and evidence scripts under [`scripts/`](../scripts/);
-- 166 tracked unit, integration, Colab smoke and test-fixture files under [`tests/`](../tests/).
+- 168 tracked unit, integration, Colab smoke and test-fixture files under [`tests/`](../tests/), including two
+  public-only tests for sample-data and evidence-rebuild behavior.
 
 These files matter because the notebooks orchestrate maintained Python code instead of hiding large independent
 implementations inside notebook cells.
@@ -95,7 +104,7 @@ The following private-tree surfaces are not application source and are not copie
 - `runs/`, `outputs/` and `.runtime_tmp/`: generated experiments, caches and telemetry;
 - training images: redistribution permission is not documented for every source image;
 - model binaries in Git history: released separately with checksums in
-  [`aads-public-demo-v1.1.1`](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1);
+  [`aads-public-demo-v1.1.2`](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2);
 - private credentials, internal project state and unpublished dataset manifests.
 
 This boundary keeps the repository cloneable without pretending that generated outputs or internal automation are

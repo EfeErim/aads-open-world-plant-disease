@@ -1,7 +1,6 @@
 # Preferred 2026-03 baseline for the maintained Python 3.11 + DINOv3/SAM3 surface.
 torch~=2.10.0
 torchvision~=0.25.0
-torchao==0.17.0
 transformers~=5.9.0
 peft~=0.19.1
 accelerate~=1.13.0

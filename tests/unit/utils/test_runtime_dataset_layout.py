@@ -2,6 +2,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from scripts.colab_dataset_layout import (
@@ -205,6 +206,21 @@ def test_list_repo_dataset_directories_includes_dataset_roots_from_zip_archive(t
     assert len(selected_paths) == 1
     assert selected_paths[0].is_dir()
     assert ".runtime_tmp" in selected_paths[0].parts
+
+
+def test_list_repo_dataset_directories_rejects_zip_expansion_bomb(tmp_path: Path):
+    repo_root = tmp_path / "repo"
+    dataset_parent = repo_root / "data" / "ood_dataset"
+    dataset_parent.mkdir(parents=True)
+    archive_path = dataset_parent / "compressed_bomb.zip"
+    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("tomato_leaf/unknown/image.jpg", b"0" * 200_000)
+
+    with pytest.raises(ValueError, match="expansion ratio"):
+        list_repo_dataset_directories(
+            repo_root=repo_root,
+            repo_relative_root="data/ood_dataset",
+        )
 
 
 def test_resolve_repo_dataset_directory_materializes_zip_archive_on_demand(tmp_path: Path):

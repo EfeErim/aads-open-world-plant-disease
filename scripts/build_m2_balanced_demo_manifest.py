@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import re
 import shutil
@@ -23,13 +22,11 @@ from scripts.enrich_m2_demo_image_set import (
     PLAN,
     SUPPORTED_BEHAVIOR,
     USER_LIKE_BUCKETS,
-    ImagePlan,
     _collect_external_images,
     _existing_hashes,
     _load_reject_ids,
     _next_demo_number,
     _read_csv,
-    _sha256,
     _write_csv,
 )
 

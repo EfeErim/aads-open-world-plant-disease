@@ -143,7 +143,8 @@ def validate_release_manifest(
 
 def verify_release_files(root: Path, manifest: dict[str, Any]) -> None:
     validate_release_manifest(manifest)
-    expected = {str(record["local_path"]): str(record["sha256"]) for record in manifest["files"]}
+    records = {str(record["local_path"]): record for record in manifest["files"]}
+    expected = {relative_path: str(record["sha256"]) for relative_path, record in records.items()}
     actual = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
@@ -154,8 +155,24 @@ def verify_release_files(root: Path, manifest: dict[str, Any]) -> None:
         unexpected = sorted(actual - set(expected))
         raise ValueError(f"Release file allowlist mismatch; missing={missing}, unexpected={unexpected}.")
     for relative_path, checksum in expected.items():
-        if sha256_file(root / relative_path) != checksum:
+        artifact_path = root / relative_path
+        if sha256_file(artifact_path) != checksum:
             raise ValueError(f"Checksum mismatch: {relative_path}.")
+        if artifact_path.name == "production_readiness.json":
+            readiness = read_json_dict(artifact_path)
+            context = readiness.get("context")
+            if not isinstance(context, dict):
+                raise ValueError(f"Production readiness context is missing: {relative_path}.")
+            internal_target = (
+                f"{str(context.get('crop_name') or '').strip().lower()}__"
+                f"{str(context.get('part_name') or '').strip().lower()}"
+            )
+            expected_target = str(records[relative_path]["target_id"])
+            if internal_target != expected_target:
+                raise ValueError(
+                    "Production readiness target mismatch: "
+                    f"expected={expected_target}, actual={internal_target}, path={relative_path}."
+                )
 
 
 class GitHubReleaseClient:

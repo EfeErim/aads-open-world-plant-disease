@@ -14,7 +14,7 @@ keywords = ["computer-vision", "continual-learning", "lora", "open-set-recogniti
 
 [project.urls]
 Repository = "https://github.com/EfeErim/bitirmeprojesi"
-Release = "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1"
+Release = "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2"
 
 [project.scripts]
 aads = "src.app.cli:main"
@@ -41,6 +41,18 @@ exclude = [".runtime_tmp", ".venv", "colab_notebooks"]
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/notebook_cells/*.py" = ["E402", "F401", "F821", "I001"]
+"scripts/augment_runtime_train_split.py" = ["E402"]
+"scripts/benchmark_runtime_real.py" = ["E402"]
+"scripts/build_m2_balanced_demo_manifest.py" = ["E402"]
+"scripts/build_m2_problem_only_manifest.py" = ["E402"]
+"scripts/evaluate_router_surface.py" = ["E402"]
+"scripts/recompute_readiness_knn.py" = ["E402"]
+"scripts/run_calibration_wrapper.py" = ["E402"]
+"scripts/run_calibration_wrapper_small.py" = ["E402"]
+"scripts/validate_dataset_layout.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

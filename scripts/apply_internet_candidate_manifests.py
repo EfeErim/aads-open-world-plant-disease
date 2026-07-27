@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-
 IMAGE_MANIFEST_SUFFIX = "_placement_manifest.json"
 SUPPORTED_TARGET_SPLITS = {"ood", "oe"}
 

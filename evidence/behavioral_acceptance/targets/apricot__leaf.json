@@ -1,0 +1,159 @@
+{
+  "schema_version": "v1_adapter_behavioral_acceptance",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "status": "fail",
+  "pass": false,
+  "metrics": {
+    "accuracy": 0.9402984976768494,
+    "balanced_accuracy": 0.9389541191503725,
+    "macro_f1": 0.9400172469853117,
+    "id_test_samples": 134.0,
+    "id_accepted_correct_count": 121,
+    "id_false_rejection_count": 11,
+    "id_missing_decision_count": 0,
+    "id_false_rejection_rate": 0.08208955223880597,
+    "same_crop_ood_test_samples": 59.0,
+    "same_crop_ood_rejected_count": 12,
+    "forced_supported_answer_count": 47,
+    "same_crop_ood_missing_decision_count": 0,
+    "same_crop_ood_rejection_rate": 0.2033898305084746
+  },
+  "checks": {
+    "accuracy": {
+      "value": 0.9402984976768494,
+      "operator": ">=",
+      "threshold": 0.93,
+      "passed": true
+    },
+    "balanced_accuracy": {
+      "value": 0.9389541191503725,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": true
+    },
+    "macro_f1": {
+      "value": 0.9400172469853117,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": true
+    },
+    "id_test_samples": {
+      "value": 134.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "id_false_rejection_rate": {
+      "value": 0.08208955223880597,
+      "operator": "<=",
+      "threshold": 0.05,
+      "passed": false
+    },
+    "same_crop_ood_test_samples": {
+      "value": 59.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "forced_supported_answer_count": {
+      "value": 47,
+      "operator": "<=",
+      "threshold": 0.0,
+      "passed": false
+    },
+    "same_crop_ood_rejection_rate": {
+      "value": 0.2033898305084746,
+      "operator": ">=",
+      "threshold": 1.0,
+      "passed": false
+    },
+    "id_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    },
+    "same_crop_ood_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    }
+  },
+  "failure_reasons": [
+    "id_false_rejection_rate",
+    "forced_supported_answer_count",
+    "same_crop_ood_rejection_rate"
+  ],
+  "same_crop_ood_per_disease": {
+    "apricot_alternaria_spot": {
+      "forced_supported_answer": 11,
+      "samples": 11
+    },
+    "apricot_bacterial_canker": {
+      "forced_supported_answer": 12,
+      "rejected": 1,
+      "samples": 13
+    },
+    "apricot_leaf_curl": {
+      "forced_supported_answer": 8,
+      "rejected": 2,
+      "samples": 10
+    },
+    "apricot_powdery_mildew": {
+      "forced_supported_answer": 9,
+      "rejected": 2,
+      "samples": 11
+    },
+    "apricot_rust": {
+      "forced_supported_answer": 7,
+      "rejected": 7,
+      "samples": 14
+    }
+  },
+  "context": {
+    "run_id": "apricot_leaf_2026-07-19_11-15-44",
+    "crop_name": "apricot",
+    "part_name": "leaf",
+    "classification_split": "test",
+    "ood_scope": "same_crop_same_part_unsupported_disease",
+    "router_scope_excluded": [
+      "wrong_part",
+      "other_plant",
+      "non_plant"
+    ],
+    "production_readiness_status": "failed",
+    "frozen_dev_winner": true,
+    "dataset_lineage": {
+      "schema_version": "aads.dataset_lineage.v1",
+      "source_kind": "github_release",
+      "production_eligible": true,
+      "repository": "EfeErim/bitirmeprojesi",
+      "release_tag": "aads-dataset-v1.0.0",
+      "release_id": 356157022,
+      "tag_commit_sha": "e7981e25a1df4b0b89d5cec8af441c2f59eef2ee",
+      "release_manifest_sha256": "f5344aaed8eff114e3af2f9e812dcf7d64c82ece65aa3705d1c6ab703efd67ad",
+      "snapshot_manifest_sha256": "fbc01b79e907ecda438f9fc9feafe50ed4c0f33ef68a97001370f4229c5e2ff7",
+      "asset_inventory": [
+        {
+          "asset_id": 481669080,
+          "asset_name": "aads-dataset-v1.0.0-shard-0001.zip",
+          "sha256": "930d9fa4aa0010c194b7867f4ce54ea7ebff53107e19a418c6b627d5a2933146",
+          "size_bytes": 1893485352
+        },
+        {
+          "asset_id": 481690637,
+          "asset_name": "aads-dataset-v1.0.0-shard-0002.zip",
+          "sha256": "c9fc18f6aab1c82dada6c3bd6819916705fd766dac648c584981adc88a4591e7",
+          "size_bytes": 1081645078
+        }
+      ],
+      "asset_inventory_sha256": "ba4a057ac4bc4a78065485033fec7f79eda44fdb9fb5b7662f050eb1ba065178",
+      "release_lineage_key": "github_release::df52b8c7ac279ceca8a56cf8a6580b002fd83e6e76a2d9e373adf4bfa66ae05d",
+      "dataset_key": "apricot__leaf",
+      "split_manifest_sha256": "2999ffe4d02410c10fb10e5c4e29d00a0782db19bc40f010ca84d2c038cd9e01",
+      "dataset_lineage_key": "github_release_target::c327e620ad1ed2255041829a6a3096c812e315fa88316d26f74f81e59756980b",
+      "release_manifest_path": "/content/bitirmeprojesi/docs/evidence/current/dataset_release/phase9_full_github_release_manifest.json"
+    }
+  }
+}

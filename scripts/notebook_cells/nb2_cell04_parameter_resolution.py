@@ -121,7 +121,12 @@ if "ColabLiveTelemetry" in globals() and "TrainingCheckpointManager" in globals(
 # Bu hucreyi duzenleyin, sonra kalan hucreleri sirayla calistirin.
 # Kosu kimligi icin CROP_NAME/PART_NAME degerlerini ustteki hucreden yonetin.
 
-# Runtime datasets are fetched from one fixed immutable private GitHub Release into this local cache.
+# The public notebook defaults to a deterministic synthetic smoke dataset.
+# Maintainers can opt into the private immutable Release by setting DATASET_SOURCE_KIND="github_release".
+DATASET_SOURCE_KIND = str(globals().get("DATASET_SOURCE_KIND", "public_sample")).strip().lower()
+PUBLIC_SAMPLE_ROOT = str(
+    globals().get("PUBLIC_SAMPLE_ROOT", "data/public_sample_runtime_datasets")
+).strip()
 DATASET_RELEASE_REPOSITORY = str(
     globals().get("DATASET_RELEASE_REPOSITORY", "EfeErim/bitirmeprojesi")
 ).strip()
@@ -129,8 +134,7 @@ DATASET_RELEASE_TAG = str(globals().get("DATASET_RELEASE_TAG", "aads-dataset-v1.
 DATASET_RELEASE_CACHE_ROOT = str(
     globals().get("DATASET_RELEASE_CACHE_ROOT", ".runtime_tmp/dataset_release_cache")
 ).strip()
-RUNTIME_DATASET_ROOT = str(globals().get("RUNTIME_DATASET_ROOT", "")).strip()
-DATASET_SOURCE_KIND = "github_release"
+RUNTIME_DATASET_ROOT = str(globals().get("RUNTIME_DATASET_ROOT", PUBLIC_SAMPLE_ROOT)).strip()
 DATASET_RELEASE_MANIFEST_PATH = str(
     globals().get(
         "DATASET_RELEASE_MANIFEST_PATH",
@@ -299,6 +303,32 @@ _adapter_default_overrides.setdefault("RANDAUGMENT_MAGNITUDE", 7)
 _adapter_default_overrides.setdefault("NUM_WORKERS", 12)
 _adapter_default_overrides.setdefault("PREFETCH", 8)
 _adapter_default_overrides.setdefault("CACHE_TRAIN_SPLIT", True)
+if DATASET_SOURCE_KIND == "public_sample":
+    RUNTIME_DATASET_ROOT = PUBLIC_SAMPLE_ROOT
+    DATASET_RELEASE_MANIFEST_PATH = ""
+    OOD_ROOT = ""
+    ASK_FOR_OOD_ROOT = False
+    OE_ROOT = ""
+    ASK_FOR_OE_ROOT = False
+    OE_ENABLED = True
+    ALLOW_UNDER_MIN_TRAINING = True
+    ENABLE_BAYESIAN_OPTIMIZATION = False
+    AUTO_PUSH_TO_GITHUB = False
+    AUTO_DISCONNECT_RUNTIME = False
+    _adapter_default_overrides.update(
+        {
+            "EPOCHS": 1,
+            "BATCH_SIZE": 4,
+            "NUM_WORKERS": 0,
+            "PREFETCH": 2,
+            "USE_CACHE": False,
+            "CACHE_TRAIN_SPLIT": False,
+            "CHECKPOINT_EVERY_N_STEPS": 0,
+            "AUTO_PUSH_TO_GITHUB": False,
+            "AUTO_DISCONNECT_RUNTIME": False,
+            "ENABLE_BAYESIAN_OPTIMIZATION": False,
+        }
+    )
 _adapter_default_overrides["ENABLE_BAYESIAN_OPTIMIZATION"] = bool(
     _adapter_default_overrides.get("ENABLE_BAYESIAN_OPTIMIZATION", ENABLE_BAYESIAN_OPTIMIZATION)
 )
@@ -479,7 +509,8 @@ print(
     f"auto_push={AUTO_PUSH_TO_GITHUB} bayes_opt={ENABLE_BAYESIAN_OPTIMIZATION}"
 )
 print(
-    f"[DATASET] release={DATASET_RELEASE_REPOSITORY}@{DATASET_RELEASE_TAG} "
+    f"[DATASET] source={DATASET_SOURCE_KIND} sample_root={PUBLIC_SAMPLE_ROOT} "
+    f"release={DATASET_RELEASE_REPOSITORY}@{DATASET_RELEASE_TAG} "
     f"cache={DATASET_RELEASE_CACHE_ROOT} dataset_name={DATASET_NAME or ADAPTER_KEY}"
 )
 print(

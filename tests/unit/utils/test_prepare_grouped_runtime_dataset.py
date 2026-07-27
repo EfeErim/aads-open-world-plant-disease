@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 from scripts.prepare_grouped_runtime_dataset import (
     ImageRecord,
     _compute_neighbor_pairs,
+    _encode_with_oom_retries,
     _estimate_grouped_split_counts,
     _has_synthetic_hint,
     _infer_source_like_group,
@@ -38,6 +39,37 @@ def _fake_embeddings(paths, *, model_id: str, batch_size: int, device: str):  # 
     if size == 0:
         return np.empty((0, 0), dtype=np.float32)
     return np.eye(size, dtype=np.float32)
+
+
+def test_encode_with_oom_retries_forwards_batch_progress_and_reduces_batch_size(monkeypatch):
+    attempts = []
+    batch_updates = []
+    status_updates = []
+
+    def encode(paths, *, batch_size, progress_fn):
+        attempts.append(batch_size)
+        if batch_size == 4:
+            raise RuntimeError("CUDA out of memory")
+        progress_fn(len(paths), len(paths))
+        return np.ones((len(paths), 1), dtype=np.float32)
+
+    monkeypatch.setattr(
+        "scripts.prepare_grouped_runtime_dataset._is_cuda_oom",
+        lambda exc: "out of memory" in str(exc).lower(),
+    )
+    result = _encode_with_oom_retries(
+        encode,
+        paths=[Path("a.jpg"), Path("b.jpg")],
+        batch_size=4,
+        progress_fn=status_updates.append,
+        batch_progress_fn=lambda done, total: batch_updates.append((done, total)),
+        label="test encoder",
+    )
+
+    assert result.shape == (2, 1)
+    assert attempts == [4, 2]
+    assert batch_updates == [(2, 2)]
+    assert status_updates == ["test encoder CUDA OOM at batch_size=4; retrying with batch_size=2."]
 
 
 class _FakeModel:

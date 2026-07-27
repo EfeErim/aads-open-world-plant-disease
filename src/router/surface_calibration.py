@@ -359,7 +359,7 @@ def strip_samples(variant: JsonDict) -> JsonDict:
     return slim
 
 
-def _sorted_numeric_summary(values: Sequence[Any]) -> JsonDict:
+def _sorted_numeric_summary(values: Iterable[Any]) -> JsonDict:
     cleaned = [float(value) for value in values if value is not None]
     if not cleaned:
         return {"count": 0, "min": None, "median": None, "mean": None, "p95": None, "max": None}
@@ -377,7 +377,7 @@ def _sorted_numeric_summary(values: Sequence[Any]) -> JsonDict:
 
 
 def _top_counts(values: Iterable[Any], *, limit: int = 5) -> List[JsonDict]:
-    counts = Counter()
+    counts: Counter[str] = Counter()
     for value in values:
         if value is None:
             continue
@@ -442,8 +442,8 @@ def build_failure_analysis(samples: Sequence[JsonDict], *, limit: int = 5) -> Js
         ),
     )[: max(1, int(limit))]
 
-    false_accept_causes = Counter()
-    false_reject_causes = Counter()
+    false_accept_causes: Counter[str] = Counter()
+    false_reject_causes: Counter[str] = Counter()
     for row in false_accepts:
         false_accept_causes.update(_variant_failure_causes(row))
     for row in false_rejects:

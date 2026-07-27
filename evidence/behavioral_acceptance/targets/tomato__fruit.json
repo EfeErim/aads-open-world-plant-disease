@@ -1,0 +1,134 @@
+{
+  "schema_version": "v1_adapter_behavioral_acceptance",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "status": "fail",
+  "pass": false,
+  "metrics": {
+    "accuracy": 0.8991596698760986,
+    "balanced_accuracy": 0.9317176145820646,
+    "macro_f1": 0.8778993086262717,
+    "id_test_samples": 119.0,
+    "id_accepted_correct_count": 101,
+    "id_false_rejection_count": 11,
+    "id_missing_decision_count": 0,
+    "id_false_rejection_rate": 0.09243697478991597,
+    "same_crop_ood_test_samples": 64.0,
+    "same_crop_ood_rejected_count": 36,
+    "forced_supported_answer_count": 28,
+    "same_crop_ood_missing_decision_count": 0,
+    "same_crop_ood_rejection_rate": 0.5625
+  },
+  "checks": {
+    "accuracy": {
+      "value": 0.8991596698760986,
+      "operator": ">=",
+      "threshold": 0.93,
+      "passed": false
+    },
+    "balanced_accuracy": {
+      "value": 0.9317176145820646,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": true
+    },
+    "macro_f1": {
+      "value": 0.8778993086262717,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "id_test_samples": {
+      "value": 119.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "id_false_rejection_rate": {
+      "value": 0.09243697478991597,
+      "operator": "<=",
+      "threshold": 0.05,
+      "passed": false
+    },
+    "same_crop_ood_test_samples": {
+      "value": 64.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "forced_supported_answer_count": {
+      "value": 28,
+      "operator": "<=",
+      "threshold": 0.0,
+      "passed": false
+    },
+    "same_crop_ood_rejection_rate": {
+      "value": 0.5625,
+      "operator": ">=",
+      "threshold": 1.0,
+      "passed": false
+    },
+    "id_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    },
+    "same_crop_ood_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    }
+  },
+  "failure_reasons": [
+    "accuracy",
+    "macro_f1",
+    "id_false_rejection_rate",
+    "forced_supported_answer_count",
+    "same_crop_ood_rejection_rate"
+  ],
+  "same_crop_ood_per_disease": {
+    "tomato_alternaria_fruit_rot": {
+      "forced_supported_answer": 6,
+      "rejected": 4,
+      "samples": 10
+    },
+    "tomato_bacterial_canker": {
+      "forced_supported_answer": 3,
+      "rejected": 16,
+      "samples": 19
+    },
+    "tomato_buckeye_rot": {
+      "forced_supported_answer": 13,
+      "rejected": 1,
+      "samples": 14
+    },
+    "tomato_fruit_cracking": {
+      "forced_supported_answer": 6,
+      "rejected": 15,
+      "samples": 21
+    }
+  },
+  "context": {
+    "run_id": "tomato_fruit_2026-07-18_10-05-04",
+    "crop_name": "tomato",
+    "part_name": "fruit",
+    "classification_split": "test",
+    "ood_scope": "same_crop_same_part_unsupported_disease",
+    "router_scope_excluded": [
+      "wrong_part",
+      "other_plant",
+      "non_plant"
+    ],
+    "production_readiness_status": "failed",
+    "dataset_lineage": {
+      "schema_version": "aads.dataset_lineage.v1",
+      "source_kind": "local_legacy",
+      "production_eligible": false,
+      "dataset_key": "tomato__fruit",
+      "split_manifest_sha256": "9cd42d7ca16c683c4260ecfec907daae5624bbcfd174759c182a7f32615d84e3",
+      "compatibility_reason": "notebook17_active_recovery_campaign_until_phase9",
+      "dataset_lineage_key": "local_legacy::tomato__fruit::9cd42d7ca16c683c4260ecfec907daae5624bbcfd174759c182a7f32615d84e3"
+    }
+  }
+}

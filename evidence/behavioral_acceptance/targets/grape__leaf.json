@@ -1,0 +1,124 @@
+{
+  "schema_version": "v1_adapter_behavioral_acceptance",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "status": "fail",
+  "pass": false,
+  "metrics": {
+    "accuracy": 0.9104938507080078,
+    "balanced_accuracy": 0.8998771325820506,
+    "macro_f1": 0.8986197770266461,
+    "id_test_samples": 324.0,
+    "id_accepted_correct_count": 287,
+    "id_false_rejection_count": 11,
+    "id_missing_decision_count": 0,
+    "id_false_rejection_rate": 0.033950617283950615,
+    "same_crop_ood_test_samples": 16.0,
+    "same_crop_ood_rejected_count": 6,
+    "forced_supported_answer_count": 10,
+    "same_crop_ood_missing_decision_count": 0,
+    "same_crop_ood_rejection_rate": 0.375
+  },
+  "checks": {
+    "accuracy": {
+      "value": 0.9104938507080078,
+      "operator": ">=",
+      "threshold": 0.93,
+      "passed": false
+    },
+    "balanced_accuracy": {
+      "value": 0.8998771325820506,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "macro_f1": {
+      "value": 0.8986197770266461,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "id_test_samples": {
+      "value": 324.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "id_false_rejection_rate": {
+      "value": 0.033950617283950615,
+      "operator": "<=",
+      "threshold": 0.05,
+      "passed": true
+    },
+    "same_crop_ood_test_samples": {
+      "value": 16.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": false
+    },
+    "forced_supported_answer_count": {
+      "value": 10,
+      "operator": "<=",
+      "threshold": 0.0,
+      "passed": false
+    },
+    "same_crop_ood_rejection_rate": {
+      "value": 0.375,
+      "operator": ">=",
+      "threshold": 1.0,
+      "passed": false
+    },
+    "id_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    },
+    "same_crop_ood_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    }
+  },
+  "failure_reasons": [
+    "accuracy",
+    "balanced_accuracy",
+    "macro_f1",
+    "same_crop_ood_test_samples",
+    "forced_supported_answer_count",
+    "same_crop_ood_rejection_rate"
+  ],
+  "same_crop_ood_per_disease": {
+    "grape_gray_mold": {
+      "rejected": 1,
+      "samples": 1
+    },
+    "grape_phomopsis": {
+      "forced_supported_answer": 10,
+      "rejected": 5,
+      "samples": 15
+    }
+  },
+  "context": {
+    "run_id": "grape_leaf_2026-07-18_09-41-26",
+    "crop_name": "grape",
+    "part_name": "leaf",
+    "classification_split": "test",
+    "ood_scope": "same_crop_same_part_unsupported_disease",
+    "router_scope_excluded": [
+      "wrong_part",
+      "other_plant",
+      "non_plant"
+    ],
+    "production_readiness_status": "failed",
+    "dataset_lineage": {
+      "schema_version": "aads.dataset_lineage.v1",
+      "source_kind": "local_legacy",
+      "production_eligible": false,
+      "dataset_key": "grape__leaf",
+      "split_manifest_sha256": "fcd69a4d3ed3e14bedca6fc4dcf0eaee0d4c472db76d7fb5c8ad56e2399fae54",
+      "compatibility_reason": "notebook17_active_recovery_campaign_until_phase9",
+      "dataset_lineage_key": "local_legacy::grape__leaf::fcd69a4d3ed3e14bedca6fc4dcf0eaee0d4c472db76d7fb5c8ad56e2399fae54"
+    }
+  }
+}

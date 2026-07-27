@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 from src.pipeline import adapter_discovery as ad
 
@@ -14,8 +14,8 @@ def make_adapter_bundle(root: Path, crop: str, part: str) -> Path:
 
 def test_discover_fallback_adapter_dir(tmp_path: Path):
     root = tmp_path / "models" / "adapters"
-    b1 = make_adapter_bundle(root, "apple", "main")
-    b2 = make_adapter_bundle(root, "apple", "other")
+    make_adapter_bundle(root, "apple", "main")
+    make_adapter_bundle(root, "apple", "other")
     # request exact match
     found = ad.discover_fallback_adapter_dir(root, crop_name="apple", part_name="main", allow_cross_part=False)
     assert found is not None

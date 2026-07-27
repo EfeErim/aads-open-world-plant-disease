@@ -5,8 +5,9 @@ Analyzes post-cleanup state and provides actionable improvements.
 """
 
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 
 def generate_recommendations() -> dict:
     """Generate comprehensive optimization recommendations."""
@@ -155,7 +156,7 @@ def main():
     print("="*60)
 
     summary = recommendations["cleanup_summary"]
-    print(f"\n🧹 Cleanup Results:")
+    print("\n🧹 Cleanup Results:")
     print(f"  Duplicates removed: {summary['duplicates_removed']:,}")
     print(f"  Space freed: {summary['space_freed_mb']:.1f} MB")
     print(f"  Errors: {summary['failed_removals']}")
@@ -165,11 +166,11 @@ def main():
         print(f"  [{item['priority']}] {item['area']}")
         print(f"      {item['recommendation'][:70]}...")
 
-    print(f"\n✨ Next Steps:")
-    print(f"  1. Archive original .zip files to backup storage")
-    print(f"  2. Add metadata manifests to OOD/OE folders")
-    print(f"  3. Monitor OOD/FPR metrics in training runs")
-    print(f"  4. Schedule quarterly slice distribution audits")
+    print("\n✨ Next Steps:")
+    print("  1. Archive original .zip files to backup storage")
+    print("  2. Add metadata manifests to OOD/OE folders")
+    print("  3. Monitor OOD/FPR metrics in training runs")
+    print("  4. Schedule quarterly slice distribution audits")
 
     return recommendations
 

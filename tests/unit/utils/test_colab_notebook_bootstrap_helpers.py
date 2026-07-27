@@ -3,11 +3,12 @@ from pathlib import Path
 from scripts import colab_notebook_bootstrap_helpers as bootstrap_helpers
 
 
-def test_presentation_colab_profile_keeps_peft_compatible_torchao_pin():
+def test_presentation_colab_profile_does_not_force_incompatible_torchao():
     repo_root = Path(__file__).resolve().parents[3]
     requirements = (repo_root / "requirements_presentation_colab.txt").read_text(encoding="utf-8").splitlines()
 
-    assert "torchao==0.17.0" in requirements
+    assert not any(line.startswith("torchao") for line in requirements)
+    assert "peft~=0.19.1" in requirements
 
 
 def test_setup_notebook_environment_uses_repo_relative_requirements_override(tmp_path: Path, monkeypatch, capsys):

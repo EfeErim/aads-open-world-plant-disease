@@ -400,7 +400,6 @@ def _score_row(row: dict[str, Any], *, target_set: set[str]) -> tuple[int, list[
     reasons: list[str] = []
     pass_fail = str(row.get("pass_fail") or "").lower()
     actual_status = str(row.get("actual_status") or "").lower()
-    predicted_disease = str(row.get("predicted_disease") or "").strip()
     reconcile_reason = str(row.get("reconcile_reason") or "").strip()
     failure_bucket = str(row.get("failure_bucket") or "").strip()
 

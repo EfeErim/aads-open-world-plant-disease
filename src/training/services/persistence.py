@@ -239,7 +239,14 @@ def capture_rng_state(*, np_module: Any = None) -> Dict[str, Any]:
     if torch.cuda.is_available():
         payload["torch_cuda"] = torch.cuda.get_rng_state_all()
     if np_module is not None:
-        payload["numpy"] = np_module.random.get_state()
+        algorithm, keys, position, has_gauss, cached_gaussian = np_module.random.get_state()
+        payload["numpy"] = {
+            "algorithm": str(algorithm),
+            "keys": [int(value) for value in keys.tolist()],
+            "position": int(position),
+            "has_gauss": int(has_gauss),
+            "cached_gaussian": float(cached_gaussian),
+        }
     return payload
 
 
@@ -271,7 +278,17 @@ def restore_rng_state(payload: Dict[str, Any], *, np_module: Any = None) -> None
     numpy_state = payload.get("numpy")
     if numpy_state is not None and np_module is not None:
         try:
-            np_module.random.set_state(numpy_state)
+            if not isinstance(numpy_state, dict):
+                raise TypeError("NumPy RNG state must use the safe mapping format.")
+            np_module.random.set_state(
+                (
+                    str(numpy_state["algorithm"]),
+                    np_module.asarray(numpy_state["keys"], dtype=np_module.uint32),
+                    int(numpy_state["position"]),
+                    int(numpy_state["has_gauss"]),
+                    float(numpy_state["cached_gaussian"]),
+                )
+            )
         except Exception as exc:
             raise RuntimeError("Failed to restore checkpoint NumPy RNG state.") from exc
 

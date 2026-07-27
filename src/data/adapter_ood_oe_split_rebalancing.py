@@ -151,25 +151,25 @@ def rebalance_runtime_id_splits(
     )
 
     move_by_family: dict[tuple[str, str], FamilyMove] = {}
-    for move in moves:
-        move_by_family[(move.disease_id, move.family_key)] = move
+    for planned_move in moves:
+        move_by_family[(planned_move.disease_id, planned_move.family_key)] = planned_move
 
     file_moves: list[tuple[Path, Path, dict[str, Any], str]] = []
     reserved: set[Path] = set()
     for row in _active_rows(rows):
         key = (str(row.get("normalized_class_name") or ""), _family_key(row))
-        move = move_by_family.get(key)
-        if move is None or str(row.get("split") or "") == move.destination_split:
+        selected_move = move_by_family.get(key)
+        if selected_move is None or str(row.get("split") or "") == selected_move.destination_split:
             continue
         source = root / Path(str(row.get("runtime_relative_path") or ""))
-        destination = _destination_path(root, row, move.destination_split)
+        destination = _destination_path(root, row, selected_move.destination_split)
         if destination in reserved or (destination.exists() and destination != source):
-            family_suffix = hashlib.sha256(move.family_key.encode("utf-8")).hexdigest()[:8]
+            family_suffix = hashlib.sha256(selected_move.family_key.encode("utf-8")).hexdigest()[:8]
             destination = destination.with_name(f"{destination.stem}__family_{family_suffix}{destination.suffix}")
         if not source.is_file():
             raise FileNotFoundError(f"Runtime split source is missing: {source}")
         reserved.add(destination)
-        file_moves.append((source, destination, row, move.destination_split))
+        file_moves.append((source, destination, row, selected_move.destination_split))
 
     if not dry_run:
         for source, destination, row, destination_split in file_moves:

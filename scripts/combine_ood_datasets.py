@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Combine and reorganize OOD datasets into standard structure."""
 
-import os
 import shutil
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 OOD_BASE = Path(__file__).parent.parent / "data" / "ood_dataset"
 DEST_DIR = OOD_BASE / "ood_tomato_fruit_combined"

@@ -19,11 +19,11 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
           cache: pip
@@ -40,16 +40,28 @@ jobs:
           python scripts/audit_code_organization.py
           python scripts/validate_config_schema.py
           python scripts/validate_notebook_imports.py
+          python scripts/build_behavioral_acceptance_summary.py --check
 
-      - name: Lint maintained source
+      - name: Lint maintained repository
         run: |
-          ruff check src scripts/fetch_public_adapters.py tests/unit/workflows tests/unit/shared
+          ruff check src scripts tests
 
-      - name: Unit tests
+      - name: Type-check maintained runtime surfaces
+        run: |
+          mypy --follow-imports skip \
+            src/shared src/data src/training/continual_sd_lora.py src/router src/workflows \
+            src/pipeline/router_adapter_runtime.py src/pipeline/inference_payloads.py \
+            src/adapter src/core/config_manager.py scripts/benchmark_surfaces.py
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
+      - name: Unit and Colab smoke tests
         shell: bash
         run: |
           set +e
-          pytest tests/unit -q --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=0 \
+          pytest tests/unit tests/colab/test_smoke_training.py -q \
+            --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=0 \
             --junitxml=.runtime_tmp/pytest-unit.xml
           status=$?
           python - <<'PY'
@@ -71,3 +83,6 @@ jobs:
               print(f"::error file={path},line={line},title={name}::{message}")
           PY
           exit "$status"
+
+      - name: Integration tests
+        run: pytest tests/integration -q --runintegration

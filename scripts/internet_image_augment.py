@@ -16,17 +16,15 @@ import argparse
 import hashlib
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+import numpy as np
 import requests
 from PIL import Image, ImageOps
-import numpy as np
 
-from scripts.prepare_grouped_runtime_dataset import SOURCE_LIKE_WEBSITE_KEYWORDS, EVAL_RISK_KEYWORDS
-
+from scripts.prepare_grouped_runtime_dataset import EVAL_RISK_KEYWORDS, SOURCE_LIKE_WEBSITE_KEYWORDS
 
 PHASH_SIZE = 8
 

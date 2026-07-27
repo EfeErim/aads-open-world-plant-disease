@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import json
-from html import escape
 from functools import lru_cache
+from html import escape
 from pathlib import Path
 from typing import Any, Optional
 
@@ -79,8 +79,14 @@ def _ensure_adapter_smoke_imports():
     if _build_prediction_visualization_images is None:
         from src.pipeline.adapter_smoke import (
             build_prediction_visualization_images as _bpvi,
+        )
+        from src.pipeline.adapter_smoke import (
             discover_adapter_candidates as _dac,
+        )
+        from src.pipeline.adapter_smoke import (
             load_adapter_summary as _las,
+        )
+        from src.pipeline.adapter_smoke import (
             predict_single_image as _psi,
         )
         _build_prediction_visualization_images = build_prediction_visualization_images or _bpvi

@@ -1,8 +1,8 @@
 {
-  "schema_version": "aads.public_behavioral_acceptance_summary.v1",
+  "schema_version": "aads.public_behavioral_acceptance_summary.v2",
   "created_at": "2026-07-27",
   "source_commit": "539397bb72bde59e4b092ac1286b5415fe78dbac",
-  "selection_rule": "Lexicographically newest tracked checkpoint_state/artifacts/adapter_behavioral_acceptance.json per target at source_commit.",
+  "selection_rule": "Newest tracked checkpoint_state/artifacts/adapter_behavioral_acceptance.json per target at source_commit, copied into evidence/behavioral_acceptance/targets.",
   "decision_authority": "adapter_behavioral_acceptance",
   "passed_targets": 0,
   "total_targets": 8,
@@ -10,13 +10,14 @@
     "accuracy_min": 0.93,
     "balanced_accuracy_min": 0.9,
     "macro_f1_min": 0.9,
-    "id_test_samples_min": 30,
+    "id_test_samples_min": 30.0,
     "id_false_rejection_rate_max": 0.05,
-    "same_crop_ood_test_samples_min": 30,
-    "forced_supported_answer_count_max": 0,
+    "same_crop_ood_test_samples_min": 30.0,
+    "forced_supported_answer_count_max": 0.0,
     "same_crop_ood_rejection_rate_min": 1.0
   },
   "scope_note": "These are tracked adapter-level acceptance records, not a new rerun and not field-performance estimates. A missing same-crop OOD rejection rate means the selected artifact contained zero eligible same-crop OOD test samples.",
+  "rebuild_command": "python scripts/build_behavioral_acceptance_summary.py --check",
   "targets": {
     "apricot__fruit": {
       "run_id": "apricot_fruit_2026-07-19_11-51-16",
@@ -37,8 +38,8 @@
         "same_crop_ood_test_samples",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/apricot/fruit/apricot_fruit_2026-07-19_11-51-16/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "abf5c51020c01c02dcaad95bc04a25ef05bb1bdd"
+      "source_path": "evidence/behavioral_acceptance/targets/apricot__fruit.json",
+      "source_sha256": "3875b14fd6c45596103b815e07550a812c3d6b600b878a5110c92387f2858697"
     },
     "apricot__leaf": {
       "run_id": "apricot_leaf_2026-07-19_11-15-44",
@@ -56,8 +57,8 @@
         "forced_supported_answer_count",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/apricot/leaf/apricot_leaf_2026-07-19_11-15-44/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "000c78d2b3ae8e653103dfd859a2a022039c3185"
+      "source_path": "evidence/behavioral_acceptance/targets/apricot__leaf.json",
+      "source_sha256": "cba850a74f5205b0345f9b4e6f9e1778c771745c7aa59b835c7d320df9f77417"
     },
     "grape__fruit": {
       "run_id": "grape_fruit_2026-07-18_09-36-39",
@@ -78,8 +79,8 @@
         "forced_supported_answer_count",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/grape/fruit/grape_fruit_2026-07-18_09-36-39/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "76004e7d6ca1882b7a8a403c4445a2877f1806cc"
+      "source_path": "evidence/behavioral_acceptance/targets/grape__fruit.json",
+      "source_sha256": "44460492ca0b8e8e75e8af89a8977ca6d7976e4accd2203e270ac3ea068b1e7b"
     },
     "grape__leaf": {
       "run_id": "grape_leaf_2026-07-18_09-41-26",
@@ -100,8 +101,8 @@
         "forced_supported_answer_count",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/grape/leaf/grape_leaf_2026-07-18_09-41-26/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "4ce8865accd8d53b1400c3a69eb707f98b36eb9f"
+      "source_path": "evidence/behavioral_acceptance/targets/grape__leaf.json",
+      "source_sha256": "0914983730fe517a89901c2b835b1eab55899684c4e697406aa6889711a1650b"
     },
     "strawberry__fruit": {
       "run_id": "strawberry_fruit_2026-07-19_12-02-46",
@@ -122,8 +123,8 @@
         "same_crop_ood_test_samples",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/strawberry/fruit/strawberry_fruit_2026-07-19_12-02-46/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "071b339e8811e1a05fed6df5dc0d8caabdb6d6ac"
+      "source_path": "evidence/behavioral_acceptance/targets/strawberry__fruit.json",
+      "source_sha256": "f6395a62c07d41b811369dd21946f8af7f28fb34927a443b6f6927db9e093422"
     },
     "strawberry__leaf": {
       "run_id": "strawberry_leaf_2026-07-19_11-57-26",
@@ -141,8 +142,8 @@
         "same_crop_ood_test_samples",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/strawberry/leaf/strawberry_leaf_2026-07-19_11-57-26/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "8141f0638ec7f13719dd6cbc4eb8f93190ff65e1"
+      "source_path": "evidence/behavioral_acceptance/targets/strawberry__leaf.json",
+      "source_sha256": "9bb0e1573c28a7d81df2f0320430e9cf8619c0c7ef1485b4a090e87d6f733ebc"
     },
     "tomato__fruit": {
       "run_id": "tomato_fruit_2026-07-18_10-05-04",
@@ -162,8 +163,8 @@
         "forced_supported_answer_count",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/tomato/fruit/tomato_fruit_2026-07-18_10-05-04/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "7c78576b356320c06e612b353497618220ffb03b"
+      "source_path": "evidence/behavioral_acceptance/targets/tomato__fruit.json",
+      "source_sha256": "8b506a4a1e67d9cfdddcfc7cabc055179da359713faae1d40d2a1f9d4e84be57"
     },
     "tomato__leaf": {
       "run_id": "tomato_leaf_2026-07-13_19-25-54",
@@ -182,8 +183,8 @@
         "forced_supported_answer_count",
         "same_crop_ood_rejection_rate"
       ],
-      "source_path": "runs/tomato/leaf/tomato_leaf_2026-07-13_19-25-54/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
-      "source_git_blob": "7ebc620060235ddd094f2f222c337ecd95547fa6"
+      "source_path": "evidence/behavioral_acceptance/targets/tomato__leaf.json",
+      "source_sha256": "cf35711d7a4d0cc5e59eff16e44e392128c5ade4d01d2086c78853c3231e3f65"
     }
   }
 }

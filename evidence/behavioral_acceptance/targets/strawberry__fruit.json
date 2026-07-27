@@ -1,0 +1,137 @@
+{
+  "schema_version": "v1_adapter_behavioral_acceptance",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "status": "fail",
+  "pass": false,
+  "metrics": {
+    "accuracy": 0.9158415794372559,
+    "balanced_accuracy": 0.8362612612612612,
+    "macro_f1": 0.8096482061999304,
+    "id_test_samples": 202.0,
+    "id_accepted_correct_count": 165,
+    "id_false_rejection_count": 29,
+    "id_missing_decision_count": 0,
+    "id_false_rejection_rate": 0.14356435643564355,
+    "same_crop_ood_test_samples": 0.0,
+    "same_crop_ood_rejected_count": 0,
+    "forced_supported_answer_count": 0,
+    "same_crop_ood_missing_decision_count": 0,
+    "same_crop_ood_rejection_rate": null
+  },
+  "checks": {
+    "accuracy": {
+      "value": 0.9158415794372559,
+      "operator": ">=",
+      "threshold": 0.93,
+      "passed": false
+    },
+    "balanced_accuracy": {
+      "value": 0.8362612612612612,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "macro_f1": {
+      "value": 0.8096482061999304,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "id_test_samples": {
+      "value": 202.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "id_false_rejection_rate": {
+      "value": 0.14356435643564355,
+      "operator": "<=",
+      "threshold": 0.05,
+      "passed": false
+    },
+    "same_crop_ood_test_samples": {
+      "value": 0.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": false
+    },
+    "forced_supported_answer_count": {
+      "value": 0,
+      "operator": "<=",
+      "threshold": 0.0,
+      "passed": true
+    },
+    "same_crop_ood_rejection_rate": {
+      "value": null,
+      "operator": ">=",
+      "threshold": 1.0,
+      "passed": false
+    },
+    "id_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    },
+    "same_crop_ood_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    }
+  },
+  "failure_reasons": [
+    "accuracy",
+    "balanced_accuracy",
+    "macro_f1",
+    "id_false_rejection_rate",
+    "same_crop_ood_test_samples",
+    "same_crop_ood_rejection_rate"
+  ],
+  "same_crop_ood_per_disease": {},
+  "context": {
+    "run_id": "strawberry_fruit_2026-07-19_12-02-46",
+    "crop_name": "strawberry",
+    "part_name": "fruit",
+    "classification_split": "test",
+    "ood_scope": "same_crop_same_part_unsupported_disease",
+    "router_scope_excluded": [
+      "wrong_part",
+      "other_plant",
+      "non_plant"
+    ],
+    "production_readiness_status": "failed",
+    "frozen_dev_winner": true,
+    "dataset_lineage": {
+      "schema_version": "aads.dataset_lineage.v1",
+      "source_kind": "github_release",
+      "production_eligible": true,
+      "repository": "EfeErim/bitirmeprojesi",
+      "release_tag": "aads-dataset-v1.0.0",
+      "release_id": 356157022,
+      "tag_commit_sha": "e7981e25a1df4b0b89d5cec8af441c2f59eef2ee",
+      "release_manifest_sha256": "f5344aaed8eff114e3af2f9e812dcf7d64c82ece65aa3705d1c6ab703efd67ad",
+      "snapshot_manifest_sha256": "fbc01b79e907ecda438f9fc9feafe50ed4c0f33ef68a97001370f4229c5e2ff7",
+      "asset_inventory": [
+        {
+          "asset_id": 481669080,
+          "asset_name": "aads-dataset-v1.0.0-shard-0001.zip",
+          "sha256": "930d9fa4aa0010c194b7867f4ce54ea7ebff53107e19a418c6b627d5a2933146",
+          "size_bytes": 1893485352
+        },
+        {
+          "asset_id": 481690637,
+          "asset_name": "aads-dataset-v1.0.0-shard-0002.zip",
+          "sha256": "c9fc18f6aab1c82dada6c3bd6819916705fd766dac648c584981adc88a4591e7",
+          "size_bytes": 1081645078
+        }
+      ],
+      "asset_inventory_sha256": "ba4a057ac4bc4a78065485033fec7f79eda44fdb9fb5b7662f050eb1ba065178",
+      "release_lineage_key": "github_release::df52b8c7ac279ceca8a56cf8a6580b002fd83e6e76a2d9e373adf4bfa66ae05d",
+      "dataset_key": "strawberry__fruit",
+      "split_manifest_sha256": "2db28abf784695505b2db80f533594b229155ce1142ad4a5499016bb2da3306c",
+      "dataset_lineage_key": "github_release_target::8a3bffbf08440e4a99f3fdee62483aef291cfe4a5eca552cbc285a7c2e6643ef",
+      "release_manifest_path": "/content/bitirmeprojesi/docs/evidence/current/dataset_release/phase9_full_github_release_manifest.json"
+    }
+  }
+}

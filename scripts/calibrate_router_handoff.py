@@ -8,8 +8,8 @@ cells but is testable and runnable from CI or the command line.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from scripts.utils.reporting import write_json
 
@@ -30,15 +30,15 @@ def main(argv=None):
     args = parse_args(argv)
     # Defer imports so repo can be on sys.path like in notebooks
     try:
-        from scripts.evaluate_router_surface import discover_eval_samples, evaluate_router_surface
         from scripts.calibrate_router_surface import calibrate_router_surface
+        from scripts.evaluate_router_surface import discover_eval_samples, evaluate_router_surface
     except Exception:
         # If running from a different cwd, insert repo root heuristics similar to the notebook
         repo_root = Path(__file__).resolve().parents[1]
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
-        from scripts.evaluate_router_surface import discover_eval_samples, evaluate_router_surface
         from scripts.calibrate_router_surface import calibrate_router_surface
+        from scripts.evaluate_router_surface import discover_eval_samples, evaluate_router_surface
 
     root = Path(args.router_eval_root)
     print(f"[CONFIG] eval_root={root}")

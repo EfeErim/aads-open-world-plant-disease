@@ -408,6 +408,11 @@ def test_training_notebook_dataset_contract_detection() -> None:
     )
     assert 'DATASET_RELEASE_REPOSITORY = str(' in sources.full_source
     assert 'DATASET_RELEASE_TAG = str(' in sources.full_source
+    assert 'DATASET_SOURCE_KIND = str(globals().get("DATASET_SOURCE_KIND", "public_sample"))' in sources.full_source
+    assert "materialize_public_sample_dataset(" in sources.full_source
+    assert '"production_eligible": False' in (
+        ROOT / "src" / "data" / "public_sample_dataset.py"
+    ).read_text(encoding="utf-8")
     assert "fetch_materialize_dataset_release(" in sources.full_source
     assert "from scripts.colab_training_recommendations import inspect_runtime_dataset" in sources.full_source
     assert "inspect_runtime_dataset" in sources.full_source
@@ -498,7 +503,8 @@ def test_training_notebook_bootstrap_contract() -> None:
         'DATASET_RELEASE_REPOSITORY = str(',
         'DATASET_RELEASE_TAG = str(',
         'DATASET_RELEASE_CACHE_ROOT = str(',
-        'DATASET_SOURCE_KIND = "github_release"',
+        'DATASET_SOURCE_KIND = str(globals().get("DATASET_SOURCE_KIND", "public_sample"))',
+        'PUBLIC_SAMPLE_ROOT = str(',
         'DATASET_RELEASE_MANIFEST_PATH = str(',
         'ALLOW_LOCAL_LEGACY_DATASET = False',
         'DATASET_NAME = ""',
