@@ -1,0 +1,21 @@
+﻿{
+  "schema_version": "v6",
+  "engine": "continual_sd_lora",
+  "crop_name": "tomato",
+  "class_to_idx": {
+    "disease_a": 0,
+    "healthy": 1
+  },
+  "ood_calibration": {
+    "version": 7,
+    "source_split": "val",
+    "source_loader_size": 2,
+    "authoritative_classification_split": "test",
+    "ood_evidence_source": "real_ood_split",
+    "primary_score_method": "ensemble",
+    "selection_source": "real_ood_guardrail_no_dev"
+  },
+  "adapter_runtime": {
+    "best_state_restored": true
+  }
+}

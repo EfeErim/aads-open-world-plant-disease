@@ -1,0 +1,121 @@
+{
+  "schema_version": "v1_turkey_adapter_disease_catalog",
+  "method": {
+    "scope": "Turkey, crop-and-visible-organ specific",
+    "ranking": "evidence_weighted",
+    "healthy_excluded": true,
+    "national_prevalence_caveat": "Ranks combine official importance, Turkish field occurrence and economic relevance; they are not claimed as a national prevalence census.",
+    "distribution_rule": "A disease is ID only when the current adapter has a semantically equivalent supported class for the same crop and organ."
+  },
+  "sources": {
+    "TR_GKGM_TOMATO": {"title": "Sebze Hastaliklari ve Zararlilari Rehberi", "url": "https://arastirma.tarimorman.gov.tr/zmmae/Sayfalar/Detay.aspx?SayfaId=36", "kind": "official"},
+    "TR_TOMATO_ELAZIG": {"title": "Elazig ili domates alanlarinda fungal hastaliklarin yayginligi", "url": "https://dergipark.org.tr/tr/pub/turkjans/issue/31628/346672", "kind": "field_study"},
+    "TR_TOMATO_ANKARA": {"title": "Ankara domates yaprak fungal hastaliklari", "url": "https://dergipark.org.tr/tr/pub/bitkorb/article/48788", "kind": "field_study"},
+    "TR_TOMATO_SILIFKE": {"title": "Silifke domates seralarinda bakteriyel hastaliklar", "url": "https://search.trdizin.gov.tr/tr/yayin/detay/1202151", "kind": "field_study"},
+    "TR_TOMATO_INTEGRATED": {"title": "Acik Alan Domates Entegre Mucadele Teknik Talimati", "url": "https://www.tarimorman.gov.tr/TAGEM/Belgeler/Entegre/A%C3%A7%C4%B1k%20Alan%20Domates%20Entegre%20M%C3%BCcadele%20Teknik%20Talimat%C4%B1.pdf", "kind": "official"},
+    "TR_GRAPE": {"title": "Onemli bag hastaliklari ve kulturel mucadele", "url": "https://meslek.meb.gov.tr/upload/dersmateryali/pdf/T2024UYG1009.pdf", "kind": "official"},
+    "TR_STRAWBERRY": {"title": "Cilek hastalik ve zararlilari", "url": "https://www.tarimorman.gov.tr/GKGM/Belgeler/Uretici_Bilgi_Kosesi/Dokumanlar/cilek.pdf", "kind": "official"},
+    "TR_STRAWBERRY_ANTALYA": {"title": "Antalya cileklerinde fungal etmenler", "url": "https://www.researchgate.net/publication/340359636_Antalya_ilinde_yetistirilen_cileklerde_hastaliga_neden_olan_fungal_etmenler", "kind": "field_study"},
+    "TR_APRICOT": {"title": "Sofralik kayisi yetistiriciligi", "url": "https://arastirma.tarimorman.gov.tr/alata/Belgeler/brosurler/brosur2022/Sofral%C4%B1kKay%C4%B1s%C4%B1Yeti%C5%9Ftiricili%C4%9FiMustafaB%C4%B0RCAN.pdf", "kind": "official"},
+    "TR_APRICOT_MONILIA": {"title": "Kayisida cicek monilyasi teknik raporu", "url": "https://arastirma.tarimorman.gov.tr/kayisi/Duyuru/56/Kayisida-Cicek-Monilyasi-Hastaligi-Ile-Ilgili-Teknik-Rapor", "kind": "official_field_report"},
+    "TR_APRICOT_SHOTHOLE": {"title": "Kayisida yaprak delen hastaligi", "url": "https://malatya.tarimorman.gov.tr/Sayfalar/Detay.aspx?Liste=Duyuru&OgeId=578", "kind": "official"}
+  },
+  "targets": {
+    "tomato__leaf": [
+      {"rank":1,"disease_id":"tomato_powdery_mildew","name_tr":"Domates küllemesi","pathogen":"Leveillula taurica / Oidium neolycopersici","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_ANKARA"],"status":"in_distribution","id_class":"domates_powdery_mildew_yaprak"},
+      {"rank":2,"disease_id":"tomato_early_blight","name_tr":"Erken yaprak yanıklığı","pathogen":"Alternaria solani","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_ANKARA"],"status":"in_distribution","id_class":"domates_early_blight_yaprak"},
+      {"rank":3,"disease_id":"tomato_late_blight","name_tr":"Domates mildiyösü / geç yanıklık","pathogen":"Phytophthora infestans","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_ELAZIG"],"status":"in_distribution","id_class":"domates_late_blight_yaprak"},
+      {"rank":4,"disease_id":"tomato_bacterial_spot_speck","name_tr":"Bakteriyel leke ve benek","pathogen":"Xanthomonas spp. / Pseudomonas syringae pv. tomato","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_SILIFKE"],"status":"in_distribution","id_class":"domates_bacterial_spot_and_speck_yaprak"},
+      {"rank":5,"disease_id":"tomato_leaf_mold","name_tr":"Domates yaprak küfü","pathogen":"Passalora fulva","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_ELAZIG"],"status":"in_distribution","id_class":"domates_leaf_mold_yaprak"},
+      {"rank":6,"disease_id":"tomato_septoria_leaf_spot","name_tr":"Septorya yaprak lekesi","pathogen":"Septoria lycopersici","evidence":"medium","sources":["TR_GKGM_TOMATO","TR_TOMATO_ELAZIG"],"status":"in_distribution","id_class":"domates_septoria_leaf_spot_yaprak"},
+      {"rank":7,"disease_id":"tomato_yellow_leaf_curl","name_tr":"Domates sarı yaprak kıvırcıklık virüsü","pathogen":"Tomato yellow leaf curl virus","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_yellow_leaf_curl_yaprak"},
+      {"rank":8,"disease_id":"tomato_spotted_wilt","name_tr":"Domates bronz leke virüsü","pathogen":"Tomato spotted wilt virus","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_spotted_wilt_yaprak"},
+      {"rank":9,"disease_id":"tomato_mosaic","name_tr":"Domates mozaik hastalığı","pathogen":"Tomato mosaic virus","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_mosaic_virüs_yaprak"},
+      {"rank":10,"disease_id":"tomato_bacterial_canker","name_tr":"Domates bakteriyel kanseri ve solgunluğu","pathogen":"Clavibacter michiganensis","evidence":"high","sources":["TR_TOMATO_SILIFKE"],"status":"out_of_distribution","id_class":null}
+    ],
+    "tomato__fruit": [
+      {"rank":1,"disease_id":"tomato_late_blight","name_tr":"Domates mildiyösü / geç yanıklık","pathogen":"Phytophthora infestans","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_late_blight_meyve"},
+      {"rank":2,"disease_id":"tomato_bacterial_spot_speck","name_tr":"Bakteriyel leke ve benek","pathogen":"Xanthomonas spp. / Pseudomonas syringae pv. tomato","evidence":"high","sources":["TR_GKGM_TOMATO","TR_TOMATO_SILIFKE"],"status":"in_distribution","id_class":"domates_bacterial_spot_and_speck_meyve"},
+      {"rank":3,"disease_id":"tomato_gray_mold","name_tr":"Kurşuni küf","pathogen":"Botrytis cinerea","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_gray_mold_meyve"},
+      {"rank":4,"disease_id":"tomato_anthracnose","name_tr":"Domates antraknozu","pathogen":"Colletotrichum spp.","evidence":"medium","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_antraknoz_meyve"},
+      {"rank":5,"disease_id":"tomato_blossom_end_rot","name_tr":"Çiçek burnu çürüklüğü","pathogen":"Abiotic calcium disorder","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_blossom_end_rot_meyve"},
+      {"rank":6,"disease_id":"tomato_spotted_wilt","name_tr":"Domates bronz leke virüsü","pathogen":"Tomato spotted wilt virus","evidence":"high","sources":["TR_GKGM_TOMATO"],"status":"in_distribution","id_class":"domates_spotted_wilt_meyve"},
+      {"rank":7,"disease_id":"tomato_bacterial_canker","name_tr":"Bakteriyel kanser meyve belirtisi","pathogen":"Clavibacter michiganensis","evidence":"high","sources":["TR_TOMATO_SILIFKE"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"tomato_alternaria_fruit_rot","name_tr":"Alternarya meyve çürüklüğü","pathogen":"Alternaria spp.","evidence":"medium","sources":["TR_TOMATO_ELAZIG"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"tomato_fruit_cracking","name_tr":"Domates meyve çatlaması","pathogen":"Abiotic water-balance disorder","evidence":"high","sources":["TR_TOMATO_INTEGRATED"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"tomato_buckeye_rot","name_tr":"Meyve fitoftora çürüklüğü","pathogen":"Phytophthora nicotianae / P. capsici","evidence":"medium","sources":["TR_TOMATO_INTEGRATED"],"status":"out_of_distribution","id_class":null}
+    ],
+    "grape__leaf": [
+      {"rank":1,"disease_id":"grape_downy_mildew","name_tr":"Bağ mildiyösü","pathogen":"Plasmopara viticola","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_mildiyö_yaprak"},
+      {"rank":2,"disease_id":"grape_powdery_mildew","name_tr":"Bağ küllemesi","pathogen":"Erysiphe necator","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_külleme_yaprak"},
+      {"rank":3,"disease_id":"grape_anthracnose","name_tr":"Bağ antraknozu","pathogen":"Elsinoe ampelina","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_antraknoz_yaprak"},
+      {"rank":4,"disease_id":"grape_esca","name_tr":"Bağlarda kav hastalığı","pathogen":"Esca complex","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_kav_esca_yaprak"},
+      {"rank":5,"disease_id":"grape_leafroll","name_tr":"Asma yaprak kıvrılma hastalığı","pathogen":"Grapevine leafroll-associated viruses","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_leafroll_virüs_yaprak"},
+      {"rank":6,"disease_id":"grape_fanleaf","name_tr":"Asma yelpaze yaprak virüsü","pathogen":"Grapevine fanleaf virus","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_yelpaze_virüsü_yaprak"},
+      {"rank":7,"disease_id":"grape_phomopsis","name_tr":"Bağda ölükol","pathogen":"Diaporthe ampelina","evidence":"high","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"grape_black_rot","name_tr":"Bağ kara çürüklüğü","pathogen":"Guignardia bidwellii","evidence":"medium","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"grape_gray_mold","name_tr":"Kurşuni küf yaprak belirtisi","pathogen":"Botrytis cinerea","evidence":"high","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"grape_bacterial_crown_gall","name_tr":"Bağ kök uru ve bakteriyel gerileme belirtisi","pathogen":"Allorhizobium vitis","evidence":"medium","sources":["TR_GRAPE"],"status":"ambiguous","id_class":null}
+    ],
+    "grape__fruit": [
+      {"rank":1,"disease_id":"grape_powdery_mildew","name_tr":"Bağ küllemesi","pathogen":"Erysiphe necator","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_külleme_meyve"},
+      {"rank":2,"disease_id":"grape_downy_mildew","name_tr":"Bağ mildiyösü","pathogen":"Plasmopara viticola","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_mildiyö_meyve"},
+      {"rank":3,"disease_id":"grape_gray_mold","name_tr":"Kurşuni küf","pathogen":"Botrytis cinerea","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_botrytis_cinerea_meyve"},
+      {"rank":4,"disease_id":"grape_anthracnose","name_tr":"Bağ antraknozu","pathogen":"Elsinoe ampelina","evidence":"high","sources":["TR_GRAPE"],"status":"in_distribution","id_class":"üzüm_antraknoz_meyve"},
+      {"rank":5,"disease_id":"grape_black_rot","name_tr":"Bağ kara çürüklüğü","pathogen":"Guignardia bidwellii","evidence":"medium","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":6,"disease_id":"grape_phomopsis","name_tr":"Ölükol salkım ve tane belirtisi","pathogen":"Diaporthe ampelina","evidence":"high","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":7,"disease_id":"grape_sour_rot","name_tr":"Salkım ekşi çürüklüğü","pathogen":"Yeast-acetic acid bacteria complex","evidence":"medium","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"grape_ripe_rot","name_tr":"Olgun çürüklük","pathogen":"Colletotrichum spp.","evidence":"limited","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"grape_blue_mold","name_tr":"Mavi küf çürüklüğü","pathogen":"Penicillium spp.","evidence":"limited","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"grape_aspergillus_rot","name_tr":"Aspergillus salkım çürüklüğü","pathogen":"Aspergillus spp.","evidence":"limited","sources":["TR_GRAPE"],"status":"out_of_distribution","id_class":null}
+    ],
+    "strawberry__leaf": [
+      {"rank":1,"disease_id":"strawberry_powdery_mildew","name_tr":"Çilek küllemesi","pathogen":"Podosphaera aphanis","evidence":"high","sources":["TR_STRAWBERRY","TR_STRAWBERRY_ANTALYA"],"status":"in_distribution","id_class":"strawberry_powdery_mildew_leaf"},
+      {"rank":2,"disease_id":"strawberry_leaf_spot","name_tr":"Çilek yaprak lekesi","pathogen":"Mycosphaerella fragariae","evidence":"high","sources":["TR_STRAWBERRY"],"status":"in_distribution","id_class":"strawberry_leaf_spot_leaf"},
+      {"rank":3,"disease_id":"strawberry_leaf_scorch","name_tr":"Çilek yaprak yanıklığı","pathogen":"Diplocarpon earlianum","evidence":"medium","sources":["TR_STRAWBERRY"],"status":"in_distribution","id_class":"strawberry_leaf_scorch_leaf"},
+      {"rank":4,"disease_id":"strawberry_leaf_blight","name_tr":"Çilek yaprak yanıklığı / Phomopsis","pathogen":"Phomopsis obscurans","evidence":"medium","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":5,"disease_id":"strawberry_angular_leaf_spot","name_tr":"Köşeli yaprak lekesi","pathogen":"Xanthomonas fragariae","evidence":"medium","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":6,"disease_id":"strawberry_anthracnose","name_tr":"Çilek antraknozu","pathogen":"Colletotrichum spp.","evidence":"high","sources":["TR_STRAWBERRY","TR_STRAWBERRY_ANTALYA"],"status":"out_of_distribution","id_class":null},
+      {"rank":7,"disease_id":"strawberry_gray_mold","name_tr":"Kurşuni küf yaprak belirtisi","pathogen":"Botrytis cinerea","evidence":"high","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"strawberry_verticillium_wilt","name_tr":"Vertisilyum solgunluğu","pathogen":"Verticillium dahliae","evidence":"medium","sources":["TR_STRAWBERRY","TR_STRAWBERRY_ANTALYA"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"strawberry_fusarium_wilt","name_tr":"Fusaryum solgunluğu","pathogen":"Fusarium oxysporum f. sp. fragariae","evidence":"high","sources":["TR_STRAWBERRY_ANTALYA"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"strawberry_crown_rot","name_tr":"Fitoftora taç çürüklüğü","pathogen":"Phytophthora cactorum","evidence":"medium","sources":["TR_STRAWBERRY","TR_STRAWBERRY_ANTALYA"],"status":"out_of_distribution","id_class":null}
+    ],
+    "strawberry__fruit": [
+      {"rank":1,"disease_id":"strawberry_gray_mold","name_tr":"Kurşuni küf","pathogen":"Botrytis cinerea","evidence":"high","sources":["TR_STRAWBERRY"],"status":"in_distribution","id_class":"strawberry_gray_mold_fruit"},
+      {"rank":2,"disease_id":"strawberry_anthracnose","name_tr":"Çilek antraknozu","pathogen":"Colletotrichum spp.","evidence":"high","sources":["TR_STRAWBERRY","TR_STRAWBERRY_ANTALYA"],"status":"in_distribution","id_class":"strawberry_anthracnose_fruit"},
+      {"rank":3,"disease_id":"strawberry_powdery_mildew","name_tr":"Çilek küllemesi","pathogen":"Podosphaera aphanis","evidence":"high","sources":["TR_STRAWBERRY"],"status":"in_distribution","id_class":"strawberry_powdery_mildew_fruit"},
+      {"rank":4,"disease_id":"strawberry_leather_rot","name_tr":"Deri çürüklüğü","pathogen":"Phytophthora cactorum","evidence":"medium","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":5,"disease_id":"strawberry_rhizopus_rot","name_tr":"Rhizopus yumuşak çürüklüğü","pathogen":"Rhizopus stolonifer","evidence":"medium","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":6,"disease_id":"strawberry_mucor_rot","name_tr":"Mucor meyve çürüklüğü","pathogen":"Mucor spp.","evidence":"limited","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":7,"disease_id":"strawberry_alternaria_rot","name_tr":"Alternarya meyve çürüklüğü","pathogen":"Alternaria alternata","evidence":"medium","sources":["TR_STRAWBERRY_ANTALYA"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"strawberry_phomopsis_rot","name_tr":"Phomopsis yumuşak çürüklüğü","pathogen":"Phomopsis obscurans","evidence":"limited","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"strawberry_gnomonia_rot","name_tr":"Gnomonia meyve çürüklüğü","pathogen":"Gnomonia fragariae","evidence":"limited","sources":["TR_STRAWBERRY"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"strawberry_bacterial_angular_spot","name_tr":"Köşeli yaprak lekesinin meyve/çanak belirtisi","pathogen":"Xanthomonas fragariae","evidence":"limited","sources":["TR_STRAWBERRY"],"status":"ambiguous","id_class":null}
+    ],
+    "apricot__leaf": [
+      {"rank":1,"disease_id":"apricot_shot_hole","name_tr":"Kayısı yaprak delen / çil","pathogen":"Wilsonomyces carpophilus","evidence":"high","sources":["TR_APRICOT","TR_APRICOT_SHOTHOLE"],"status":"in_distribution","id_class":"kayısı_yaprak_delen_çil_hastalığı_yaprak_300"},
+      {"rank":2,"disease_id":"apricot_sharka","name_tr":"Kayısı şarka virüsü","pathogen":"Plum pox virus","evidence":"high","sources":["TR_APRICOT"],"status":"in_distribution","id_class":"kayısı_şarka_virüsü_yaprak_206"},
+      {"rank":3,"disease_id":"apricot_bacterial_canker","name_tr":"Bakteriyel kanser ve zamklanma","pathogen":"Pseudomonas syringae","evidence":"high","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":4,"disease_id":"apricot_monilinia_blight","name_tr":"Çiçek monilyası ve sürgün yanıklığı","pathogen":"Monilinia laxa","evidence":"high","sources":["TR_APRICOT_MONILIA"],"status":"organ_mismatch","id_class":null},
+      {"rank":5,"disease_id":"apricot_powdery_mildew","name_tr":"Kayısı küllemesi","pathogen":"Podosphaera tridactyla","evidence":"medium","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":6,"disease_id":"apricot_rust","name_tr":"Kayısı pası","pathogen":"Tranzschelia discolor","evidence":"medium","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":7,"disease_id":"apricot_leaf_curl","name_tr":"Yaprak kıvırcıklığı","pathogen":"Taphrina deformans","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"apricot_alternaria_spot","name_tr":"Alternarya yaprak lekesi","pathogen":"Alternaria spp.","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"apricot_verticillium_wilt","name_tr":"Vertisilyum solgunluğu","pathogen":"Verticillium dahliae","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"apricot_cytospora_canker","name_tr":"Sitospora kanseri ve yaprak gerilemesi","pathogen":"Cytospora spp.","evidence":"limited","sources":["TR_APRICOT"],"status":"ambiguous","id_class":null}
+    ],
+    "apricot__fruit": [
+      {"rank":1,"disease_id":"apricot_shot_hole","name_tr":"Kayısı yaprak delen / meyve çili","pathogen":"Wilsonomyces carpophilus","evidence":"high","sources":["TR_APRICOT","TR_APRICOT_SHOTHOLE"],"status":"in_distribution","id_class":"kayısıda_yaprak_delen_çil_hastalığı_meyve_128"},
+      {"rank":2,"disease_id":"apricot_monilinia_brown_rot","name_tr":"Monilya meyve çürüklüğü","pathogen":"Monilinia laxa / M. fructigena","evidence":"high","sources":["TR_APRICOT","TR_APRICOT_MONILIA"],"status":"in_distribution","id_class":"kayısıda_çiçek_monilyası_meyve_40"},
+      {"rank":3,"disease_id":"apricot_sharka","name_tr":"Kayısı şarka virüsü","pathogen":"Plum pox virus","evidence":"high","sources":["TR_APRICOT"],"status":"in_distribution","id_class":"kayısıda_şarka_virüsü_meyve_230"},
+      {"rank":4,"disease_id":"apricot_scab","name_tr":"Kayısı / şeftali karalekesi","pathogen":"Cladosporium carpophilum","evidence":"high","sources":["TR_APRICOT"],"status":"in_distribution","id_class":"kayısıda_şeftali_karalekesi_meyve_232"},
+      {"rank":5,"disease_id":"apricot_bacterial_spot","name_tr":"Bakteriyel meyve lekesi","pathogen":"Xanthomonas arboricola pv. pruni","evidence":"medium","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":6,"disease_id":"apricot_powdery_mildew","name_tr":"Kayısı meyve küllemesi","pathogen":"Podosphaera tridactyla","evidence":"medium","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":7,"disease_id":"apricot_rhizopus_rot","name_tr":"Rhizopus meyve çürüklüğü","pathogen":"Rhizopus stolonifer","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":8,"disease_id":"apricot_alternaria_rot","name_tr":"Alternarya meyve çürüklüğü","pathogen":"Alternaria spp.","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":9,"disease_id":"apricot_blue_mold","name_tr":"Mavi küf çürüklüğü","pathogen":"Penicillium spp.","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null},
+      {"rank":10,"disease_id":"apricot_sour_rot","name_tr":"Ekşi çürüklük","pathogen":"Geotrichum candidum","evidence":"limited","sources":["TR_APRICOT"],"status":"out_of_distribution","id_class":null}
+    ]
+  }
+}

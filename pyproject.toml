@@ -3,50 +3,55 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aads-public"
-version = "1.1.1"
-description = "Compact public edition of an open-world plant disease recognition thesis project"
+name = "aads-v6"
+version = "0.1.0"
+description = "Open-world plant disease routing, continual SD-LoRA training and adapter inference"
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11,<3.12"
 license = {text = "MIT"}
 authors = [{name = "Efe Erim"}]
 keywords = ["computer-vision", "continual-learning", "lora", "open-set-recognition", "ood"]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-dependencies = ["numpy>=1.26,<3"]
 
 [project.urls]
 Repository = "https://github.com/EfeErim/bitirmeprojesi"
-Documentation = "https://github.com/EfeErim/bitirmeprojesi#readme"
 Release = "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1"
 
-[project.optional-dependencies]
-dev = ["pytest>=8,<9", "ruff>=0.6"]
-
 [project.scripts]
-aads = "aads_public.cli:main"
+aads = "src.app.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-aads_public = ["data/*.json"]
+include = ["src*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-q", "--strict-markers"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+cache_dir = ".runtime_tmp/.pytest_cache"
+norecursedirs = ["__pycache__", ".runtime_tmp", ".venv"]
+addopts = ["--tb=short", "--strict-markers"]
+markers = ["integration: integration tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+exclude = [".runtime_tmp", ".venv", "colab_notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["^colab_notebooks/", "^\\.runtime_tmp/", "^tests/"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
