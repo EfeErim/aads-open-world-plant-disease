@@ -1,5 +1,10 @@
+import os
 import subprocess
 from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.skipif(os.name != "nt", reason="python.cmd is the Windows launcher")
 
 
 def test_python_cmd_propagates_success_exit_code():
