@@ -316,6 +316,17 @@ The latest tracked acceptance artifact per target at source commit
 
 Machine-readable values, source paths, source Git blobs and failure reasons are recorded in
 [`evidence/latest_behavioral_acceptance_summary.json`](../evidence/latest_behavioral_acceptance_summary.json).
+The eight source records are also checked in under
+[`evidence/behavioral_acceptance/targets/`](../evidence/behavioral_acceptance/targets/). Rebuild or verify the summary
+without access to the private experiment tree:
+
+```bash
+python scripts/build_behavioral_acceptance_summary.py
+python scripts/build_behavioral_acceptance_summary.py --check
+```
+
+The builder verifies that each record's internal crop/part identity matches its filename before aggregation. This
+prevents a checksum-valid but misattributed readiness record from being accepted as evidence for another target.
 
 The table explains why a single “accuracy” number is not enough:
 
@@ -346,7 +357,7 @@ Source:
 
 - [`evidence/public_asset_manifest.json`](../evidence/public_asset_manifest.json)
 - [`docs/evidence/current/demo_release/release_manifest.json`](evidence/current/demo_release/release_manifest.json)
-- [public Release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1)
+- [public Release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2)
 
 The release is for code review and controlled experiments. Its manifest explicitly records
 `production_ready: false`.

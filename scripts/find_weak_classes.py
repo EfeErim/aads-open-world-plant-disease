@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Detect class folders with few images in a class-root dataset."""
-from pathlib import Path
 import json
-import sys
+from pathlib import Path
 
 ROOT = Path("data/class_root_dataset")
 EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}

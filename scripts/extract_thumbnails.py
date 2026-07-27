@@ -5,10 +5,11 @@ Usage: python scripts/extract_thumbnails.py
 Saves thumbnails to .runtime_tmp/samples/<run>/<slice>/
 """
 import csv
-from pathlib import Path
-from PIL import Image
-import random
 import json
+import random
+from pathlib import Path
+
+from PIL import Image
 
 RUNTIME = Path('.runtime_tmp')
 SAMPLES_DIR = RUNTIME / 'samples'

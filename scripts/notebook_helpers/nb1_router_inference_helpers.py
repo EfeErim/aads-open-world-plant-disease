@@ -1,8 +1,14 @@
 from __future__ import annotations
+
 from pathlib import Path
+
+from scripts.colab_repo_bootstrap import (
+    collect_notebook_access_report,
+    login_and_check_hf_token,
+    print_notebook_access_report,
+)
+from scripts.colab_router_adapter_inference import clear_router_cache, ensure_router_ready
 from src.core.config_manager import get_config
-from scripts.colab_repo_bootstrap import collect_notebook_access_report, print_notebook_access_report, login_and_check_hf_token, running_in_colab
-from scripts.colab_router_adapter_inference import clear_router_cache, ensure_router_ready, run_inference
 
 
 def run_bootstrap_notebook_nb1(notebook_name: str = "Notebook 1: Router Adapter Inference", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
@@ -10,9 +16,9 @@ def run_bootstrap_notebook_nb1(notebook_name: str = "Notebook 1: Router Adapter 
     from scripts.colab_notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
     try:
         from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
-        repo_root_for_update_check = _ensure_repo_root_for_update_check()
+        _ensure_repo_root_for_update_check()
     except Exception:
-        repo_root_for_update_check = None
+        pass
 
     # [KONTROL] Ilk hucre: Bootstrap kontrati kontrol edildi
     BOOTSTRAP = bootstrap_notebook(
@@ -20,7 +26,6 @@ def run_bootstrap_notebook_nb1(notebook_name: str = "Notebook 1: Router Adapter 
         require_colab_requirements=require_colab_requirements,
         auto_clone_repo=auto_clone_repo,
     )
-    ROOT = BOOTSTRAP["ROOT"]
     print_bootstrap_status(BOOTSTRAP)
     return BOOTSTRAP
 

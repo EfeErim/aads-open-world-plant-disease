@@ -9,7 +9,7 @@
 **[Colab notebooks](colab_notebooks/)** ·
 **[Methodology and results](docs/methodology_and_results.md)** ·
 **[Source map](docs/source_and_notebook_map.md)** ·
-**[Adapter release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1)**
+**[Adapter release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2)**
 
 AADS is my graduation project on open-world plant disease recognition. I built it around a practical failure mode:
 a classifier should not force a disease label when the image shows the wrong crop, the wrong plant part, or an
@@ -19,7 +19,8 @@ The repository contains the actual training, routing, adapter inference, OOD cal
 project. Model weights are kept in a GitHub Release so the Git history stays usable. Training images are not included
 because I cannot document redistribution permission for every source image.
 
-The public tree contains all 130 maintained files under `src/` and all 11 authored Colab notebooks. The
+The public tree contains all 130 maintained project files under `src/`, one additional public-sample module, and all
+11 authored Colab notebooks. The
 [source and notebook map](docs/source_and_notebook_map.md) lists every notebook, module group and deliberate
 non-source exclusion.
 
@@ -58,6 +59,12 @@ The detailed [methodology and results note](docs/methodology_and_results.md) exp
 design, SAM3/BioCLIP routing, energy/Mahalanobis/kNN OOD scores, Outlier Exposure, conformal prediction, the literature
 behind those choices and the latest per-adapter acceptance metrics. The machine-readable 0/8 breakdown is in
 [`latest_behavioral_acceptance_summary.json`](evidence/latest_behavioral_acceptance_summary.json).
+
+Verify that summary directly from the eight checked-in per-target records:
+
+```bash
+python scripts/build_behavioral_acceptance_summary.py --check
+```
 
 The saved evidence is in [`evidence/`](evidence/):
 
@@ -117,7 +124,18 @@ the notebook version of the router-to-adapter path.
 
 ## Train with your own data
 
-Put images into this runtime layout:
+For a zero-data smoke test, materialize the deterministic synthetic sample:
+
+```bash
+python scripts/materialize_public_sample_dataset.py --target tomato__leaf
+```
+
+Notebook 2 uses this public sample by default, so cloning the repository does not require access to the private
+training dataset Release. The sample exists only to exercise data loading, training, evaluation and export; it is
+marked `production_eligible: false` and provides no evidence of model quality. Actual DINOv3 training still requires
+access to the gated Hugging Face backbone configured in [`config/base.json`](config/base.json).
+
+For a real experiment, put your own images into this runtime layout:
 
 ```text
 data/prepared_runtime_datasets/<crop>__<part>/
@@ -138,9 +156,9 @@ python -m src.app.cli training tomato \
 ```
 
 [`colab_notebooks/2_train_continual_sd_lora_adapter.ipynb`](colab_notebooks/2_train_continual_sd_lora_adapter.ipynb)
-is also included because it is the original experiment notebook, but its default input is a fixed dataset Release that
-is not distributed publicly. Public users should provide the runtime layout above and use the workflow/CLI. See
-[`data/README.md`](data/README.md) for the input contract.
+is the original experiment notebook. It defaults to the synthetic smoke profile; maintainers can explicitly select
+the immutable dataset Release, while public users can provide the runtime layout above. See
+[`data/README.md`](data/README.md) for the input contract and the limits of the sample data.
 
 ## Repository map
 

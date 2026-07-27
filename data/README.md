@@ -1,7 +1,17 @@
 # Data layout
 
-Datasets are not distributed with this repository. Add your own images locally; the `.gitignore` keeps them out of
-Git by default.
+The original research datasets are not distributed with this repository. Add your own images locally; the
+`.gitignore` keeps them out of Git by default.
+
+For a zero-data plumbing test, create the deterministic public sample:
+
+```bash
+python scripts/materialize_public_sample_dataset.py --target tomato__leaf
+```
+
+It creates 56 small synthetic images across the `continual`, `val`, `test`, `ood` and `oe` roles. Its manifest marks
+the data as `production_eligible: false`: it is useful for checking that the code runs, not for measuring accuracy,
+OOD performance or readiness. Notebook 2 selects this sample by default.
 
 Notebook 0 accepts a class-root dataset:
 

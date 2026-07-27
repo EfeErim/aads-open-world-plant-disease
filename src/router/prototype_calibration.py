@@ -520,9 +520,13 @@ def calibrate(
             if target_validation:
                 best_candidate = {**best_candidate, "full_set_validation": target_validation}
             if not target_selected:
-                if float(best_candidate.get("supported_precision") or 0.0) < float(target_constraints["min_precision"]):
+                if float(best_candidate.get("supported_precision") or 0.0) < float(
+                    target_constraints["min_precision"] or 0.0
+                ):
                     failure_reasons.append("supported_precision_below_target")
-                if float(best_candidate.get("supported_coverage") or 0.0) < float(target_constraints["min_coverage"]):
+                if float(best_candidate.get("supported_coverage") or 0.0) < float(
+                    target_constraints["min_coverage"] or 0.0
+                ):
                     failure_reasons.append("supported_coverage_below_target")
                 if (
                     target_constraints["max_supported_wrong"] is not None

@@ -9,6 +9,7 @@ from src.data.dataset_release import canonical_sha256, read_json_dict, sha256_fi
 
 GITHUB_RELEASE_SOURCE = "github_release"
 LOCAL_LEGACY_SOURCE = "local_legacy"
+PUBLIC_SAMPLE_SOURCE = "public_sample"
 LINEAGE_SCHEMA = "aads.dataset_lineage.v1"
 
 
@@ -162,6 +163,24 @@ def build_local_legacy_lineage(
     }
 
 
+def build_public_sample_lineage(*, dataset_key: str, split_manifest_sha256: str) -> dict[str, Any]:
+    """Build explicit non-production lineage for the deterministic public sample."""
+
+    target = str(dataset_key or "").strip().lower()
+    split_sha = str(split_manifest_sha256 or "").strip().lower()
+    if not target or len(split_sha) != 64:
+        raise DatasetLineageError("public_sample lineage requires dataset_key and split_manifest_sha256")
+    return {
+        "schema_version": LINEAGE_SCHEMA,
+        "source_kind": PUBLIC_SAMPLE_SOURCE,
+        "production_eligible": False,
+        "dataset_key": target,
+        "split_manifest_sha256": split_sha,
+        "compatibility_reason": "deterministic_synthetic_smoke_dataset",
+        "dataset_lineage_key": f"public_sample::{target}::{split_sha}",
+    }
+
+
 def resolve_dataset_lineage(
     *,
     source_kind: str,
@@ -206,6 +225,11 @@ def resolve_dataset_lineage(
         )
     if kind == LOCAL_LEGACY_SOURCE:
         raise DatasetLineageError("local_legacy lineage is unavailable to new customer training")
+    if kind == PUBLIC_SAMPLE_SOURCE:
+        return build_public_sample_lineage(
+            dataset_key=dataset_key,
+            split_manifest_sha256=split_sha,
+        )
     raise DatasetLineageError(f"Unsupported dataset lineage source_kind={source_kind!r}")
 
 

@@ -1,5 +1,6 @@
-from scripts import calibrate_router_surface as calibrator
 from pathlib import Path
+
+from scripts import calibrate_router_surface as calibrator
 
 
 def test_parse_sweep_spec_accepts_alias_and_coerces_int_values():

@@ -775,8 +775,11 @@ def _resolve_embedding_device(device: str) -> str:
 
 def _system_memory_gb() -> Optional[float]:
     try:
-        pages = os.sysconf("SC_PHYS_PAGES")
-        page_size = os.sysconf("SC_PAGE_SIZE")
+        sysconf = getattr(os, "sysconf", None)
+        if not callable(sysconf):
+            return None
+        pages = sysconf("SC_PHYS_PAGES")
+        page_size = sysconf("SC_PAGE_SIZE")
         if pages and page_size:
             return float(pages * page_size) / (1024**3)
     except (AttributeError, OSError, ValueError):
@@ -982,13 +985,19 @@ def _encode_with_oom_retries(
     paths: Sequence[Path],
     batch_size: int,
     progress_fn: Optional[Callable[[str], None]],
+    batch_progress_fn: Optional[Callable[[int, int], None]] = None,
     label: str,
     **kwargs: Any,
 ) -> np.ndarray:
     current_batch_size = max(1, int(batch_size))
     while True:
         try:
-            return encode_fn(paths, batch_size=current_batch_size, **kwargs)
+            return encode_fn(
+                paths,
+                batch_size=current_batch_size,
+                progress_fn=batch_progress_fn,
+                **kwargs,
+            )
         except RuntimeError as exc:
             if not _is_cuda_oom(exc) or current_batch_size <= 1:
                 raise
@@ -1029,7 +1038,7 @@ def _compute_neighbor_pairs(
             path_b = paths[int(col_index)]
             if path_a == path_b:
                 continue
-            pair = tuple(sorted((path_a, path_b)))
+            pair = (min(path_a, path_b), max(path_a, path_b))
             cosine = 1.0 - float(distance)
             pairs[pair] = max(cosine, pairs.get(pair, float("-inf")))
     return pairs
@@ -1346,7 +1355,10 @@ def _register_cross_class_conflicts(
         for records_a, records_b in itertools.combinations(grouped_by_class.values(), 2):
             for record_a in records_a:
                 for record_b in records_b:
-                    pair = tuple(sorted((record_a.relative_path, record_b.relative_path)))
+                    pair = (
+                        min(record_a.relative_path, record_b.relative_path),
+                        max(record_a.relative_path, record_b.relative_path),
+                    )
                     if pair in seen_pairs:
                         continue
                     seen_pairs.add(pair)
@@ -1385,7 +1397,7 @@ def _compute_pair_similarity(
         if idx_a is None or idx_b is None:
             continue
         score = float(np.dot(embeddings[idx_a], embeddings[idx_b]))
-        similarities[tuple(sorted((path_a, path_b)))] = score
+        similarities[(min(path_a, path_b), max(path_a, path_b))] = score
     return similarities
 
 
@@ -1630,9 +1642,10 @@ def build_grouped_dataset_plan(
             batch_size=effective_batch_size,
             device=device,
             amp_dtype=amp_dtype,
-            progress_fn=lambda done, total, class_name=normalized_class_name: _progress(
+            progress_fn=progress_fn,
+            batch_progress_fn=lambda done, total: _progress(
                 progress_fn,
-                f"DINOv3 class '{class_name}' encoded {done}/{total} images.",
+                f"DINOv3 class '{normalized_class_name}' encoded {done}/{total} images.",
             ),
         )
         class_dino_pairs = _compute_neighbor_pairs(
@@ -1683,9 +1696,10 @@ def build_grouped_dataset_plan(
                 batch_size=effective_batch_size,
                 device=device,
                 amp_dtype=amp_dtype,
-                progress_fn=lambda done, total, class_name=normalized_class_name: _progress(
+                progress_fn=progress_fn,
+                batch_progress_fn=lambda done, total: _progress(
                     progress_fn,
-                    f"BioCLIP class '{class_name}' encoded {done}/{total} images.",
+                    f"BioCLIP class '{normalized_class_name}' encoded {done}/{total} images.",
                 ),
             )
             bioclip_scores.update(

@@ -129,3 +129,17 @@ def test_local_legacy_is_unavailable_without_explicit_compatibility(tmp_path: Pa
             dataset_key="tomato__leaf",
             split_manifest_path=target / "split_manifest.json",
         )
+
+
+def test_public_sample_lineage_is_available_but_never_production_eligible(tmp_path: Path) -> None:
+    target = _target(tmp_path)
+    lineage = resolve_dataset_lineage(
+        source_kind="public_sample",
+        dataset_key="tomato__leaf",
+        split_manifest_path=target / "split_manifest.json",
+    )
+
+    assert lineage["source_kind"] == "public_sample"
+    assert lineage["production_eligible"] is False
+    assert lineage["compatibility_reason"] == "deterministic_synthetic_smoke_dataset"
+    assert immutable_lineage_blockers(lineage) == ["immutable_dataset_release_lineage"]

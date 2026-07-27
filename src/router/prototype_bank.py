@@ -50,7 +50,7 @@ def iter_dataset_images(
     max_images_per_class: int | None = None,
 ) -> Iterable[tuple[str, str, str, Path]]:
     if not dataset_root.exists():
-        return []
+        return
 
     split_names = tuple(splits)
     for target_dir in sorted(path for path in dataset_root.iterdir() if path.is_dir() and "__" in path.name):
@@ -251,14 +251,14 @@ def _summarize_records(records: list[ImageFeatureRecord]) -> dict[str, Any]:
         class_vectors = [record.vector for record in class_records]
         class_center = centroid(class_vectors)
         key = f"{target_id}::{class_label}"
-        split_counts: dict[str, int] = defaultdict(int)
+        class_split_counts: dict[str, int] = defaultdict(int)
         for record in class_records:
-            split_counts[record.split] += 1
+            class_split_counts[record.split] += 1
         class_prototypes[key] = {
             "target_id": target_id,
             "class_label": class_label,
             "sample_count": len(class_records),
-            "split_counts": dict(sorted(split_counts.items())),
+            "split_counts": dict(sorted(class_split_counts.items())),
             "centroid": list(class_center),
             "dispersion": dispersion(class_vectors, class_center),
         }
@@ -292,7 +292,7 @@ def _summarize_hard_negatives(records: list[HardNegativeFeatureRecord]) -> dict[
 
 def iter_curation_manifest_rows(curation_root: Path) -> Iterable[dict[str, str]]:
     if not curation_root:
-        return []
+        return
     for filename, role in (
         ("prototype_positive_manifest.csv", "prototype_positive"),
         ("prototype_hard_negative_manifest.csv", "prototype_hard_negative"),

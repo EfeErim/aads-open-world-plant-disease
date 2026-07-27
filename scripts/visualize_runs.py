@@ -8,9 +8,9 @@ Outputs PNGs into .runtime_tmp/plots/
 import argparse
 import json
 from pathlib import Path
-import pandas as pd
+
 import matplotlib.pyplot as plt
-import numpy as np
+import pandas as pd
 
 RUNTIME_TMP = Path('.runtime_tmp')
 PLOTS_DIR = RUNTIME_TMP / 'plots'
@@ -42,7 +42,7 @@ def plot_delta_fpr(df: pd.DataFrame):
 def plot_auroc_vs_fpr(df: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(8,6))
     sizes = (df['ood_samples_cur'].fillna(10).astype(float) / df['ood_samples_cur'].max()) * 200
-    sc = ax.scatter(df['ood_auroc_cur'], df['ood_fpr_cur'], s=sizes, c='C0', alpha=0.8)
+    ax.scatter(df['ood_auroc_cur'], df['ood_fpr_cur'], s=sizes, c='C0', alpha=0.8)
     for i, row in df.iterrows():
         ax.annotate(row['crop_part'], (row['ood_auroc_cur'], row['ood_fpr_cur']), textcoords='offset points', xytext=(5,5))
     ax.set_xlabel('OOD AUROC (current)')

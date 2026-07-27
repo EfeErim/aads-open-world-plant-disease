@@ -18,6 +18,7 @@ from src.pipeline.adapter_release import (
     validate_promotion_approval,
     validate_release_manifest,
     verify_adapter_draft,
+    verify_release_files,
     write_release_receipt,
 )
 
@@ -158,6 +159,53 @@ def test_manifest_rejects_unexpected_release_file() -> None:
     payload["files"][0]["asset_name"] = "tomato__leaf--evil.pkl"
     with pytest.raises(ValueError, match="asset name"):
         validate_release_manifest(payload)
+
+
+def test_release_files_reject_misattributed_production_readiness(tmp_path: Path) -> None:
+    content = json.dumps(
+        {
+            "status": "failed",
+            "context": {"crop_name": "grape", "part_name": "fruit"},
+        }
+    ).encode()
+    manifest = _manifest(content)
+    record = manifest["files"][0]
+    record.update(
+        {
+            "asset_name": "tomato__leaf--production_readiness.json",
+            "local_path": "tomato/leaf/continual_sd_lora_adapter/production_readiness.json",
+            "source_path": "source/production_readiness.json",
+        }
+    )
+    destination = tmp_path / record["local_path"]
+    destination.parent.mkdir(parents=True)
+    destination.write_bytes(content)
+
+    with pytest.raises(ValueError, match="target mismatch"):
+        verify_release_files(tmp_path, manifest)
+
+
+def test_release_files_accept_target_bound_production_readiness(tmp_path: Path) -> None:
+    content = json.dumps(
+        {
+            "status": "failed",
+            "context": {"crop_name": "tomato", "part_name": "leaf"},
+        }
+    ).encode()
+    manifest = _manifest(content)
+    record = manifest["files"][0]
+    record.update(
+        {
+            "asset_name": "tomato__leaf--production_readiness.json",
+            "local_path": "tomato/leaf/continual_sd_lora_adapter/production_readiness.json",
+            "source_path": "source/production_readiness.json",
+        }
+    )
+    destination = tmp_path / record["local_path"]
+    destination.parent.mkdir(parents=True)
+    destination.write_bytes(content)
+
+    verify_release_files(tmp_path, manifest)
 
 
 def test_fetch_uses_fixed_immutable_release_and_never_returns_token(

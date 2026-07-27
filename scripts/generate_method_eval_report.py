@@ -5,7 +5,6 @@ Usage: python scripts/generate_method_eval_report.py
 Outputs: .runtime_tmp/report/method_eval_report.html
 """
 import csv
-import json
 from pathlib import Path
 
 RUNTIME = Path('.runtime_tmp')
@@ -48,8 +47,8 @@ def main():
     html_lines.append('<html><head><meta charset="utf-8"><title>Method Evaluation Report</title>')
     html_lines.append('<style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} h2{margin-top:30px} .run{border:1px solid #ddd;padding:12px;margin-bottom:18px} table{border-collapse:collapse;width:100%} th,td{border:1px solid #eee;padding:6px;text-align:left} img{max-width:320px;max-height:240px}</style>')
     html_lines.append('</head><body>')
-    html_lines.append(f'<h1>Method Evaluation Report</h1>')
-    html_lines.append(f'<p>Generated from runtime outputs in <code>.runtime_tmp/</code></p>')
+    html_lines.append('<h1>Method Evaluation Report</h1>')
+    html_lines.append('<p>Generated from runtime outputs in <code>.runtime_tmp/</code></p>')
 
     for run, info in sorted(runs.items()):
         rec = info.get('rec') or {}

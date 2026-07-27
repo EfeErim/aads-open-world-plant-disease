@@ -4,10 +4,9 @@
 Usage: python scripts/recompute_readiness_knn.py <run_artifact_root>
 Example: python scripts/recompute_readiness_knn.py runs/grape/fruit/grape_fruit_2026-07-13_18-07-48/telemetry/artifacts
 """
-from pathlib import Path
-import sys
 import json
-import os
+import sys
+from pathlib import Path
 
 # Ensure repository root is on sys.path so `src` imports work when script is executed directly
 REPO_ROOT = Path(__file__).resolve().parents[1]

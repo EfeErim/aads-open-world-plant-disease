@@ -6,15 +6,14 @@ from __future__ import annotations
 import argparse
 import shutil
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
-from src.data.dataset_layout import IMAGE_EXTENSIONS
 from scripts.prepare_grouped_runtime_dataset import (
     DEFAULT_BIOCLIP_MODEL_ID,
     DEFAULT_DINOV3_MODEL_ID,
     DEFAULT_NEIGHBORS,
-    build_prepared_dataset_key,
     build_grouped_dataset_plan,
+    build_prepared_dataset_key,
 )
 from scripts.prune_exact_duplicates import (
     DEFAULT_SEED,
@@ -23,6 +22,7 @@ from scripts.prune_exact_duplicates import (
     build_combined_cleanup_plan,
     write_cleanup_report,
 )
+from src.data.dataset_layout import IMAGE_EXTENSIONS
 from src.shared.csv_utils import read_csv_rows
 from src.shared.json_utils import write_json
 

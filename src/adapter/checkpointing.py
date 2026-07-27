@@ -120,7 +120,19 @@ def load_training_checkpoint(
 ) -> tuple[Any, Any, Dict[str, Any]]:
     """Load trainer and session payloads from a saved checkpoint directory."""
     root = resolve_training_checkpoint_root(checkpoint_dir)
-    trainer_payload_raw = torch.load(root / "training_checkpoint.pt", map_location=device, weights_only=False)
+    try:
+        trainer_payload_raw = torch.load(
+            root / "training_checkpoint.pt",
+            map_location=device,
+            weights_only=True,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Training checkpoint could not be loaded with the safe weights-only loader. "
+            "Only checkpoints produced by the current AADS checkpoint writer are supported."
+        ) from exc
+    if not isinstance(trainer_payload_raw, dict):
+        raise RuntimeError("Training checkpoint payload must be a mapping.")
     trainer_payload = checkpoint_payload_factory().from_dict(trainer_payload_raw)
     if trainer is None:
         normalized = normalize_trainer_config(

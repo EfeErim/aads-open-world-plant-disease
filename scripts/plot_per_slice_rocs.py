@@ -4,17 +4,16 @@ Saves PNGs under .runtime_tmp/plots/<run>/<slice>.png
 
 Usage: python scripts/plot_per_slice_rocs.py
 """
-from pathlib import Path
 import csv
 import json
-import math
 import sys
+from pathlib import Path
 
 try:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from sklearn.metrics import roc_curve, roc_auc_score
+    from sklearn.metrics import roc_auc_score, roc_curve
 except Exception as e:
     print('Missing plotting dependencies:', e)
     print('Install matplotlib and scikit-learn in the environment.')

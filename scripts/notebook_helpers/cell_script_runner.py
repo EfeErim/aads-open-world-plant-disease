@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import MutableMapping
 
-
 NOTEBOOK_CELL_SCRIPT_ROOT = Path(__file__).resolve().parents[1] / "notebook_cells"
 
 

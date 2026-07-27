@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_RESULT_JSON = Path("docs/demo_results/m2/20260706T140135Z/m2_demo_checklist_run.json")
 DEFAULT_SOURCE_MANIFEST = Path("docs/demo_assets/m2_full_image_set/manifests/m2_full_image_set_run_manifest.csv")
 DEFAULT_OUTPUT = Path("docs/demo_assets/customer_demo_manifest/customer_demo_manifest.csv")

@@ -6,8 +6,9 @@ Safely removes duplicates while preserving one copy of each unique file.
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 
 def remove_duplicates_from_report(report_path: Path, dry_run: bool = True) -> dict:
     """Remove duplicates based on optimization report."""
