@@ -7,6 +7,8 @@
 **[Application source](src/)** · **[Training workflow](src/workflows/training.py)** ·
 **[Inference workflow](src/workflows/inference.py)** · **[Tests](tests/)** ·
 **[Colab notebooks](colab_notebooks/)** ·
+**[Methodology and results](docs/methodology_and_results.md)** ·
+**[Source map](docs/source_and_notebook_map.md)** ·
 **[Adapter release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1)**
 
 AADS is my graduation project on open-world plant disease recognition. I built it around a practical failure mode:
@@ -16,6 +18,10 @@ unknown condition.
 The repository contains the actual training, routing, adapter inference, OOD calibration and Colab code used by the
 project. Model weights are kept in a GitHub Release so the Git history stays usable. Training images are not included
 because I cannot document redistribution permission for every source image.
+
+The public tree contains all 130 maintained files under `src/` and all 11 authored Colab notebooks. The
+[source and notebook map](docs/source_and_notebook_map.md) lists every notebook, module group and deliberate
+non-source exclusion.
 
 ## System outline
 
@@ -43,8 +49,15 @@ The main implementation is under [`src/`](src/):
 | Adapters passing the separate production-readiness gate | 0 / 8 |
 
 The 48/48 result is a replayable result on one fixed demo set; it is not field accuracy. On separate unknown-input
-tests, the adapters still accept too many unsupported cases. Recorded OOD false-positive rates range from `0.283` to
-`0.873`, so these weights are suitable for code review and controlled experiments, not autonomous diagnosis.
+tests, the adapters still accept too many unsupported cases. Among the five latest tracked artifacts with eligible
+same-crop unknown-disease rows, rejection ranges from `0.203` to `0.611`; the other three have no eligible rows in
+their selected artifact. The maintained gate requires `1.0`, so these weights are suitable for code review and
+controlled experiments, not autonomous diagnosis.
+
+The detailed [methodology and results note](docs/methodology_and_results.md) explains the DINOv3 + LoRA training
+design, SAM3/BioCLIP routing, energy/Mahalanobis/kNN OOD scores, Outlier Exposure, conformal prediction, the literature
+behind those choices and the latest per-adapter acceptance metrics. The machine-readable 0/8 breakdown is in
+[`latest_behavioral_acceptance_summary.json`](evidence/latest_behavioral_acceptance_summary.json).
 
 The saved evidence is in [`evidence/`](evidence/):
 

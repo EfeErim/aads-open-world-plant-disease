@@ -1,0 +1,189 @@
+{
+  "schema_version": "aads.public_behavioral_acceptance_summary.v1",
+  "created_at": "2026-07-27",
+  "source_commit": "539397bb72bde59e4b092ac1286b5415fe78dbac",
+  "selection_rule": "Lexicographically newest tracked checkpoint_state/artifacts/adapter_behavioral_acceptance.json per target at source_commit.",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "passed_targets": 0,
+  "total_targets": 8,
+  "thresholds": {
+    "accuracy_min": 0.93,
+    "balanced_accuracy_min": 0.9,
+    "macro_f1_min": 0.9,
+    "id_test_samples_min": 30,
+    "id_false_rejection_rate_max": 0.05,
+    "same_crop_ood_test_samples_min": 30,
+    "forced_supported_answer_count_max": 0,
+    "same_crop_ood_rejection_rate_min": 1.0
+  },
+  "scope_note": "These are tracked adapter-level acceptance records, not a new rerun and not field-performance estimates. A missing same-crop OOD rejection rate means the selected artifact contained zero eligible same-crop OOD test samples.",
+  "targets": {
+    "apricot__fruit": {
+      "run_id": "apricot_fruit_2026-07-19_11-51-16",
+      "pass": false,
+      "accuracy": 0.9136690497398376,
+      "balanced_accuracy": 0.8430493615399277,
+      "macro_f1": 0.8152777272111557,
+      "id_test_samples": 278,
+      "id_false_rejection_rate": 0.0683453237410072,
+      "same_crop_ood_test_samples": 0,
+      "same_crop_ood_rejection_rate": null,
+      "forced_supported_answer_count": 0,
+      "failure_reasons": [
+        "accuracy",
+        "balanced_accuracy",
+        "macro_f1",
+        "id_false_rejection_rate",
+        "same_crop_ood_test_samples",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/apricot/fruit/apricot_fruit_2026-07-19_11-51-16/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "abf5c51020c01c02dcaad95bc04a25ef05bb1bdd"
+    },
+    "apricot__leaf": {
+      "run_id": "apricot_leaf_2026-07-19_11-15-44",
+      "pass": false,
+      "accuracy": 0.9402984976768494,
+      "balanced_accuracy": 0.9389541191503725,
+      "macro_f1": 0.9400172469853117,
+      "id_test_samples": 134,
+      "id_false_rejection_rate": 0.08208955223880597,
+      "same_crop_ood_test_samples": 59,
+      "same_crop_ood_rejection_rate": 0.2033898305084746,
+      "forced_supported_answer_count": 47,
+      "failure_reasons": [
+        "id_false_rejection_rate",
+        "forced_supported_answer_count",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/apricot/leaf/apricot_leaf_2026-07-19_11-15-44/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "000c78d2b3ae8e653103dfd859a2a022039c3185"
+    },
+    "grape__fruit": {
+      "run_id": "grape_fruit_2026-07-18_09-36-39",
+      "pass": false,
+      "accuracy": 0.9195402264595032,
+      "balanced_accuracy": 0.8830657596371883,
+      "macro_f1": 0.8732331174838113,
+      "id_test_samples": 174,
+      "id_false_rejection_rate": 0.06321839080459771,
+      "same_crop_ood_test_samples": 41,
+      "same_crop_ood_rejection_rate": 0.2926829268292683,
+      "forced_supported_answer_count": 29,
+      "failure_reasons": [
+        "accuracy",
+        "balanced_accuracy",
+        "macro_f1",
+        "id_false_rejection_rate",
+        "forced_supported_answer_count",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/grape/fruit/grape_fruit_2026-07-18_09-36-39/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "76004e7d6ca1882b7a8a403c4445a2877f1806cc"
+    },
+    "grape__leaf": {
+      "run_id": "grape_leaf_2026-07-18_09-41-26",
+      "pass": false,
+      "accuracy": 0.9104938507080078,
+      "balanced_accuracy": 0.8998771325820506,
+      "macro_f1": 0.8986197770266461,
+      "id_test_samples": 324,
+      "id_false_rejection_rate": 0.033950617283950615,
+      "same_crop_ood_test_samples": 16,
+      "same_crop_ood_rejection_rate": 0.375,
+      "forced_supported_answer_count": 10,
+      "failure_reasons": [
+        "accuracy",
+        "balanced_accuracy",
+        "macro_f1",
+        "same_crop_ood_test_samples",
+        "forced_supported_answer_count",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/grape/leaf/grape_leaf_2026-07-18_09-41-26/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "4ce8865accd8d53b1400c3a69eb707f98b36eb9f"
+    },
+    "strawberry__fruit": {
+      "run_id": "strawberry_fruit_2026-07-19_12-02-46",
+      "pass": false,
+      "accuracy": 0.9158415794372559,
+      "balanced_accuracy": 0.8362612612612612,
+      "macro_f1": 0.8096482061999304,
+      "id_test_samples": 202,
+      "id_false_rejection_rate": 0.14356435643564355,
+      "same_crop_ood_test_samples": 0,
+      "same_crop_ood_rejection_rate": null,
+      "forced_supported_answer_count": 0,
+      "failure_reasons": [
+        "accuracy",
+        "balanced_accuracy",
+        "macro_f1",
+        "id_false_rejection_rate",
+        "same_crop_ood_test_samples",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/strawberry/fruit/strawberry_fruit_2026-07-19_12-02-46/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "071b339e8811e1a05fed6df5dc0d8caabdb6d6ac"
+    },
+    "strawberry__leaf": {
+      "run_id": "strawberry_leaf_2026-07-19_11-57-26",
+      "pass": false,
+      "accuracy": 0.9938900470733643,
+      "balanced_accuracy": 0.9942350332594235,
+      "macro_f1": 0.9933325165746197,
+      "id_test_samples": 491,
+      "id_false_rejection_rate": 0.054989816700611,
+      "same_crop_ood_test_samples": 0,
+      "same_crop_ood_rejection_rate": null,
+      "forced_supported_answer_count": 0,
+      "failure_reasons": [
+        "id_false_rejection_rate",
+        "same_crop_ood_test_samples",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/strawberry/leaf/strawberry_leaf_2026-07-19_11-57-26/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "8141f0638ec7f13719dd6cbc4eb8f93190ff65e1"
+    },
+    "tomato__fruit": {
+      "run_id": "tomato_fruit_2026-07-18_10-05-04",
+      "pass": false,
+      "accuracy": 0.8991596698760986,
+      "balanced_accuracy": 0.9317176145820646,
+      "macro_f1": 0.8778993086262717,
+      "id_test_samples": 119,
+      "id_false_rejection_rate": 0.09243697478991597,
+      "same_crop_ood_test_samples": 64,
+      "same_crop_ood_rejection_rate": 0.5625,
+      "forced_supported_answer_count": 28,
+      "failure_reasons": [
+        "accuracy",
+        "macro_f1",
+        "id_false_rejection_rate",
+        "forced_supported_answer_count",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/tomato/fruit/tomato_fruit_2026-07-18_10-05-04/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "7c78576b356320c06e612b353497618220ffb03b"
+    },
+    "tomato__leaf": {
+      "run_id": "tomato_leaf_2026-07-13_19-25-54",
+      "pass": false,
+      "accuracy": 0.8995016813278198,
+      "balanced_accuracy": 0.9128330105714519,
+      "macro_f1": 0.9018239503489657,
+      "id_test_samples": 1204,
+      "id_false_rejection_rate": 0.04983388704318937,
+      "same_crop_ood_test_samples": 18,
+      "same_crop_ood_rejection_rate": 0.6111111111111112,
+      "forced_supported_answer_count": 7,
+      "failure_reasons": [
+        "accuracy",
+        "same_crop_ood_test_samples",
+        "forced_supported_answer_count",
+        "same_crop_ood_rejection_rate"
+      ],
+      "source_path": "runs/tomato/leaf/tomato_leaf_2026-07-13_19-25-54/checkpoint_state/artifacts/adapter_behavioral_acceptance.json",
+      "source_git_blob": "7ebc620060235ddd094f2f222c337ecd95547fa6"
+    }
+  }
+}
