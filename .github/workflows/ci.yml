@@ -46,5 +46,28 @@ jobs:
           ruff check src scripts/fetch_public_adapters.py tests/unit/workflows tests/unit/shared
 
       - name: Unit tests
+        shell: bash
         run: |
-          pytest tests/unit -q --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=0
+          set +e
+          pytest tests/unit -q --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=0 \
+            --junitxml=.runtime_tmp/pytest-unit.xml
+          status=$?
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          report = ET.parse(".runtime_tmp/pytest-unit.xml")
+          for case in report.findall(".//testcase"):
+              failure = case.find("failure")
+              if failure is None:
+                  failure = case.find("error")
+              if failure is None:
+                  continue
+              path = case.get("file") or ".github/workflows/ci.yml"
+              line = case.get("line") or "1"
+              name = f"{case.get('classname', '')}::{case.get('name', '')}".strip(":")
+              message = (failure.get("message") or failure.text or "pytest failure").strip()
+              message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::error file={path},line={line},title={name}::{message}")
+          PY
+          exit "$status"
