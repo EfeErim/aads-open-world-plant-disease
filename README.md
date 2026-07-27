@@ -3,6 +3,9 @@
 [![CI](https://github.com/EfeErim/bitirmeprojesi/actions/workflows/ci.yml/badge.svg)](https://github.com/EfeErim/bitirmeprojesi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+**[Source code](src/aads_public/)** · **[Tests](tests/)** · **[Notebooks](notebooks/)** ·
+**[Model files](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1)**
+
 AADS is my graduation project on plant disease recognition.
 
 The main problem I worked on was uncertainty. A normal classifier always returns one of its known labels, even when
@@ -57,7 +60,9 @@ You can also open the
 [evidence notebook in Colab](https://colab.research.google.com/github/EfeErim/bitirmeprojesi/blob/master/notebooks/evidence_snapshot.ipynb)
 or read the smaller [`continual_objective.ipynb`](notebooks/continual_objective.ipynb) example.
 
-## Repository contents
+## Source code
+
+The public Python package is in [`src/aads_public/`](src/aads_public/). The main files are:
 
 - [`policy.py`](src/aads_public/policy.py): routing and review rules
 - [`training.py`](src/aads_public/training.py): continual-learning loss and replay buffer
