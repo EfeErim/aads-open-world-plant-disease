@@ -5,6 +5,7 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
     from scripts.colab_training_recommendations import inspect_runtime_dataset
     from src.data.dataset_lineage import resolve_dataset_lineage
     from src.data.dataset_release_runtime import fetch_materialize_dataset_release
+    from src.data.public_sample_dataset import materialize_public_sample_dataset
 
     crop_key = "".join(ch.lower() if ch.isalnum() else "_" for ch in str(CROP_NAME).strip())
     while "__" in crop_key:
@@ -14,23 +15,39 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         raise RuntimeError("CROP_NAME bos olmayan bir crop anahtarina cozulmeli.")
 
     requested_release_target = str(DATASET_NAME or ADAPTER_KEY).strip()
-    release_report = fetch_materialize_dataset_release(
-        root=ROOT,
-        repository=DATASET_RELEASE_REPOSITORY,
-        release_tag=DATASET_RELEASE_TAG,
-        target=requested_release_target,
-        cache_root=DATASET_RELEASE_CACHE_ROOT,
-    )
-    RUNTIME_DATASET_ROOT = str(release_report["runtime_dataset_root"])
-    DATASET_RELEASE_MANIFEST_PATH = str(release_report["manifest_path"])
+    if DATASET_SOURCE_KIND == "github_release":
+        release_report = fetch_materialize_dataset_release(
+            root=ROOT,
+            repository=DATASET_RELEASE_REPOSITORY,
+            release_tag=DATASET_RELEASE_TAG,
+            target=requested_release_target,
+            cache_root=DATASET_RELEASE_CACHE_ROOT,
+        )
+        RUNTIME_DATASET_ROOT = str(release_report["runtime_dataset_root"])
+        DATASET_RELEASE_MANIFEST_PATH = str(release_report["manifest_path"])
+        selected_release_root = Path(release_report["selected_dataset_root"])
+        STATE["dataset_release_report"] = release_report
+        print(
+            f"[DATASET RELEASE] repository={release_report['repository']} tag={release_report['release_tag']} "
+            f"target={requested_release_target} verified=True read_only=True"
+        )
+    elif DATASET_SOURCE_KIND == "public_sample":
+        sample_root = Path(PUBLIC_SAMPLE_ROOT).expanduser()
+        if not sample_root.is_absolute():
+            sample_root = (ROOT / sample_root).resolve()
+        sample_report = materialize_public_sample_dataset(sample_root, target=requested_release_target)
+        RUNTIME_DATASET_ROOT = str(sample_root)
+        DATASET_RELEASE_MANIFEST_PATH = ""
+        selected_release_root = Path(sample_report["target_root"])
+        STATE["public_sample_report"] = sample_report
+        print(
+            f"[PUBLIC SAMPLE] target={requested_release_target} samples={sample_report['sample_count']} "
+            "synthetic=True production_eligible=False"
+        )
+    else:
+        raise RuntimeError(f"Unsupported DATASET_SOURCE_KIND={DATASET_SOURCE_KIND!r}.")
     DATASET_NAME = requested_release_target
-    STATE["dataset_release_report"] = release_report
-    print(
-        f"[DATASET RELEASE] repository={release_report['repository']} tag={release_report['release_tag']} "
-        f"target={requested_release_target} verified=True read_only=True"
-    )
 
-    selected_release_root = Path(release_report["selected_dataset_root"])
     runtime_parent = selected_release_root.parent
     candidates = [
         {"name": requested_release_target, "path": selected_release_root, "parent": runtime_parent}
@@ -139,14 +156,16 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         )
     print(f"[DATASET] runtime root={selected_dataset_root} classes={len(class_names)}: {class_names}")
 
-    release_manifest_path = Path(DATASET_RELEASE_MANIFEST_PATH).expanduser()
-    if not release_manifest_path.is_absolute():
-        release_manifest_path = (ROOT / release_manifest_path).resolve()
+    release_manifest_path = None
+    if DATASET_SOURCE_KIND == "github_release":
+        release_manifest_path = Path(DATASET_RELEASE_MANIFEST_PATH).expanduser()
+        if not release_manifest_path.is_absolute():
+            release_manifest_path = (ROOT / release_manifest_path).resolve()
     dataset_lineage = resolve_dataset_lineage(
         source_kind=DATASET_SOURCE_KIND,
         dataset_key=selected_dataset_name,
         split_manifest_path=selected_dataset_root / "split_manifest.json",
-        release_manifest_path=release_manifest_path if DATASET_SOURCE_KIND == "github_release" else None,
+        release_manifest_path=release_manifest_path,
         allow_local_legacy=bool(ALLOW_LOCAL_LEGACY_DATASET),
         compatibility_reason=DATASET_LEGACY_COMPATIBILITY_REASON,
         materialized_target_root=selected_dataset_root,

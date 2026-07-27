@@ -1,7 +1,8 @@
-import json
 import csv
+import json
 import sys
 from collections import defaultdict
+
 
 def check_overlap(manifest_path, out_csv=None, min_shared=1):
     with open(manifest_path, 'r', encoding='utf-8') as f:

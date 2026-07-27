@@ -1,7 +1,6 @@
 # Minimal Colab dependencies for Notebook 9 router-to-adapter presentation inference.
 # Colab already provides torch, torchvision, numpy, Pillow, matplotlib, and google-colab.
 open-clip-torch~=3.2.0
-torchao==0.17.0
 transformers~=5.9.0
 peft~=0.19.1
 accelerate~=1.13.0

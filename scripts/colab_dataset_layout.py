@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import src.data.dataset_layout as _impl
 import json
+
+import src.data.dataset_layout as _impl
 
 IMAGE_EXTENSIONS = _impl.IMAGE_EXTENSIONS
 MATERIALIZATION_STRATEGIES = _impl.MATERIALIZATION_STRATEGIES

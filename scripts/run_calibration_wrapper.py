@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Wrapper to run calibrate_router_surface directly and write to absolute path."""
-from pathlib import Path
+"""Run router calibration with repository-relative inputs and output."""
 import json
 import sys
+from pathlib import Path
 
 # Ensure repo root is on sys.path so scripts.* imports resolve
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,10 +12,10 @@ from scripts.calibrate_router_surface import calibrate_router_surface
 
 
 def main() -> int:
-    out = Path(r"D:/bitirme projesi/.runtime_tmp/router_calibration_direct_wrapper.json")
+    out = ROOT / ".runtime_tmp" / "router_calibration_direct_wrapper.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     try:
-        result = calibrate_router_surface(Path("data/router_eval"), config_env="base", preset="quick")
+        result = calibrate_router_surface(ROOT / "data" / "router_eval", config_env="base", preset="quick")
         out.write_text(json.dumps(result, indent=2), encoding="utf-8")
         print("WROTE_WRAPPER_OUTPUT", out)
         return 0

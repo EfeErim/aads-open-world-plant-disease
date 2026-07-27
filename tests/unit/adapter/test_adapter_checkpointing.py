@@ -1,6 +1,13 @@
+from pathlib import Path
+
+import numpy as np
+import pytest
+import torch
+
 from src.adapter import independent_crop_adapter as adapter_module
 from src.adapter.checkpointing import normalize_trainer_config
 from src.adapter.independent_crop_adapter import IndependentCropAdapter
+from src.training.services.persistence import capture_rng_state
 from src.training.types import TrainingCheckpointPayload
 
 
@@ -31,7 +38,7 @@ class FakeTrainer:
             model_state={"adapter_model": {}, "classifier": {}, "fusion": {}},
             optimizer_state={},
             ood_state={},
-            rng_state={},
+            rng_state=capture_rng_state(np_module=np),
             current_epoch=0,
         )
 
@@ -67,6 +74,35 @@ def test_adapter_checkpoint_save_load(monkeypatch, tmp_path):
     assert loaded["run_id"] == "run_123"
     assert loaded["progress_state"]["global_step"] == 42
     assert loaded["best_metric_state"]["best_metric_name"] == "val_loss"
+
+
+def _write_unsafe_marker(path: str) -> str:
+    Path(path).write_text("unsafe loader executed", encoding="utf-8")
+    return path
+
+
+class _UnsafeCheckpoint:
+    def __init__(self, marker_path: Path) -> None:
+        self.marker_path = marker_path
+
+    def __reduce__(self):
+        return _write_unsafe_marker, (str(self.marker_path),)
+
+
+def test_adapter_checkpoint_rejects_pickle_payload_without_execution(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
+    checkpoint_root = tmp_path / "unsafe" / "training_checkpoint"
+    checkpoint_root.mkdir(parents=True)
+    marker_path = tmp_path / "executed.txt"
+    torch.save(_UnsafeCheckpoint(marker_path), checkpoint_root / "training_checkpoint.pt")
+
+    adapter = IndependentCropAdapter(crop_name="tomato", device="cpu")
+    with pytest.raises(RuntimeError, match="safe weights-only loader"):
+        adapter.load_training_checkpoint(str(checkpoint_root))
+    assert not marker_path.exists()
 
 
 def test_normalize_trainer_config_infers_cross_entropy_for_legacy_ber_export():

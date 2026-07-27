@@ -4,7 +4,6 @@ from pathlib import Path
 
 from scripts.review_m2_answered_wrong_audit import main, review_answered_wrong_audit
 
-
 HEADERS = [
     "rank",
     "image_id",

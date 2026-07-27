@@ -1,5 +1,4 @@
 import json
-import os
 import random
 from pathlib import Path
 
@@ -81,7 +80,6 @@ def analyze_oe(summary):
         slices = info.get("slices", {}) or {}
         # low diversity if single slice equals total images
         single_slice_eq = any(v == images for v in slices.values()) and len(slices) == 1
-        folder = OE_DIR
         lines.append({
             "name": name,
             "images": images,

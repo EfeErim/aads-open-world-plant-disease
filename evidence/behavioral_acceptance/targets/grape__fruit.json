@@ -1,0 +1,135 @@
+{
+  "schema_version": "v1_adapter_behavioral_acceptance",
+  "decision_authority": "adapter_behavioral_acceptance",
+  "status": "fail",
+  "pass": false,
+  "metrics": {
+    "accuracy": 0.9195402264595032,
+    "balanced_accuracy": 0.8830657596371883,
+    "macro_f1": 0.8732331174838113,
+    "id_test_samples": 174.0,
+    "id_accepted_correct_count": 155,
+    "id_false_rejection_count": 11,
+    "id_missing_decision_count": 0,
+    "id_false_rejection_rate": 0.06321839080459771,
+    "same_crop_ood_test_samples": 41.0,
+    "same_crop_ood_rejected_count": 12,
+    "forced_supported_answer_count": 29,
+    "same_crop_ood_missing_decision_count": 0,
+    "same_crop_ood_rejection_rate": 0.2926829268292683
+  },
+  "checks": {
+    "accuracy": {
+      "value": 0.9195402264595032,
+      "operator": ">=",
+      "threshold": 0.93,
+      "passed": false
+    },
+    "balanced_accuracy": {
+      "value": 0.8830657596371883,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "macro_f1": {
+      "value": 0.8732331174838113,
+      "operator": ">=",
+      "threshold": 0.9,
+      "passed": false
+    },
+    "id_test_samples": {
+      "value": 174.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "id_false_rejection_rate": {
+      "value": 0.06321839080459771,
+      "operator": "<=",
+      "threshold": 0.05,
+      "passed": false
+    },
+    "same_crop_ood_test_samples": {
+      "value": 41.0,
+      "operator": ">=",
+      "threshold": 30.0,
+      "passed": true
+    },
+    "forced_supported_answer_count": {
+      "value": 29,
+      "operator": "<=",
+      "threshold": 0.0,
+      "passed": false
+    },
+    "same_crop_ood_rejection_rate": {
+      "value": 0.2926829268292683,
+      "operator": ">=",
+      "threshold": 1.0,
+      "passed": false
+    },
+    "id_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    },
+    "same_crop_ood_decisions_complete": {
+      "value": 0,
+      "operator": "==",
+      "threshold": 0,
+      "passed": true
+    }
+  },
+  "failure_reasons": [
+    "accuracy",
+    "balanced_accuracy",
+    "macro_f1",
+    "id_false_rejection_rate",
+    "forced_supported_answer_count",
+    "same_crop_ood_rejection_rate"
+  ],
+  "same_crop_ood_per_disease": {
+    "grape_black_rot": {
+      "forced_supported_answer": 7,
+      "rejected": 4,
+      "samples": 11
+    },
+    "grape_phomopsis": {
+      "forced_supported_answer": 7,
+      "rejected": 3,
+      "samples": 10
+    },
+    "grape_ripe_rot": {
+      "forced_supported_answer": 6,
+      "rejected": 4,
+      "samples": 10
+    },
+    "grape_sour_rot": {
+      "forced_supported_answer": 9,
+      "rejected": 1,
+      "samples": 10
+    }
+  },
+  "context": {
+    "run_id": "grape_fruit_2026-07-18_09-36-39",
+    "crop_name": "grape",
+    "part_name": "fruit",
+    "classification_split": "test",
+    "ood_scope": "same_crop_same_part_unsupported_disease",
+    "router_scope_excluded": [
+      "wrong_part",
+      "other_plant",
+      "non_plant"
+    ],
+    "production_readiness_status": "failed",
+    "dataset_lineage": {
+      "schema_version": "aads.dataset_lineage.v1",
+      "source_kind": "local_legacy",
+      "production_eligible": false,
+      "dataset_key": "grape__fruit",
+      "split_manifest_sha256": "280b7fca4109809b842fefa27354d127c83d979ba822c089d0eeb6731656c2bb",
+      "compatibility_reason": "notebook17_active_recovery_campaign_until_phase9",
+      "dataset_lineage_key": "local_legacy::grape__fruit::280b7fca4109809b842fefa27354d127c83d979ba822c089d0eeb6731656c2bb"
+    }
+  }
+}

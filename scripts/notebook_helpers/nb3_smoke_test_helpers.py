@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 
@@ -7,9 +8,9 @@ def run_bootstrap_notebook_nb3(notebook_name: str = "Notebook 3: Adapter Smoke T
     from scripts.colab_notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
     try:
         from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
-        repo_root_for_update_check = _ensure_repo_root_for_update_check()
+        _ensure_repo_root_for_update_check()
     except Exception:
-        repo_root_for_update_check = None
+        pass
 
     # [KONTROL] Ilk hucre: Bootstrap kontrati
     BOOTSTRAP = bootstrap_notebook(
@@ -17,15 +18,14 @@ def run_bootstrap_notebook_nb3(notebook_name: str = "Notebook 3: Adapter Smoke T
         require_colab_requirements=require_colab_requirements,
         auto_clone_repo=auto_clone_repo,
     )
-    ROOT = BOOTSTRAP["ROOT"]
     print_bootstrap_status(BOOTSTRAP)
     return BOOTSTRAP
 
 
 def run_access_check_nb3(ROOT: Path, print_fn=print) -> dict:
     """Check adapter smoke test model access."""
-    from src.core.config_manager import get_config
     from scripts.colab_repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
+    from src.core.config_manager import get_config
 
     CONFIG = get_config(environment='colab')
     MODEL_IDS = [

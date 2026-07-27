@@ -6,14 +6,12 @@ access checks, imports, config loading) so notebooks remain minimalist.
 """
 
 import os
-import sys
-import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 from typing import Optional, Sequence
-
+from urllib.parse import urlsplit, urlunsplit
 
 NOTEBOOK2_SPARSE_PATHS = (
     "README.md",
@@ -92,7 +90,7 @@ def _resolve_colab_secret(secret_name: str) -> str:
     try:
         from google.colab import userdata
         return str(userdata.get(secret_name) or "").strip()
-    except Exception as exc:
+    except Exception:
         import logging
         logging.exception('Unhandled exception')
         raise

@@ -8,7 +8,6 @@ Usage: python scripts/compute_per_slice_roc.py
 import csv
 import json
 from pathlib import Path
-import math
 
 try:
     from sklearn.metrics import roc_auc_score, roc_curve
@@ -55,7 +54,6 @@ def find_pr(crop, part, run):
 def detect_score_columns(header, method):
     # return column name matching method score if present
     candidates = []
-    low = [h.lower() for h in header]
     for i, h in enumerate(header):
         lh = h.lower()
         if method in lh and 'score' in lh:

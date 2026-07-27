@@ -2,9 +2,9 @@
 
 Outputs: .runtime_tmp/knn_vs_ensemble_summary.csv
 """
+import csv
 import json
 from pathlib import Path
-import csv
 
 RUNTIME = Path('.runtime_tmp')
 RUNTIME.mkdir(parents=True, exist_ok=True)

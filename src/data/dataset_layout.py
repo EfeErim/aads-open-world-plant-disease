@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+from src.data.dataset_release import validate_archive
 from src.shared.json_utils import read_json
 from src.shared.string_utils import normalize_class_name
 
@@ -90,6 +91,7 @@ def _archive_cache_is_current(target_root: Path, archive_path: Path) -> bool:
 
 
 def _safe_extract_zip_archive(*, archive_path: Path, target_root: Path) -> None:
+    validate_archive(archive_path)
     target_root.mkdir(parents=True, exist_ok=True)
     target_root_resolved = target_root.resolve()
     with zipfile.ZipFile(archive_path) as archive:

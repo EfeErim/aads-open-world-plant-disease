@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from PIL import Image
 
 from src.pipeline.router_adapter_runtime import RouterAdapterRuntime
