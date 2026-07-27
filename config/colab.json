@@ -1,0 +1,155 @@
+{
+  "config_schema_version": 2,
+  "colab": {
+    "enabled": true,
+    "drive_mount_path": "/content/drive/MyDrive/aads_ulora",
+    "workspace_path": "/content/aads_ulora",
+    "paths": {
+      "data_dir": "./data",
+      "models_dir": "./models",
+      "checkpoints_dir": "./checkpoints",
+      "outputs_dir": "./outputs"
+    },
+    "training": {
+      "pin_memory": true,
+      "num_workers": 12,
+      "validation_every_n_epochs": 2,
+      "checkpoint_every_n_steps": 250,
+      "checkpoint_on_exception": true,
+      "stdout_progress_batch_interval": 12,
+      "stdout_progress_min_interval_sec": 15.0
+    }
+  },
+  "training": {
+    "continual": {
+      "num_epochs": 12,
+      "batch_size": 96,
+      "enable_torch_compile": false,
+      "learning_rate": 0.0002,
+      "device": "cuda",
+      "strict_model_loading": true,
+      "deterministic": false,
+      "optimization": {
+        "grad_accumulation_steps": 1,
+        "mixed_precision": "bf16",
+        "max_grad_norm": 1.0,
+        "scheduler": {
+          "name": "cosine",
+          "warmup_ratio": 0.1,
+          "min_lr": 1e-06,
+          "step_on": "batch"
+        }
+      },
+      "evaluation": {
+        "ood_benchmark_min_classes": 3
+      },
+      "data": {
+        "cache_size": 20000,
+        "cache_train_split": true,
+        "validate_images_on_init": false
+      }
+    }
+  },
+  "router": {
+    "enabled": true,
+    "crop_mapping": {
+      "tomato": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "apricot": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "grape": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "strawberry": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "potato": {
+        "parts": ["leaf", "tuber", "stem", "whole"]
+      },
+      "wheat": {
+        "parts": ["leaf", "ear", "stem", "whole"]
+      }
+    },
+    "vlm": {
+      "enabled": true,
+      "profile": "fast",
+      "strict_model_loading": true,
+      "confidence_threshold": 0.25,
+      "max_detections": 50,
+      "open_set_enabled": true,
+      "open_set_min_confidence": 0.25,
+      "open_set_margin": 0.01,
+      "use_dynamic_taxonomy": true,
+      "sam3_text_prompt": "plant",
+      "sam3_expand_with_supported_parts": true,
+      "sam3_prompt_limit": 4,
+      "policy_graph": {
+        "crop_evidence": {
+          "global_crop_context_enabled": true,
+          "global_crop_context_weight": 0.65
+        },
+        "part_resolution": {
+          "preferred_part_labels": [],
+          "part_open_set_enabled": true,
+          "part_open_set_min_confidence": 0.4,
+          "part_open_set_margin": 0.1,
+          "part_unknown_label": "unknown",
+          "part_rejection_metadata_enabled": true,
+          "leaf_override_target_labels": ["whole plant", "whole", "plant", "entire plant"],
+          "leaf_override_ratio": 0.9,
+          "leaf_override_min_confidence": 0.16,
+          "leaf_override_min_margin": 0.04,
+          "leaf_visual_likeness_threshold": 0.58,
+          "leaf_visual_green_min": 0.18,
+          "leaf_visual_min_margin": 0.05,
+          "leaf_visual_force_without_leaf_score": false,
+          "leaf_part_rebalance_threshold": 0.52,
+          "leaf_part_rebalance_penalty": 0.8,
+          "leaf_part_rebalance_boost": 1.15,
+          "leaf_part_rebalance_min_confidence": 0.18,
+          "leaf_part_rebalance_support_ratio": 0.75
+        }
+      },
+      "profiles": {
+        "balanced": {
+          "sam3_prompt_limit": 6,
+          "ensemble_config": {
+            "crop_num_prompts": 0,
+            "part_num_prompts": 4
+          }
+        },
+        "fast": {
+          "sam3_prompt_limit": 4,
+          "ensemble_config": {
+            "crop_num_prompts": 2,
+            "part_num_prompts": 2
+          }
+        }
+      },
+      "taxonomy_path": "config/plant_taxonomy.json",
+      "model_ids": {
+        "grounding_dino": "IDEA-Research/grounding-dino-base",
+        "sam": "facebook/sam3",
+        "bioclip": "imageomics/bioclip-2.5-vith14"
+      }
+    }
+  },
+  "inference": {
+    "adapter_root": "models/adapters",
+    "target_size": 224,
+    "confidence_spread_warning_threshold": 0.20,
+    "router_min_confidence": 0.65,
+    "router_min_margin": 0.10,
+    "input_guard": {
+      "enabled": false,
+      "plant_min_score": 0.45,
+      "negative_margin": 0.10,
+      "num_prompts": 2,
+      "debug_scores": false,
+      "fruit_food_weight": 0.4,
+      "default_food_weight": 0.8
+    }
+  }
+}
