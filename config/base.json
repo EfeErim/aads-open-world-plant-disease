@@ -1,0 +1,231 @@
+{
+  "config_schema_version": 2,
+  "training": {
+    "continual": {
+      "backbone": {
+        "model_name": "facebook/dinov3-vitl16-pretrain-lvd1689m"
+      },
+      "adapter": {
+        "target_modules_strategy": "all_linear_transformer",
+        "lora_r": 24,
+        "lora_alpha": 24,
+        "lora_dropout": 0.1
+      },
+      "fusion": {
+        "layers": [2, 5, 8, 11],
+        "output_dim": 768,
+        "dropout": 0.1,
+        "gating": "softmax"
+      },
+      "ood": {
+        "threshold_factor": 3.0,
+        "primary_score_method": "auto",
+        "ber_enabled": false,
+        "ber_lambda_old": 0.1,
+        "ber_lambda_new": 0.1,
+        "ber_warmup_steps": 50,
+        "energy_temperature_mode": "auto",
+        "energy_temperature": 1.0,
+        "energy_temperature_range": [0.5, 3.0],
+        "energy_temperature_steps": 16,
+        "react_enabled": false,
+        "react_percentile": 0.99,
+        "react_apply_during_calibration": true,
+        "react_apply_during_inference": true,
+        "radial_l2_enabled": true,
+        "radial_beta_range": [0.5, 2.0],
+        "radial_beta_steps": 16,
+        "real_split_enabled": true,
+        "real_split_dev_fraction": 0.4,
+        "real_split_min_per_slice": 2,
+        "real_split_min_total": 30,
+        "real_split_manifest_name": "ood_split_manifest.json",
+        "enforce_oe_disjoint": true,
+        "real_dev_selection_enabled": true,
+        "real_dev_target_fpr": 0.05,
+        "knn_backend": "auto",
+        "knn_chunk_size": 2048,
+        "sure_enabled": true,
+        "sure_semantic_percentile": 90.0,
+        "sure_confidence_percentile": 97.0,
+        "conformal_enabled": true,
+        "conformal_alpha": 0.05,
+        "conformal_method": "raps",
+        "conformal_raps_lambda": 0.2,
+        "conformal_raps_k_reg": 1,
+        "oe_enabled": true,
+        "oe_loss_weight": 0.5,
+        "oe_target": "uniform",
+        "oe_root": ""
+      },
+      "classifier_rebalance": {
+        "enabled": false,
+        "epochs": 3,
+        "learning_rate": 5e-5,
+        "weight_decay": 0.0,
+        "sampler": "weighted",
+        "objective": "logit_adjusted_cross_entropy",
+        "logit_adjustment_tau": 1.0
+      },
+      "class_balance": {
+        "allow_sampler_and_loss_rebalance": false
+      },
+      "learning_rate": 0.00015,
+      "weight_decay": 0.01,
+      "num_epochs": 16,
+      "batch_size": 8,
+      "device": "cuda",
+      "strict_model_loading": false,
+      "seed": 42,
+      "deterministic": true,
+      "optimization": {
+        "grad_accumulation_steps": 4,
+        "max_grad_norm": 1.0,
+        "mixed_precision": "auto",
+        "loss_name": "logitnorm",
+        "logitnorm_tau": 1.0,
+        "label_smoothing": 0.0,
+        "scheduler": {
+          "name": "cosine",
+          "warmup_ratio": 0.1,
+          "min_lr": 1e-06,
+          "step_on": "batch"
+        }
+      },
+      "data": {
+        "sampler": "auto",
+        "loader_error_policy": "tolerant",
+        "target_size": 224,
+        "augmentation_policy": "randaugment",
+        "randaugment_num_ops": 2,
+        "randaugment_magnitude": 7,
+        "augmix_severity": 3,
+        "augmix_width": 3,
+        "augmix_depth": -1,
+        "augmix_alpha": 1.0,
+        "allow_under_min_training": false,
+        "cache_size": 1000,
+        "validate_images_on_init": false
+      },
+      "early_stopping": {
+        "enabled": true,
+        "metric": "val_loss",
+        "mode": "min",
+        "patience": 5,
+        "min_delta": 0.0
+      },
+      "evaluation": {
+        "best_metric": "val_loss",
+        "emit_ood_gate": true,
+        "require_ood_for_gate": true,
+        "ood_benchmark_min_classes": 3,
+        "min_in_distribution_samples": 30,
+        "min_ood_samples": 30,
+        "min_ood_samples_per_type": 5,
+        "gate_auxiliary_ood_diagnostics": false
+      }
+    }
+  },
+  "router": {
+    "enabled": true,
+    "crop_mapping": {
+      "tomato": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "apricot": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "grape": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "strawberry": {
+        "parts": ["leaf", "fruit", "stem", "whole"]
+      },
+      "potato": {
+        "parts": ["leaf", "tuber", "stem", "whole"]
+      },
+      "wheat": {
+        "parts": ["leaf", "ear", "stem", "whole"]
+      }
+    },
+    "vlm": {
+      "enabled": true,
+      "profile": "balanced",
+      "strict_model_loading": false,
+      "confidence_threshold": 0.25,
+      "max_detections": 50,
+      "open_set_enabled": true,
+      "open_set_min_confidence": 0.25,
+      "open_set_margin": 0.01,
+      "use_dynamic_taxonomy": true,
+      "sam3_text_prompt": "plant",
+      "sam3_expand_with_supported_parts": true,
+      "sam3_prompt_limit": 6,
+      "policy_graph": {
+        "crop_evidence": {
+          "global_crop_context_enabled": true,
+          "global_crop_context_weight": 0.65
+        },
+        "part_resolution": {
+          "preferred_part_labels": [],
+          "part_open_set_enabled": true,
+          "part_open_set_min_confidence": 0.4,
+          "part_open_set_margin": 0.1,
+          "part_unknown_label": "unknown",
+          "part_rejection_metadata_enabled": true,
+          "leaf_override_target_labels": ["whole plant", "whole", "plant", "entire plant"],
+          "leaf_override_ratio": 0.9,
+          "leaf_override_min_confidence": 0.16,
+          "leaf_override_min_margin": 0.04,
+          "leaf_visual_likeness_threshold": 0.58,
+          "leaf_visual_green_min": 0.18,
+          "leaf_visual_min_margin": 0.05,
+          "leaf_visual_force_without_leaf_score": false,
+          "leaf_part_rebalance_threshold": 0.52,
+          "leaf_part_rebalance_penalty": 0.8,
+          "leaf_part_rebalance_boost": 1.15,
+          "leaf_part_rebalance_min_confidence": 0.18,
+          "leaf_part_rebalance_support_ratio": 0.75
+        }
+      },
+      "profiles": {
+        "balanced": {
+          "sam3_prompt_limit": 6,
+          "ensemble_config": {
+            "crop_num_prompts": 0,
+            "part_num_prompts": 4
+          }
+        },
+        "fast": {
+          "sam3_prompt_limit": 4,
+          "ensemble_config": {
+            "crop_num_prompts": 2,
+            "part_num_prompts": 2
+          }
+        }
+      },
+      "taxonomy_path": "config/plant_taxonomy.json",
+      "model_ids": {
+        "grounding_dino": "IDEA-Research/grounding-dino-base",
+        "sam": "facebook/sam3",
+        "bioclip": "imageomics/bioclip-2.5-vith14"
+      }
+    }
+  },
+  "inference": {
+    "adapter_root": "models/adapters",
+    "target_size": 224,
+    "confidence_spread_warning_threshold": 0.20,
+    "router_min_confidence": 0.65,
+    "router_min_margin": 0.10,
+    "input_guard": {
+      "enabled": false,
+      "plant_min_score": 0.45,
+      "negative_margin": 0.10,
+      "num_prompts": 2,
+      "debug_scores": false,
+      "fruit_food_weight": 0.4,
+      "default_food_weight": 0.8
+    }
+  }
+}

@@ -1,0 +1,8 @@
+-r requirements.txt
+torchaudio~=2.10.0
+open-clip-torch~=3.2.0
+ultralytics~=8.4.14
+google-colab>=1.0.0
+ipywidgets>=8.1.8
+jupyter>=1.1.1
+psutil>=7.2.2

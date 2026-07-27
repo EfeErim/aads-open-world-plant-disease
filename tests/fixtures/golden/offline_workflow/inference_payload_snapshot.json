@@ -1,0 +1,31 @@
+{
+  "status": "success",
+  "crop": "tomato",
+  "part": "leaf",
+  "diagnosis": "healthy",
+  "confidence": 0.91,
+  "conformal_set": [
+    "healthy"
+  ],
+  "router": {
+    "status": "trusted_hint_skipped",
+    "message": "Router skipped because trust_crop_hint=True.",
+    "detections_count": 1,
+    "primary_detection": {
+      "crop": "tomato",
+      "part": "leaf",
+      "crop_confidence": 1.0,
+      "part_confidence": 1.0
+    }
+  },
+  "ood_analysis": {
+    "score_method": "ensemble",
+    "primary_score": 0.12,
+    "decision_threshold": 0.8,
+    "is_ood": false,
+    "calibration_version": 7,
+    "conformal_set": [
+      "healthy"
+    ]
+  }
+}

@@ -1,0 +1,678 @@
+{
+    "schema_version":  "aads.adapter_release.v2",
+    "release_id":  "public-demo-v1.1.1",
+    "release_label":  "controlled-demo",
+    "production_ready":  false,
+    "created_at":  "2026-07-27T10:03:05Z",
+    "source_commit":  "4f22a52cadb04a01835fc07c17d5eead69e97c87",
+    "targets":  [
+                    "apricot__fruit",
+                    "apricot__leaf",
+                    "grape__fruit",
+                    "grape__leaf",
+                    "strawberry__fruit",
+                    "strawberry__leaf",
+                    "tomato__fruit",
+                    "tomato__leaf"
+                ],
+    "github_release":  {
+                           "repository":  "EfeErim/bitirmeprojesi",
+                           "access_mode":  "public",
+                           "tag":  "aads-public-demo-v1.1.1",
+                           "name":  "AADS controlled-demo artifacts v1.1.1",
+                           "body":  "## AADS controlled-demo artifacts v1.1.1\n\nEvidence-bound portfolio release for eight crop/part SD-LoRA adapter groups.\n\n- 64 checksum-pinned assets across 8 targets\n- complete per-target model cards with recorded ID/OOD metrics\n- frozen controlled-demo result: 48/48 expected decisions\n- independent production-readiness result: 0/8 adapters passed\n- cross-platform LF contract for byte-identical evidence validation on Windows and Linux\n\nThe 48-row result is a curated recorded CUDA run, not fresh inference or a field-performance estimate. Every adapter remains `production_ready=false` and `deployable=false`. Use the repository manifest to verify exact sizes and SHA-256 digests. DINOv3-derived files remain subject to the included DINOv3 license.",
+                           "release_id":  360335168,
+                           "tag_commit_sha":  "4f22a52cadb04a01835fc07c17d5eead69e97c87",
+                           "draft":  false,
+                           "immutable":  true,
+                           "html_url":  "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1",
+                           "published_at":  "2026-07-27T10:03:05Z"
+                       },
+    "files":  [
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--DINOV3_LICENSE.md",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "apricot__fruit--DINOV3_LICENSE.md",
+                      "asset_id":  491293650,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--README.md",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "apricot__fruit--README.md",
+                      "asset_id":  491293825,
+                      "github_digest":  "sha256:1cb91e3daaef12840119dfe8845ae3f0063a033f9a7fbdeb13da541ca31ed1ee",
+                      "size_bytes":  2040,
+                      "sha256":  "1cb91e3daaef12840119dfe8845ae3f0063a033f9a7fbdeb13da541ca31ed1ee"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--adapter_config.json",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "apricot__fruit--adapter_config.json",
+                      "asset_id":  491293036,
+                      "github_digest":  "sha256:bb605d730017f115ad2f74053702d7fe9726b5693d73949bc385b5d97081e6fa",
+                      "size_bytes":  1263,
+                      "sha256":  "bb605d730017f115ad2f74053702d7fe9726b5693d73949bc385b5d97081e6fa"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--adapter_meta.json",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "apricot__fruit--adapter_meta.json",
+                      "asset_id":  491293090,
+                      "github_digest":  "sha256:8ab0c09220499d2315187b87440800f07dac144cfe09f502db774ec9b71db1f2",
+                      "size_bytes":  7888506,
+                      "sha256":  "8ab0c09220499d2315187b87440800f07dac144cfe09f502db774ec9b71db1f2"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--adapter_model.safetensors",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "apricot__fruit--adapter_model.safetensors",
+                      "asset_id":  491293293,
+                      "github_digest":  "sha256:9736595f1f0373f5f7a1efb312a930c8c6097afedbd94099383a044ecff3d015",
+                      "size_bytes":  35425648,
+                      "sha256":  "9736595f1f0373f5f7a1efb312a930c8c6097afedbd94099383a044ecff3d015"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--classifier.pth",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "apricot__fruit--classifier.pth",
+                      "asset_id":  491293634,
+                      "github_digest":  "sha256:8a210f842ed1660568901fdef1bdd79b6dbc28a3c9f1a3a2d9d00ccb7d72c6d2",
+                      "size_bytes":  17277,
+                      "sha256":  "8a210f842ed1660568901fdef1bdd79b6dbc28a3c9f1a3a2d9d00ccb7d72c6d2"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--fusion.pth",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "apricot__fruit--fusion.pth",
+                      "asset_id":  491293734,
+                      "github_digest":  "sha256:d9a1feb91bfae30b6e351645e6d6a1bab6172abc180a59380ad2f719cf439a1b",
+                      "size_bytes":  12605297,
+                      "sha256":  "d9a1feb91bfae30b6e351645e6d6a1bab6172abc180a59380ad2f719cf439a1b"
+                  },
+                  {
+                      "target_id":  "apricot__fruit",
+                      "source_path":  "public_release/apricot__fruit--production_readiness.json",
+                      "local_path":  "apricot/fruit/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "apricot__fruit--production_readiness.json",
+                      "asset_id":  491293806,
+                      "github_digest":  "sha256:4b8d5580de38447a151136c896759159bc6a068b4ba20f7dd42701f0f50a6551",
+                      "size_bytes":  16929,
+                      "sha256":  "4b8d5580de38447a151136c896759159bc6a068b4ba20f7dd42701f0f50a6551"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--DINOV3_LICENSE.md",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "apricot__leaf--DINOV3_LICENSE.md",
+                      "asset_id":  491294365,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--README.md",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "apricot__leaf--README.md",
+                      "asset_id":  491294525,
+                      "github_digest":  "sha256:ddae8c4b96dfdb190824b3f5c046cb7e06475053be934a185d3edd2826997c90",
+                      "size_bytes":  2071,
+                      "sha256":  "ddae8c4b96dfdb190824b3f5c046cb7e06475053be934a185d3edd2826997c90"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--adapter_config.json",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "apricot__leaf--adapter_config.json",
+                      "asset_id":  491293836,
+                      "github_digest":  "sha256:5b04df59965430474faf6583cdb1b268cc06e14e939f6eb73fde5e911b13e41b",
+                      "size_bytes":  1263,
+                      "sha256":  "5b04df59965430474faf6583cdb1b268cc06e14e939f6eb73fde5e911b13e41b"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--adapter_meta.json",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "apricot__leaf--adapter_meta.json",
+                      "asset_id":  491293869,
+                      "github_digest":  "sha256:469b4c9e9931b9c34bf21c2dc840c5fa5e1b60a101ce48dfeb30acf08028e663",
+                      "size_bytes":  4248712,
+                      "sha256":  "469b4c9e9931b9c34bf21c2dc840c5fa5e1b60a101ce48dfeb30acf08028e663"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--adapter_model.safetensors",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "apricot__leaf--adapter_model.safetensors",
+                      "asset_id":  491294042,
+                      "github_digest":  "sha256:bf010807b82e7fb99c28e88a0451f819366821e3ae506dd2aa9b6accbf584a2d",
+                      "size_bytes":  35425648,
+                      "sha256":  "bf010807b82e7fb99c28e88a0451f819366821e3ae506dd2aa9b6accbf584a2d"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--classifier.pth",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "apricot__leaf--classifier.pth",
+                      "asset_id":  491294353,
+                      "github_digest":  "sha256:0234efac63a7349303862062e51cefedb7c01cda5acdfccc35b7a62133676bf6",
+                      "size_bytes":  11133,
+                      "sha256":  "0234efac63a7349303862062e51cefedb7c01cda5acdfccc35b7a62133676bf6"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--fusion.pth",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "apricot__leaf--fusion.pth",
+                      "asset_id":  491294435,
+                      "github_digest":  "sha256:abe5abef28ddaf2c7d4b22d4aedbd1f59612867c5c4cab51b783d7b69527e296",
+                      "size_bytes":  12605297,
+                      "sha256":  "abe5abef28ddaf2c7d4b22d4aedbd1f59612867c5c4cab51b783d7b69527e296"
+                  },
+                  {
+                      "target_id":  "apricot__leaf",
+                      "source_path":  "public_release/apricot__leaf--production_readiness.json",
+                      "local_path":  "apricot/leaf/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "apricot__leaf--production_readiness.json",
+                      "asset_id":  491294518,
+                      "github_digest":  "sha256:c7523ed2efd9cfa3e2cf17b0ce5ab7d0cb6ec4208cd23dfb8da7c1c2d6afade9",
+                      "size_bytes":  14443,
+                      "sha256":  "c7523ed2efd9cfa3e2cf17b0ce5ab7d0cb6ec4208cd23dfb8da7c1c2d6afade9"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--DINOV3_LICENSE.md",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "grape__fruit--DINOV3_LICENSE.md",
+                      "asset_id":  491295296,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--README.md",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "grape__fruit--README.md",
+                      "asset_id":  491295397,
+                      "github_digest":  "sha256:4071dc2fc0f59655ab544e0d873036a6b72b55790e84c18a340837ad37d701fd",
+                      "size_bytes":  2070,
+                      "sha256":  "4071dc2fc0f59655ab544e0d873036a6b72b55790e84c18a340837ad37d701fd"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--adapter_config.json",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "grape__fruit--adapter_config.json",
+                      "asset_id":  491294530,
+                      "github_digest":  "sha256:033e13547dacc669889493b77382df12b16fe9b03a3448184d119550d103991e",
+                      "size_bytes":  1264,
+                      "sha256":  "033e13547dacc669889493b77382df12b16fe9b03a3448184d119550d103991e"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--adapter_meta.json",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "grape__fruit--adapter_meta.json",
+                      "asset_id":  491294573,
+                      "github_digest":  "sha256:cc68c3b8ee72a8dc1cc84e316fc561b2a2750297dd65a7aa6e6277d76842e2ee",
+                      "size_bytes":  5007181,
+                      "sha256":  "cc68c3b8ee72a8dc1cc84e316fc561b2a2750297dd65a7aa6e6277d76842e2ee"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--adapter_model.safetensors",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "grape__fruit--adapter_model.safetensors",
+                      "asset_id":  491295047,
+                      "github_digest":  "sha256:0bf412c0fa106111f6ac767db9f45ed4babb1756dad7b3e45a3d5a4bf42f4119",
+                      "size_bytes":  42503568,
+                      "sha256":  "0bf412c0fa106111f6ac767db9f45ed4babb1756dad7b3e45a3d5a4bf42f4119"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--classifier.pth",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "grape__fruit--classifier.pth",
+                      "asset_id":  491295291,
+                      "github_digest":  "sha256:57fc0da68568f6b640f872e4f49b8719148167eecf3f47af1d584b9376374293",
+                      "size_bytes":  17277,
+                      "sha256":  "57fc0da68568f6b640f872e4f49b8719148167eecf3f47af1d584b9376374293"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--fusion.pth",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "grape__fruit--fusion.pth",
+                      "asset_id":  491295343,
+                      "github_digest":  "sha256:ab0ec2339729f1ed7c461e9718b995ab20b361cb02297dcc78feca7ffd8753ac",
+                      "size_bytes":  12605297,
+                      "sha256":  "ab0ec2339729f1ed7c461e9718b995ab20b361cb02297dcc78feca7ffd8753ac"
+                  },
+                  {
+                      "target_id":  "grape__fruit",
+                      "source_path":  "public_release/grape__fruit--production_readiness.json",
+                      "local_path":  "grape/fruit/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "grape__fruit--production_readiness.json",
+                      "asset_id":  491295389,
+                      "github_digest":  "sha256:72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e",
+                      "size_bytes":  18276,
+                      "sha256":  "72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--DINOV3_LICENSE.md",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "grape__leaf--DINOV3_LICENSE.md",
+                      "asset_id":  491296010,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--README.md",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "grape__leaf--README.md",
+                      "asset_id":  491296212,
+                      "github_digest":  "sha256:09823286971092401ad33d7f762ff68b778822e82d25f32fcc3411fa336a270c",
+                      "size_bytes":  2068,
+                      "sha256":  "09823286971092401ad33d7f762ff68b778822e82d25f32fcc3411fa336a270c"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--adapter_config.json",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "grape__leaf--adapter_config.json",
+                      "asset_id":  491295403,
+                      "github_digest":  "sha256:928902cd529f387b3afd2aa330fdfd43fd08565bff587278536867c1383c8ecf",
+                      "size_bytes":  1264,
+                      "sha256":  "928902cd529f387b3afd2aa330fdfd43fd08565bff587278536867c1383c8ecf"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--adapter_meta.json",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "grape__leaf--adapter_meta.json",
+                      "asset_id":  491295440,
+                      "github_digest":  "sha256:bb1fba4571feea17a4bb45e9da948ea51bf0b5aed7ff82118384b710a3703b1a",
+                      "size_bytes":  9194251,
+                      "sha256":  "bb1fba4571feea17a4bb45e9da948ea51bf0b5aed7ff82118384b710a3703b1a"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--adapter_model.safetensors",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "grape__leaf--adapter_model.safetensors",
+                      "asset_id":  491295739,
+                      "github_digest":  "sha256:8ffb78df7805e76ed14515abb3383ea870cadb1964b7f2538ee5f1a6a42c028b",
+                      "size_bytes":  42503568,
+                      "sha256":  "8ffb78df7805e76ed14515abb3383ea870cadb1964b7f2538ee5f1a6a42c028b"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--classifier.pth",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "grape__leaf--classifier.pth",
+                      "asset_id":  491296007,
+                      "github_digest":  "sha256:19fa3835419a1ac3e26eb94f8b55e1a9b807b1516447902017dd60ed50fe2c31",
+                      "size_bytes":  23421,
+                      "sha256":  "19fa3835419a1ac3e26eb94f8b55e1a9b807b1516447902017dd60ed50fe2c31"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--fusion.pth",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "grape__leaf--fusion.pth",
+                      "asset_id":  491296095,
+                      "github_digest":  "sha256:d80884c5d1a453c2ea4ea426b0ac5045795d242e268e0fe8b773956a7c03e3ed",
+                      "size_bytes":  12605297,
+                      "sha256":  "d80884c5d1a453c2ea4ea426b0ac5045795d242e268e0fe8b773956a7c03e3ed"
+                  },
+                  {
+                      "target_id":  "grape__leaf",
+                      "source_path":  "public_release/grape__leaf--production_readiness.json",
+                      "local_path":  "grape/leaf/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "grape__leaf--production_readiness.json",
+                      "asset_id":  491296204,
+                      "github_digest":  "sha256:72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e",
+                      "size_bytes":  18276,
+                      "sha256":  "72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--DINOV3_LICENSE.md",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "strawberry__fruit--DINOV3_LICENSE.md",
+                      "asset_id":  491296796,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--README.md",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "strawberry__fruit--README.md",
+                      "asset_id":  491296920,
+                      "github_digest":  "sha256:794563d1b76d001898f91f8f7505eaf8f31151e4e3f77960602a79b9220cdd85",
+                      "size_bytes":  2067,
+                      "sha256":  "794563d1b76d001898f91f8f7505eaf8f31151e4e3f77960602a79b9220cdd85"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--adapter_config.json",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "strawberry__fruit--adapter_config.json",
+                      "asset_id":  491296225,
+                      "github_digest":  "sha256:a44058b41572cdecee08f3644f8c07d3cf67b0225227f149e0b5a0ad49a1519d",
+                      "size_bytes":  1214,
+                      "sha256":  "a44058b41572cdecee08f3644f8c07d3cf67b0225227f149e0b5a0ad49a1519d"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--adapter_meta.json",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "strawberry__fruit--adapter_meta.json",
+                      "asset_id":  491296272,
+                      "github_digest":  "sha256:840acf8a510f52b1ab10170a93b38236122bc9393ad0804e20461129f2823dc1",
+                      "size_bytes":  6340375,
+                      "sha256":  "840acf8a510f52b1ab10170a93b38236122bc9393ad0804e20461129f2823dc1"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--adapter_model.safetensors",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "strawberry__fruit--adapter_model.safetensors",
+                      "asset_id":  491296570,
+                      "github_digest":  "sha256:083ae3f3ad0d0295070b3c54d4320b4d3fe479435a946055f891408a254a31d5",
+                      "size_bytes":  35425648,
+                      "sha256":  "083ae3f3ad0d0295070b3c54d4320b4d3fe479435a946055f891408a254a31d5"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--classifier.pth",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "strawberry__fruit--classifier.pth",
+                      "asset_id":  491296784,
+                      "github_digest":  "sha256:7b12ae001667309bdbe3f8bd39864fd2c3baccc0361e6a2b889b8503f68ed14a",
+                      "size_bytes":  17277,
+                      "sha256":  "7b12ae001667309bdbe3f8bd39864fd2c3baccc0361e6a2b889b8503f68ed14a"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--fusion.pth",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "strawberry__fruit--fusion.pth",
+                      "asset_id":  491296863,
+                      "github_digest":  "sha256:adf00356c721df026ddac74113f4e8cc55795615380a3215d6b400f8a13c2551",
+                      "size_bytes":  12605297,
+                      "sha256":  "adf00356c721df026ddac74113f4e8cc55795615380a3215d6b400f8a13c2551"
+                  },
+                  {
+                      "target_id":  "strawberry__fruit",
+                      "source_path":  "public_release/strawberry__fruit--production_readiness.json",
+                      "local_path":  "strawberry/fruit/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "strawberry__fruit--production_readiness.json",
+                      "asset_id":  491296914,
+                      "github_digest":  "sha256:772f6a34429fcc0bc2202916c7039639b5fcdf98ee86033e4f855d4635e1ba3a",
+                      "size_bytes":  18174,
+                      "sha256":  "772f6a34429fcc0bc2202916c7039639b5fcdf98ee86033e4f855d4635e1ba3a"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--DINOV3_LICENSE.md",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "strawberry__leaf--DINOV3_LICENSE.md",
+                      "asset_id":  491297630,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--README.md",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "strawberry__leaf--README.md",
+                      "asset_id":  491297769,
+                      "github_digest":  "sha256:d588d4dda1c401ba04d69744261f16c1db98f6adccc78688831f8c1dea66c8d1",
+                      "size_bytes":  2078,
+                      "sha256":  "d588d4dda1c401ba04d69744261f16c1db98f6adccc78688831f8c1dea66c8d1"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--adapter_config.json",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "strawberry__leaf--adapter_config.json",
+                      "asset_id":  491296930,
+                      "github_digest":  "sha256:d6221257943a0cbd6aaf94de59fc20f0ee137532b0f0c267860b91ad12971a18",
+                      "size_bytes":  1265,
+                      "sha256":  "d6221257943a0cbd6aaf94de59fc20f0ee137532b0f0c267860b91ad12971a18"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--adapter_meta.json",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "strawberry__leaf--adapter_meta.json",
+                      "asset_id":  491296989,
+                      "github_digest":  "sha256:efaf54e1806af24dc2270e3867486f1212a74516a11761322654632de33aa5c2",
+                      "size_bytes":  13573527,
+                      "sha256":  "efaf54e1806af24dc2270e3867486f1212a74516a11761322654632de33aa5c2"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--adapter_model.safetensors",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "strawberry__leaf--adapter_model.safetensors",
+                      "asset_id":  491297354,
+                      "github_digest":  "sha256:9599377b7d780d21a8ba0f6b1e8d85bf09d38116a44f03b5a0d183521022929e",
+                      "size_bytes":  42503568,
+                      "sha256":  "9599377b7d780d21a8ba0f6b1e8d85bf09d38116a44f03b5a0d183521022929e"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--classifier.pth",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "strawberry__leaf--classifier.pth",
+                      "asset_id":  491297624,
+                      "github_digest":  "sha256:e0e5d9809aee4a726906daa3c4d837789b3ad0bf1f6aa2f68eceaf41ed46984e",
+                      "size_bytes":  14205,
+                      "sha256":  "e0e5d9809aee4a726906daa3c4d837789b3ad0bf1f6aa2f68eceaf41ed46984e"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--fusion.pth",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "strawberry__leaf--fusion.pth",
+                      "asset_id":  491297682,
+                      "github_digest":  "sha256:0e199317915fb8758eef0a0968a58098aefbf9a789945ca9ab6745670fac42c2",
+                      "size_bytes":  12605297,
+                      "sha256":  "0e199317915fb8758eef0a0968a58098aefbf9a789945ca9ab6745670fac42c2"
+                  },
+                  {
+                      "target_id":  "strawberry__leaf",
+                      "source_path":  "public_release/strawberry__leaf--production_readiness.json",
+                      "local_path":  "strawberry/leaf/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "strawberry__leaf--production_readiness.json",
+                      "asset_id":  491297765,
+                      "github_digest":  "sha256:72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e",
+                      "size_bytes":  18276,
+                      "sha256":  "72d5591aeb43a1f64456b86bcbea04e046487ed2e39f6229cd2869326c821a5e"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--DINOV3_LICENSE.md",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "tomato__fruit--DINOV3_LICENSE.md",
+                      "asset_id":  491298320,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--README.md",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "tomato__fruit--README.md",
+                      "asset_id":  491298456,
+                      "github_digest":  "sha256:37717f75191d68b3ea2c33f71552b9ab201bacb06b53d6dc193ba47fe59fa208",
+                      "size_bytes":  2051,
+                      "sha256":  "37717f75191d68b3ea2c33f71552b9ab201bacb06b53d6dc193ba47fe59fa208"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--adapter_config.json",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "tomato__fruit--adapter_config.json",
+                      "asset_id":  491297777,
+                      "github_digest":  "sha256:d6221257943a0cbd6aaf94de59fc20f0ee137532b0f0c267860b91ad12971a18",
+                      "size_bytes":  1265,
+                      "sha256":  "d6221257943a0cbd6aaf94de59fc20f0ee137532b0f0c267860b91ad12971a18"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--adapter_meta.json",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "tomato__fruit--adapter_meta.json",
+                      "asset_id":  491297816,
+                      "github_digest":  "sha256:20f2c467fcbf31cae1a1a1486dffcdfd9dffb8428d981b763e4985eeebbef182",
+                      "size_bytes":  3616421,
+                      "sha256":  "20f2c467fcbf31cae1a1a1486dffcdfd9dffb8428d981b763e4985eeebbef182"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--adapter_model.safetensors",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "tomato__fruit--adapter_model.safetensors",
+                      "asset_id":  491298093,
+                      "github_digest":  "sha256:2097a5001539d4a06474542d39c8dd69542d613fc59cb9b43a8e4260296d1f8b",
+                      "size_bytes":  42503568,
+                      "sha256":  "2097a5001539d4a06474542d39c8dd69542d613fc59cb9b43a8e4260296d1f8b"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--classifier.pth",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "tomato__fruit--classifier.pth",
+                      "asset_id":  491298313,
+                      "github_digest":  "sha256:ce67ce4607b4659409c424bffb633da01b4eef27ae2367276cec85b73ea859c8",
+                      "size_bytes":  23421,
+                      "sha256":  "ce67ce4607b4659409c424bffb633da01b4eef27ae2367276cec85b73ea859c8"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--fusion.pth",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "tomato__fruit--fusion.pth",
+                      "asset_id":  491298357,
+                      "github_digest":  "sha256:bbf57571cac9d4e5f3138be56afe66cbad480a5d6a04d2821fbb04119f42ee0e",
+                      "size_bytes":  12605297,
+                      "sha256":  "bbf57571cac9d4e5f3138be56afe66cbad480a5d6a04d2821fbb04119f42ee0e"
+                  },
+                  {
+                      "target_id":  "tomato__fruit",
+                      "source_path":  "public_release/tomato__fruit--production_readiness.json",
+                      "local_path":  "tomato/fruit/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "tomato__fruit--production_readiness.json",
+                      "asset_id":  491298447,
+                      "github_digest":  "sha256:a9ec5d4c53b212d7ee5b587532604a097f0579772118cb3e5792a8575eed5c4b",
+                      "size_bytes":  16917,
+                      "sha256":  "a9ec5d4c53b212d7ee5b587532604a097f0579772118cb3e5792a8575eed5c4b"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--DINOV3_LICENSE.md",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/DINOV3_LICENSE.md",
+                      "asset_name":  "tomato__leaf--DINOV3_LICENSE.md",
+                      "asset_id":  491299505,
+                      "github_digest":  "sha256:d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc",
+                      "size_bytes":  7579,
+                      "sha256":  "d58980655c79f305d61b62411a616187239ba8f75c0872bff9ccb5b7f51c0bdc"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--README.md",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/README.md",
+                      "asset_name":  "tomato__leaf--README.md",
+                      "asset_id":  491299697,
+                      "github_digest":  "sha256:3f60da5b84eccf8b9b3502796e0bd9cc2fc167740ab7e10c251fbd167ccb915d",
+                      "size_bytes":  2049,
+                      "sha256":  "3f60da5b84eccf8b9b3502796e0bd9cc2fc167740ab7e10c251fbd167ccb915d"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--adapter_config.json",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/adapter_config.json",
+                      "asset_name":  "tomato__leaf--adapter_config.json",
+                      "asset_id":  491298466,
+                      "github_digest":  "sha256:f258b16781896ddbe6d18ed189e8363c65087d4fd36a8f9b1e6403dacad97ca9",
+                      "size_bytes":  1265,
+                      "sha256":  "f258b16781896ddbe6d18ed189e8363c65087d4fd36a8f9b1e6403dacad97ca9"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--adapter_meta.json",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/adapter_meta.json",
+                      "asset_name":  "tomato__leaf--adapter_meta.json",
+                      "asset_id":  491298636,
+                      "github_digest":  "sha256:cdd616f9eed4ec5a5a086aaabfd84d3dacb254b8e4dab510754dd8127fd5e299",
+                      "size_bytes":  33776004,
+                      "sha256":  "cdd616f9eed4ec5a5a086aaabfd84d3dacb254b8e4dab510754dd8127fd5e299"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--adapter_model.safetensors",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/adapter_model.safetensors",
+                      "asset_name":  "tomato__leaf--adapter_model.safetensors",
+                      "asset_id":  491299118,
+                      "github_digest":  "sha256:238b878851d494f6f00d6a29500149cbf0ac42cb16368300bc0b4c56ff1cf258",
+                      "size_bytes":  56659384,
+                      "sha256":  "238b878851d494f6f00d6a29500149cbf0ac42cb16368300bc0b4c56ff1cf258"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--classifier.pth",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/classifier.pth",
+                      "asset_name":  "tomato__leaf--classifier.pth",
+                      "asset_id":  491299498,
+                      "github_digest":  "sha256:93e5a1149679a0c08264ff0e3a60d90ffa367a94cbc99cef50bf07f4a3f046c7",
+                      "size_bytes":  32637,
+                      "sha256":  "93e5a1149679a0c08264ff0e3a60d90ffa367a94cbc99cef50bf07f4a3f046c7"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--fusion.pth",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/fusion.pth",
+                      "asset_name":  "tomato__leaf--fusion.pth",
+                      "asset_id":  491299585,
+                      "github_digest":  "sha256:cd48aaf3be302515c086e3f99cb9eca8aa395c5d6fcb301ceec36838ea18cce1",
+                      "size_bytes":  12605297,
+                      "sha256":  "cd48aaf3be302515c086e3f99cb9eca8aa395c5d6fcb301ceec36838ea18cce1"
+                  },
+                  {
+                      "target_id":  "tomato__leaf",
+                      "source_path":  "public_release/tomato__leaf--production_readiness.json",
+                      "local_path":  "tomato/leaf/continual_sd_lora_adapter/production_readiness.json",
+                      "asset_name":  "tomato__leaf--production_readiness.json",
+                      "asset_id":  491299688,
+                      "github_digest":  "sha256:a9ec5d4c53b212d7ee5b587532604a097f0579772118cb3e5792a8575eed5c4b",
+                      "size_bytes":  16917,
+                      "sha256":  "a9ec5d4c53b212d7ee5b587532604a097f0579772118cb3e5792a8575eed5c4b"
+                  }
+              ],
+    "license_review":  {
+                           "status":  "approved",
+                           "redistribution_approved":  true,
+                           "note":  "Each bundle includes the upstream DINOv3 license."
+                       }
+}

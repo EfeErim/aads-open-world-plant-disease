@@ -1,0 +1,21 @@
+{
+  "status": "ready",
+  "passed": true,
+  "policy_passed": true,
+  "ood_evidence_source": "real_ood_split",
+  "classification_split": "test",
+  "missing_requirements": [],
+  "missing_deployment_requirements": [],
+  "ood_metrics": {
+    "ood_auroc": 1.0,
+    "ood_false_positive_rate": 0.0,
+    "sure_ds_f1": 0.95,
+    "conformal_empirical_coverage": 1.0,
+    "conformal_avg_set_size": 1.0
+  },
+  "context": {
+    "calibration_split_name": "val",
+    "ood_primary_score_method": "ensemble",
+    "ood_primary_score_selection_source": "real_ood_guardrail_no_dev"
+  }
+}

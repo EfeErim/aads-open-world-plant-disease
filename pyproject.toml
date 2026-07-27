@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aads-v6"
+version = "0.1.0"
+description = "Open-world plant disease routing, continual SD-LoRA training and adapter inference"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = {text = "MIT"}
+authors = [{name = "Efe Erim"}]
+keywords = ["computer-vision", "continual-learning", "lora", "open-set-recognition", "ood"]
+
+[project.urls]
+Repository = "https://github.com/EfeErim/bitirmeprojesi"
+Release = "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1"
+
+[project.scripts]
+aads = "src.app.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+cache_dir = ".runtime_tmp/.pytest_cache"
+norecursedirs = ["__pycache__", ".runtime_tmp", ".venv"]
+addopts = ["--tb=short", "--strict-markers"]
+markers = ["integration: integration tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+exclude = [".runtime_tmp", ".venv", "colab_notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["^colab_notebooks/", "^\\.runtime_tmp/", "^tests/"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
