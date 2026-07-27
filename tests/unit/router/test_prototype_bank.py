@@ -71,9 +71,10 @@ def test_build_prototype_bank_honors_max_images_per_class(tmp_path: Path):
 def test_build_prototype_bank_consumes_reviewed_curation_manifests(tmp_path: Path):
     dataset_root = tmp_path / "datasets"
     curation_root = tmp_path / "curation"
-    curated_positive = tmp_path / "reviewed" / "positive.png"
-    curated_cross_target_negative = tmp_path / "reviewed" / "cross_target_negative.png"
-    curated_same_target_negative = tmp_path / "reviewed" / "same_target_negative.png"
+    reviewed_root = tmp_path / "bitirmeprojesi" / "reviewed"
+    curated_positive = reviewed_root / "positive.png"
+    curated_cross_target_negative = reviewed_root / "cross_target_negative.png"
+    curated_same_target_negative = reviewed_root / "same_target_negative.png"
     _write_image(dataset_root / "tomato__leaf" / "train" / "healthy" / "a.png", (20, 80, 40))
     _write_image(curated_positive, (25, 85, 45))
     _write_image(curated_cross_target_negative, (190, 40, 30))

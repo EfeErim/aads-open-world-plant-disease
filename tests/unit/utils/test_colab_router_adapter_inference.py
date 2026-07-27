@@ -111,7 +111,7 @@ def test_run_inference_runs_router_only_pipeline(monkeypatch, tmp_path: Path):
         "adapter_target": {
             "crop": "tomato",
             "part": "fruit",
-            "adapter_dir": "models\\adapters\\tomato\\fruit\\continual_sd_lora_adapter",
+            "adapter_dir": str(Path("models/adapters/tomato/fruit/continual_sd_lora_adapter")),
             "exists": False,
         },
         "runtime_profile": "",
@@ -191,7 +191,7 @@ def test_run_inference_trusted_crop_hint_skips_router(monkeypatch, tmp_path: Pat
         "adapter_target": {
             "crop": "tomato",
             "part": "leaf",
-            "adapter_dir": "models\\adapters\\tomato\\leaf\\continual_sd_lora_adapter",
+            "adapter_dir": str(Path("models/adapters/tomato/leaf/continual_sd_lora_adapter")),
             "exists": False,
         },
         "runtime_profile": "",

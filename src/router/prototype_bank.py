@@ -323,12 +323,12 @@ def resolve_curation_image_path(row: dict[str, Any], *, repo_root: Path) -> Path
         if value.startswith("staged_external:"):
             value = value.split(":", 1)[1]
         normalized = value.replace("\\", "/")
+        candidate = Path(normalized)
+        if candidate.is_absolute() and candidate.is_file():
+            return candidate
         marker = "bitirmeprojesi/"
         if marker in normalized:
             value = normalized.split(marker, 1)[1]
-        candidate = Path(value)
-        if candidate.is_absolute() and candidate.is_file():
-            return candidate
         resolved = repo_root / value
         if resolved.is_file():
             return resolved
