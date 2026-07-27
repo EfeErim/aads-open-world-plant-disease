@@ -91,7 +91,7 @@ Deeper context: [`MODEL_CARD.md`](docs/MODEL_CARD.md) · [`ENGINEERING_NOTES.md`
 
 ## Model artifacts
 
-The [v1.1.0 controlled-demo release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.0)
+The [v1.1.1 controlled-demo release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.1)
 contains checksum-pinned adapter artifacts and complete per-target model cards. These artifacts are published for
 engineering review and reproducibility of the artifact contract. They are explicitly `production_ready=false`, and
 the full backbone/inference runtime is outside this compact public edition.

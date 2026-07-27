@@ -1,4 +1,4 @@
-# Model card — AADS controlled-demo adapters v1.1.0
+# Model card — AADS controlled-demo adapters v1.1.1
 
 ## Summary
 

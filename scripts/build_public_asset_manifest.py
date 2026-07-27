@@ -14,7 +14,7 @@ def main() -> int:
     parser.add_argument("source", type=Path)
     parser.add_argument("destination", type=Path)
     parser.add_argument("--repository", default="EfeErim/bitirmeprojesi")
-    parser.add_argument("--release-tag", default="aads-public-demo-v1.1.0")
+    parser.add_argument("--release-tag", default="aads-public-demo-v1.1.1")
     parser.add_argument(
         "--source-kind",
         choices=("release", "directory"),

@@ -11,7 +11,7 @@ from aads_public.evidence import load_acceptance_report
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_ROOT = ROOT / "notebooks"
-RELEASE_TAG = "aads-public-demo-v1.1.0"
+RELEASE_TAG = "aads-public-demo-v1.1.1"
 EXPECTED_NOTEBOOKS = frozenset({"continual_objective.ipynb", "evidence_snapshot.ipynb"})
 
 
