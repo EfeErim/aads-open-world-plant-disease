@@ -165,7 +165,7 @@ def bootstrap_repo_root(
         RuntimeError: If repo bootstrap fails
     """
     if repo_url is None:
-        repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/bitirmeprojesi.git")
+        repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
 
     if clone_target is None:
         clone_target = Path("/content/bitirmeprojesi")

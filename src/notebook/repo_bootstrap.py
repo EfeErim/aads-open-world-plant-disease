@@ -54,7 +54,7 @@ def maybe_clone_repo() -> Optional[Path]:
     if os.environ.get("AADS_DISABLE_AUTO_CLONE") == "1":
         return None
 
-    repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/bitirmeprojesi.git")
+    repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
     clone_target = Path(os.environ.get("AADS_REPO_CLONE_TARGET", "/content/bitirmeprojesi")).expanduser()
 
     if is_repo_root(clone_target):

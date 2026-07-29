@@ -326,7 +326,7 @@ if bool(globals().get("RECOVERY_USE_GITHUB_DATASET_RELEASE", False)):
 
     DATASET_RELEASE_REPORT = fetch_materialize_dataset_release(
         root=ROOT,
-        repository=str(globals().get("DATASET_RELEASE_REPOSITORY", "EfeErim/bitirmeprojesi")),
+        repository=str(globals().get("DATASET_RELEASE_REPOSITORY", "EfeErim/aads-open-world-plant-disease")),
         release_tag=str(globals().get("DATASET_RELEASE_TAG", "aads-dataset-v1.0.0")),
         targets=selected_targets,
         cache_root=str(globals().get("DATASET_RELEASE_CACHE_ROOT", ".runtime_tmp/dataset_release_cache")),

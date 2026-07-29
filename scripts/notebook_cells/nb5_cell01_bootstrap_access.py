@@ -38,7 +38,7 @@ _configure_colab_git_read_access()
 
 
 CLONE_TARGET = Path('/content/bitirmeprojesi')  # Colab GitHub bootstrap contract
-REPO_URL = os.environ.get('AADS_REPO_URL', 'https://github.com/EfeErim/bitirmeprojesi.git')
+REPO_URL = os.environ.get('AADS_REPO_URL', 'https://github.com/EfeErim/aads-open-world-plant-disease.git')
 
 print('[BOOTSTRAP] Notebook 5 bootstrap cell started.', flush=True)
 print(f'[BOOTSTRAP] cwd={Path.cwd()}', flush=True)

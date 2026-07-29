@@ -128,7 +128,7 @@ PUBLIC_SAMPLE_ROOT = str(
     globals().get("PUBLIC_SAMPLE_ROOT", "data/public_sample_runtime_datasets")
 ).strip()
 DATASET_RELEASE_REPOSITORY = str(
-    globals().get("DATASET_RELEASE_REPOSITORY", "EfeErim/bitirmeprojesi")
+    globals().get("DATASET_RELEASE_REPOSITORY", "EfeErim/aads-open-world-plant-disease")
 ).strip()
 DATASET_RELEASE_TAG = str(globals().get("DATASET_RELEASE_TAG", "aads-dataset-v1.0.0")).strip()
 DATASET_RELEASE_CACHE_ROOT = str(

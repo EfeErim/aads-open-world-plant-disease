@@ -317,13 +317,9 @@ The latest tracked acceptance artifact per target at source commit
 Machine-readable values, source paths, source Git blobs and failure reasons are recorded in
 [`evidence/latest_behavioral_acceptance_summary.json`](../evidence/latest_behavioral_acceptance_summary.json).
 The eight source records are also checked in under
-[`evidence/behavioral_acceptance/targets/`](../evidence/behavioral_acceptance/targets/). Rebuild or verify the summary
-without access to the private experiment tree:
-
-```bash
-python scripts/build_behavioral_acceptance_summary.py
-python scripts/build_behavioral_acceptance_summary.py --check
-```
+[`evidence/behavioral_acceptance/targets/`](../evidence/behavioral_acceptance/targets/). The
+[`build_behavioral_acceptance_summary.py`](../scripts/build_behavioral_acceptance_summary.py) maintainer tool and CI
+verify the public summary without access to the private experiment tree.
 
 The builder verifies that each record's internal crop/part identity matches its filename before aggregation. This
 prevents a checksum-valid but misattributed readiness record from being accepted as evidence for another target.
@@ -345,19 +341,14 @@ The public Release contains 64 checksum-pinned files for eight adapter bundles a
 bundle includes LoRA weights, classifier/fusion state, configuration, metadata, a readiness record and the required
 DINOv3 license notice.
 
-The downloader:
-
-```bash
-python scripts/fetch_public_adapters.py
-```
-
-checks SHA-256 before materializing the runtime directory layout.
+[Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb)
+retrieves the public bundles and checks their SHA-256 values before materializing the Colab runtime layout.
 
 Source:
 
 - [`evidence/public_asset_manifest.json`](../evidence/public_asset_manifest.json)
 - [`docs/evidence/current/demo_release/release_manifest.json`](evidence/current/demo_release/release_manifest.json)
-- [public Release](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2)
+- [public Release](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2)
 
 The release is for code review and controlled experiments. Its manifest explicitly records
 `production_ready: false`.

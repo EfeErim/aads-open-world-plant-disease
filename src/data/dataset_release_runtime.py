@@ -9,7 +9,7 @@ from src.data.dataset_release import DatasetContractError, read_json_dict
 from src.data.dataset_release_github import fetch_dataset_release, materialize_dataset_release
 from src.pipeline.adapter_release import resolve_token
 
-DEFAULT_DATASET_RELEASE_REPOSITORY = "EfeErim/bitirmeprojesi"
+DEFAULT_DATASET_RELEASE_REPOSITORY = "EfeErim/aads-open-world-plant-disease"
 DEFAULT_DATASET_RELEASE_TAG = "aads-dataset-v1.0.0"
 DEFAULT_DATASET_RELEASE_CACHE_ROOT = Path(".runtime_tmp/dataset_release_cache")
 DEFAULT_MATERIALIZED_DATASET_ROOT = (

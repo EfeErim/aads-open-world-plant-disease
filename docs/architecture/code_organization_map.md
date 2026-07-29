@@ -1,6 +1,8 @@
 # Repo-Wide Code Organization Map
 
-This map defines where code should live as the project grows. The goal is to keep the repo organized like a shared product platform: common parts live once, while notebooks, scripts, and CLIs remain thin usage surfaces.
+This map defines where code should live as the project grows. The goal is to keep the repo organized like a shared
+product platform: common parts live once, Colab notebooks remain thin user interfaces, and scripts/CLIs remain thin
+developer and maintenance surfaces.
 
 ## Operating Model
 
@@ -8,7 +10,9 @@ This map defines where code should live as the project grows. The goal is to kee
 - `scripts/` is the operational surface. Scripts may parse arguments, assemble inputs, call `src/`, and write reports, but reusable logic should move into `src/` once more than one surface needs it.
 - `scripts/notebook_cells/` contains notebook cell orchestration. Cells should stay small and delegate real work to `scripts/notebook_helpers/` or `src/`.
 - `scripts/notebook_helpers/` contains notebook-specific helpers that are still testable Python modules. Helpers can adapt notebook state, format display output, and call canonical workflows.
-- `colab_notebooks/` contains user-facing notebooks. Notebooks should collect parameters, call maintained helpers/workflows, and render results; they should not become independent implementations.
+- `colab_notebooks/` contains the Colab surfaces. Notebooks 0, 2, 3, and 8 are user-facing; the remaining notebooks
+  are support, internal-maintenance, recovery, or report-only surfaces. Notebooks should collect parameters, call
+  maintained helpers/workflows, and render results; they should not become independent implementations.
 - `tests/` mirrors the maintained surfaces. Unit tests cover helpers and services; integration tests cover canonical workflow and runtime contracts.
 - `config/` owns behavior knobs. Policy should be configured here rather than hard-coded into notebooks or one-off scripts.
 - `docs/` owns user and maintainer explanations. Durable architectural decisions should be documented here and summarized in `PROJECT_STATE.md` when they affect future work.
@@ -25,15 +29,27 @@ Every Python file should fit one primary category:
 | `workflow` | `src/workflows/` | Stable app-facing facade for training and inference |
 | `runtime` | `src/pipeline/`, router runtime modules | Stateful resource loading, adapter discovery, payload assembly |
 | `shared` | `src/shared/` | Cross-cutting contracts, path helpers, JSON/CSV/hash/telemetry utilities |
-
-Dataset release ownership is split by lifecycle without duplicating transport code: `src/data/dataset_release.py`
-owns local snapshot/audit/quarantine/shard-plan contracts, `src/data/dataset_release_github.py` owns the remote immutable
-release lifecycle, and both reuse the GitHub REST/authentication client in `src/pipeline/adapter_release.py`.
-| `cli` | `src/app/`, top-level `scripts/*.py` | Argument parsing and command orchestration |
+| `cli` | `src/app/`, top-level `scripts/*.py` | Developer/maintenance argument parsing and command orchestration |
 | `notebook_cell` | `scripts/notebook_cells/` | Thin cell-level orchestration |
 | `notebook_helper` | `scripts/notebook_helpers/` | Testable notebook adapters around canonical logic |
 | `validation` | `scripts/validate_*.py`, `scripts/check_*.py`, `scripts/monitor_*.py` | Repo, artifact, dataset, and config guardrails |
 | `test` | `tests/` | Behavioral evidence for the categories above |
+
+Dataset release ownership is split by lifecycle without duplicating transport code: `src/data/dataset_release.py`
+owns local snapshot/audit/quarantine/shard-plan contracts, `src/data/dataset_release_github.py` owns the remote immutable
+release lifecycle, and both reuse the GitHub REST/authentication client in `src/pipeline/adapter_release.py`.
+
+Large notebook/research surfaces are split by responsibility while their existing imports remain valid:
+
+- `src/training/notebook_runtime_helpers.py` owns Notebook 2 orchestration, while
+  `src/training/notebook_runtime_session.py` owns sessions, checkpoints, artifacts and completion handling;
+- `src/data/grouped_runtime_dataset_preparation.py` owns the grouped split plan, while
+  `grouped_dataset_embeddings.py`, `grouped_dataset_reporting.py` and `grouped_dataset_materialization.py` own the
+  corresponding focused stages;
+- `src/pipeline/colab_roi_ablation_runtime.py` owns the report-only ablation flow, while
+  `src/pipeline/colab_roi_router.py` owns crop/part handoff and the Grounding DINO fallback;
+- `scripts/colab_simple_adapter_smoke_ui.py` owns Notebook 4 interaction state, while
+  `scripts/simple_adapter_smoke_ui_view.py` owns its HTML rendering.
 
 ## Dependency Direction
 

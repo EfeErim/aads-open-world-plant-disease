@@ -284,7 +284,7 @@ def test_adapter_ood_oe_recovery_notebook_contract() -> None:
         "RECOVERY_RESUME_FROM_LEDGER = True",
         "RECOVERY_USE_GITHUB_DATASET_RELEASE = True",
         "RECOVERY_LOCAL_DATASET_ROOT = 'data/prepared_runtime_datasets'",
-        "DATASET_RELEASE_REPOSITORY = 'EfeErim/bitirmeprojesi'",
+        "DATASET_RELEASE_REPOSITORY = 'EfeErim/aads-open-world-plant-disease'",
         "DATASET_RELEASE_TAG = 'aads-dataset-v1.0.0'",
         "RECOVERY_EVIDENCE_MANIFEST_RELATIVE_PATH = 'adapter_ood_oe_evidence_manifest.csv'",
         "RECOVERY_MAX_COMPLETED_EXPERIMENTS = 0",

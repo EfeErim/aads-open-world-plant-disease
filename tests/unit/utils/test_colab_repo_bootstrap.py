@@ -98,7 +98,7 @@ def test_ensure_repo_root_for_update_check_adds_repo_to_import_path(tmp_path: Pa
 def test_maybe_clone_repo_uses_askpass_without_persisting_read_token(tmp_path: Path, monkeypatch):
     clone_target = tmp_path / "bitirmeprojesi"
     monkeypatch.delenv("AADS_DISABLE_AUTO_CLONE", raising=False)
-    monkeypatch.setenv("AADS_REPO_URL", "https://github.com/EfeErim/bitirmeprojesi.git")
+    monkeypatch.setenv("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
     monkeypatch.setenv("AADS_REPO_CLONE_TARGET", str(clone_target))
     monkeypatch.setattr(bootstrap, "resolve_github_read_token", lambda: "read-secret")
 
@@ -126,7 +126,7 @@ def test_maybe_clone_repo_uses_askpass_without_persisting_read_token(tmp_path: P
     assert resolved == clone_target
     assert calls
     assert calls[0][:3] == ["git", "clone", "--depth"]
-    assert calls[0][4] == "https://github.com/EfeErim/bitirmeprojesi.git"
+    assert calls[0][4] == "https://github.com/EfeErim/aads-open-world-plant-disease.git"
     assert "read-secret" not in " ".join(calls[0])
     assert "read-secret" not in askpass_text
     assert observed_env["AADS_GIT_READ_TOKEN"] == "read-secret"
@@ -462,7 +462,7 @@ def test_push_repo_run_to_github_skips_pt_files(tmp_path: Path, monkeypatch):
         if args == ["reset"]:
             return subprocess.CompletedProcess(command, 0, stdout="")
         if args == ["remote", "get-url", "origin"]:
-            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/bitirmeprojesi.git\n")
+            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/aads-open-world-plant-disease.git\n")
         if args[:4] == ["diff", "--cached", "--name-only", "--"]:
             staged_stdout = "runs/run_1/outputs/colab_notebook_training/artifacts/summary.json\n"
             return subprocess.CompletedProcess(command, 0, stdout=staged_stdout)
@@ -487,7 +487,7 @@ def test_push_repo_run_to_github_skips_pt_files(tmp_path: Path, monkeypatch):
 
     push_calls = [call for call in calls if call[1] == "push"]
     assert push_calls
-    assert push_calls[0][2] == "https://github.com/EfeErim/bitirmeprojesi.git"
+    assert push_calls[0][2] == "https://github.com/EfeErim/aads-open-world-plant-disease.git"
     assert "gh-secret" not in " ".join(push_calls[0])
 
 
@@ -518,7 +518,7 @@ def test_push_repo_run_to_github_accepts_nested_run_relative_dir(tmp_path: Path,
         if args == ["reset"]:
             return subprocess.CompletedProcess(command, 0, stdout="")
         if args == ["remote", "get-url", "origin"]:
-            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/bitirmeprojesi.git\n")
+            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/aads-open-world-plant-disease.git\n")
         if args[:4] == ["diff", "--cached", "--name-only", "--"]:
             return subprocess.CompletedProcess(command, 0, stdout="runs/grape/fruit/run_1/outputs/summary.json\n")
         return subprocess.CompletedProcess(command, 0, stdout="")
@@ -556,7 +556,7 @@ def test_push_repo_paths_to_github_force_adds_ignored_runtime_dataset(tmp_path: 
         if args == ["branch", "--show-current"]:
             return subprocess.CompletedProcess(command, 0, stdout="master\n")
         if args == ["remote", "get-url", "origin"]:
-            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/bitirmeprojesi.git\n")
+            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/aads-open-world-plant-disease.git\n")
         if args[:4] == ["diff", "--cached", "--name-only", "--"]:
             return subprocess.CompletedProcess(
                 command,
@@ -586,7 +586,7 @@ def test_push_repo_paths_to_github_force_adds_ignored_runtime_dataset(tmp_path: 
 
     push_calls = [call for call in calls if call[1] == "push"]
     assert push_calls
-    assert push_calls[0][2] == "https://github.com/EfeErim/bitirmeprojesi.git"
+    assert push_calls[0][2] == "https://github.com/EfeErim/aads-open-world-plant-disease.git"
     assert "gh-secret" not in " ".join(push_calls[0])
 
 
@@ -609,7 +609,7 @@ def test_push_repo_paths_to_github_realigns_before_runtime_dataset_commit(tmp_pa
         if args == ["branch", "--show-current"]:
             return subprocess.CompletedProcess(command, 0, stdout="master\n")
         if args == ["remote", "get-url", "origin"]:
-            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/bitirmeprojesi.git\n")
+            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/aads-open-world-plant-disease.git\n")
         if args == ["ls-remote", "--heads", "origin", "refs/heads/master"]:
             return subprocess.CompletedProcess(command, 0, stdout="remote-sha\trefs/heads/master\n")
         if args == ["fetch", "origin", "master"]:
@@ -660,7 +660,7 @@ def test_push_repo_paths_to_github_redacts_token_from_push_errors(tmp_path: Path
         if args == ["branch", "--show-current"]:
             return subprocess.CompletedProcess(command, 0, stdout="master\n")
         if args == ["remote", "get-url", "origin"]:
-            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/bitirmeprojesi.git\n")
+            return subprocess.CompletedProcess(command, 0, stdout="https://github.com/EfeErim/aads-open-world-plant-disease.git\n")
         if args[:4] == ["diff", "--cached", "--name-only", "--"]:
             return subprocess.CompletedProcess(
                 command,

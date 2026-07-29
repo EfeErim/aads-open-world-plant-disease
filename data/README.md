@@ -1,17 +1,12 @@
 # Data layout
 
-The original research datasets are not distributed with this repository. Add your own images locally; the
-`.gitignore` keeps them out of Git by default.
+The original research datasets are not distributed with this repository. The intended path is to provide your own
+images through [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb)
+and train with [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb).
 
-For a zero-data plumbing test, create the deterministic public sample:
-
-```bash
-python scripts/materialize_public_sample_dataset.py --target tomato__leaf
-```
-
-It creates 56 small synthetic images across the `continual`, `val`, `test`, `ood` and `oe` roles. Its manifest marks
-the data as `production_eligible: false`: it is useful for checking that the code runs, not for measuring accuracy,
-OOD performance or readiness. Notebook 2 selects this sample by default.
+For a zero-data plumbing test, Notebook 2 can automatically create 56 deterministic synthetic images across the
+`continual`, `val`, `test`, `ood`, and `oe` roles. Its manifest marks the data as `production_eligible: false`: it is
+useful for checking that the Colab workflow runs, not for measuring accuracy, OOD performance, or readiness.
 
 Notebook 0 accepts a class-root dataset:
 
@@ -21,8 +16,8 @@ data/class_root_dataset/<dataset_name>/
     <images>
 ```
 
-For local data in Notebook 0, set `DATASET_RELEASE_TAG = ""` so it uses the audit/materialization path instead of
-looking for a release-backed dataset.
+For your own uploaded data in Notebook 0, set `DATASET_RELEASE_TAG = ""` so the notebook uses the
+audit/materialization path instead of looking for a release-backed dataset.
 
 Training uses the prepared runtime layout:
 
@@ -38,5 +33,5 @@ data/prepared_runtime_datasets/<crop>__<part>/
 `ood/` contains unknown inputs used for calibration/evaluation. `oe/` is optional Outlier Exposure data and must not
 overlap the validation or locked test sets. Keep split membership and provenance fixed when comparing runs.
 
-The preparation and integrity logic is implemented in [`../src/data/`](../src/data/) and the main dataset notebook is
-[`../colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb`](../colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb).
+The preparation and integrity logic is implemented in [`../src/data/`](../src/data/); Notebook 0 is its user-facing
+Colab interface.
