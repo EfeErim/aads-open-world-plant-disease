@@ -9,6 +9,9 @@ The project is intentionally narrow:
 - one adapter family
 - a small set of notebook helper surfaces around those same workflows
 
+Colab notebooks are the intended user interface for training and inference. The workflow modules are the canonical
+implementation, while the CLI is a developer and maintenance wrapper.
+
 If you are new to the repo, read [../../README.md](../../README.md) before this file.
 
 ## The Big Picture
@@ -105,9 +108,10 @@ This is easier for a beginner to prepare by hand.
 
 Notebook 0 uses this contract for duplicate-aware audit before training and defaults to the repo-local staging root `data/class_root_dataset/`. Notebook 0 can also pull a reusable repo-local OOD tree from `data/ood_dataset/<dataset_name>/` when it materializes the runtime dataset.
 
-### Contract 2: Notebook 2 and workflow runtime training layout
+### Contract 2: Notebook 2 and canonical workflow runtime training layout
 
-Notebook 2, workflow training, and CLI training use a runtime split layout:
+Notebook 2 calls the canonical training workflow with this runtime split layout. The developer CLI uses the same
+contract for maintenance and smoke testing:
 
 ```text
 <data_dir>/<crop>/
@@ -158,13 +162,15 @@ src/workflows/inference.py -> InferenceWorkflow.predict(...)
 
 ### End-to-end inference flow
 
+Notebook 8 is the user-facing entry point for this flow; it delegates inference to the canonical workflow below.
+
 1. `InferenceWorkflow` builds `src/pipeline/router_adapter_runtime.py`.
 2. The runtime loads config and resolves the adapter root.
 3. Unless `trust_crop_hint=True` is supplied with a crop hint, the runtime loads the canonical router surface `src/router/router_pipeline.py`.
 4. The router analyzes the image and produces a typed router result with normalized detections.
 5. A plain `crop_hint` is treated as untrusted; the router must identify the same crop before the adapter can load.
 6. The router keeps one canonical primary detection using router quality ranking when available, otherwise preserving router order.
-7. If `inference.input_guard.enabled=true`, the runtime scores the image with the BioCLIP plantness prompt groups in [plantness_input_guard_prompt_groups.md](plantness_input_guard_prompt_groups.md). A non-plant decision returns `non_plant_rejected` and skips adapter inference.
+7. If `inference.input_guard.enabled=true`, the runtime scores the image with the configured BioCLIP plantness prompt groups in [`config/base.json`](../../config/base.json). A non-plant decision returns `non_plant_rejected` and skips adapter inference.
 8. Before resolving any adapter, the runtime applies a conservative uncertainty gate on that primary detection using the configured router confidence and router margin thresholds.
 9. If the primary crop signal is too weak, ambiguous, or inconsistent with an untrusted crop hint, the payload status is `router_uncertain` and no adapter runs.
 10. Otherwise the runtime resolves the crop adapter directory from that primary detection or from the explicitly trusted crop hint.
@@ -281,7 +287,10 @@ Adapter acceptance comes from held-out per-sample decisions in `adapter_behavior
 
 ## Artifact Flow
 
-### Workflow and CLI training output
+### Canonical training output
+
+Notebook 2 is the supported user-facing training surface. The CLI wrapper reaches the same workflow for developer
+maintenance and CI-oriented checks.
 
 Training writes:
 
@@ -369,9 +378,9 @@ That surface reads the canonical run registry, stays inside one comparable cohor
 
 ### Notebook 2 output
 
-Notebook 2 writes to three places:
+Notebook 2 writes to three places in its Colab session and repository workspace:
 
-- local outputs under `outputs/colab_notebook_training/`
+- notebook-session outputs under `outputs/colab_notebook_training/`
 - repo mirrors under `runs/<crop>/<part>/<RUN_ID>/`
 - repo-local telemetry runtime under `outputs/colab_notebook_training/telemetry_runtime/telemetry/<RUN_ID>/`
 
@@ -381,7 +390,7 @@ The repo mirror keeps notebook outputs, telemetry copies, and checkpoint manifes
 
 Current adapter export detail:
 
-- local notebook export: `outputs/colab_notebook_training/<crop>/<part>/continual_sd_lora_adapter/`
+- notebook-session export: `outputs/colab_notebook_training/<crop>/<part>/continual_sd_lora_adapter/`
 - workflow export: `<output_dir>/<crop>/<part>/continual_sd_lora_adapter/`
 - telemetry runtime export: `outputs/colab_notebook_training/telemetry_runtime/telemetry/<RUN_ID>/artifacts/adapter_export/<crop>/<part>/continual_sd_lora_adapter/`
 
@@ -459,9 +468,6 @@ The repo validates the maintained surface through:
 ## Related Docs
 
 - [../../README.md](../../README.md)
-- [../user_guide/colab_training_manual.md](../user_guide/colab_training_manual.md)
-- [../user_guide/ood_readiness_guide.md](../user_guide/ood_readiness_guide.md)
-- [router_performance_literature_review.md](router_performance_literature_review.md)
-- [ood_recommendation.md](ood_recommendation.md)
-- [unknown_disease_rejection.md](unknown_disease_rejection.md)
-- [../archive/experimental_leave_one_class_out_ood.md](../archive/experimental_leave_one_class_out_ood.md)
+- [code_organization_map.md](code_organization_map.md)
+- [../methodology_and_results.md](../methodology_and_results.md)
+- [../source_and_notebook_map.md](../source_and_notebook_map.md)

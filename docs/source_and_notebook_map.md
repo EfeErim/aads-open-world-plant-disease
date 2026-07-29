@@ -16,30 +16,32 @@ necessary changes for anonymous Release access, safer defaults and cross-platfor
 | `colab_notebooks/requirements_colab.txt` | 1 | 1 | 100% |
 | `config/` files | 3 | 3 | 100% |
 | operational scripts shared by both trees | 177 | 177 | 100% |
-| public-only operational scripts | 0 | 3 | added for public use |
+| public-only operational or extracted scripts | 0 | 5 | added for public use |
 | tests shared by both trees | 166 | 166 | 100% |
-| public-only focused tests | 0 | 2 | added for public use |
+| public-only focused tests | 0 | 3 | added for public use |
 
-The application implementation is not embedded only in notebooks. Notebooks call the same maintained modules used by
-the CLI and tests.
+The application implementation is not embedded only in notebooks. Colab notebooks call the same maintained modules
+used by the developer-only CLI and the test suite.
 
 ## Application source
 
-The 131 files under [`src/`](../src/) are grouped as follows:
+The 137 files under [`src/`](../src/) are grouped as follows. Six public modules split large responsibilities from
+their original compatibility entry points; they reorganize the same implementation rather than adding a second
+pipeline.
 
 | Package | Files | Responsibility |
 |---|---:|---|
-| [`src/training/`](../src/training/) | 27 | continual SD-LoRA training, validation, persistence and reporting |
+| [`src/training/`](../src/training/) | 28 | continual SD-LoRA training, validation, persistence and reporting |
 | [`src/router/`](../src/router/) | 26 | crop/part routing, taxonomy, prototypes, calibration and abstention |
-| [`src/data/`](../src/data/) | 16 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
+| [`src/data/`](../src/data/) | 20 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
 | [`src/ood/`](../src/ood/) | 14 | OOD scoring, conformal prediction and behavioral acceptance |
-| [`src/pipeline/`](../src/pipeline/) | 13 | adapter discovery, release loading, inference payloads and evidence analysis |
+| [`src/pipeline/`](../src/pipeline/) | 14 | adapter discovery, release loading, inference payloads and evidence analysis |
 | [`src/shared/`](../src/shared/) | 10 | typed contracts and shared serialization/path utilities |
 | [`src/workflows/`](../src/workflows/) | 8 | stable training and inference entry points |
 | [`src/adapter/`](../src/adapter/) | 4 | adapter configuration, checkpointing and lifecycle helpers |
 | [`src/core/`](../src/core/) | 3 | configuration loading and core runtime support |
 | [`src/notebook/`](../src/notebook/) | 3 | notebook bootstrap and Git integration |
-| [`src/app/`](../src/app/) | 2 | CLI surface |
+| [`src/app/`](../src/app/) | 2 | developer and maintenance CLI surface |
 | [`src/utils/`](../src/utils/) | 2 | small maintained utilities |
 | root modules | 2 | guided artifact contracts |
 | package marker | 1 | `src/__init__.py` |
@@ -56,27 +58,27 @@ The main code paths are:
 
 ## Every authored notebook
 
-| Notebook | Role | What it runs |
+| Notebook | Audience | Role |
 |---|---|---|
-| [`0_prepare_grouped_dataset_for_training.ipynb`](../colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | data preparation | validates and materializes the grouped runtime dataset |
-| [`1_identify_crop_part_with_router.ipynb`](../colab_notebooks/1_identify_crop_part_with_router.ipynb) | router building block | crop/part routing used by Notebook 8 |
-| [`2_train_continual_sd_lora_adapter.ipynb`](../colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | primary training | trains, calibrates, evaluates and exports one adapter |
-| [`3_validate_exported_adapter_directly.ipynb`](../colab_notebooks/3_validate_exported_adapter_directly.ipynb) | adapter validation | reloads an exported adapter and checks direct inference |
-| [`4_simple_direct_adapter_test_ui.ipynb`](../colab_notebooks/4_simple_direct_adapter_test_ui.ipynb) | maintenance UI | lightweight direct-adapter inspection |
-| [`5_calibrate_router_handoff_thresholds.ipynb`](../colab_notebooks/5_calibrate_router_handoff_thresholds.ipynb) | router calibration | evaluates and calibrates handoff thresholds |
-| [`6_train_all_continual_sd_lora_adapters.ipynb`](../colab_notebooks/6_train_all_continual_sd_lora_adapters.ipynb) | batch training | runs the maintained Notebook 2 path for all eight targets |
-| [`7_ood_oe_quality.ipynb`](../colab_notebooks/7_ood_oe_quality.ipynb) | evidence QC | audits OOD/OE evidence and review decisions |
-| [`8_auto_router_adapter_prediction.ipynb`](../colab_notebooks/8_auto_router_adapter_prediction.ipynb) | primary demo | routes an image, loads the matching adapter and returns a decision |
-| [`16_ablation_dual_view_inference.ipynb`](../colab_notebooks/16_ablation_dual_view_inference.ipynb) | report-only research | compares full-image and ROI evidence; it is not the default inference policy |
-| [`17_adapter_ood_oe_recovery.ipynb`](../colab_notebooks/17_adapter_ood_oe_recovery.ipynb) | bounded recovery | runs candidate selection on dev evidence and a locked-test-once recovery protocol |
+| [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | user-facing | audits and materializes the grouped runtime dataset |
+| [`1_identify_crop_part_with_router.ipynb`](../colab_notebooks/1_identify_crop_part_with_router.ipynb) | support | router building block used by Notebook 8 |
+| [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | user-facing | primary training; calibrates, evaluates, and exports one adapter |
+| [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | user-facing | reloads and validates an exported adapter |
+| [`4_simple_direct_adapter_test_ui.ipynb`](../colab_notebooks/4_simple_direct_adapter_test_ui.ipynb) | internal maintenance | lightweight direct-adapter inspection |
+| [`5_calibrate_router_handoff_thresholds.ipynb`](../colab_notebooks/5_calibrate_router_handoff_thresholds.ipynb) | internal maintenance | evaluates and calibrates handoff thresholds |
+| [`6_train_all_continual_sd_lora_adapters.ipynb`](../colab_notebooks/6_train_all_continual_sd_lora_adapters.ipynb) | internal maintenance | runs the Notebook 2 path for all eight targets |
+| [`7_ood_oe_quality.ipynb`](../colab_notebooks/7_ood_oe_quality.ipynb) | internal maintenance | audits OOD/OE evidence and review decisions |
+| [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | user-facing | primary inference/demo; routes an image and returns a decision |
+| [`16_ablation_dual_view_inference.ipynb`](../colab_notebooks/16_ablation_dual_view_inference.ipynb) | report-only research | compares full-image and ROI evidence; not the default inference policy |
+| [`17_adapter_ood_oe_recovery.ipynb`](../colab_notebooks/17_adapter_ood_oe_recovery.ipynb) | internal recovery | runs candidate selection on dev evidence and a locked-test-once protocol |
 
 Notebook 8 differs intentionally from the maintained private-project version: its public defaults fetch the immutable
 public adapter Release and start in single-image mode. The model and routing implementation it calls remains in
 `src/`.
 
-Notebook 2 defaults to a deterministic synthetic dataset generated locally, so a public user can exercise the
+Notebook 2 can generate a deterministic synthetic dataset inside the Colab runtime, so a public user can exercise the
 training workflow without the private dataset Release. The sample is smoke-test data, is explicitly ineligible for
-production evidence and does not support accuracy claims. Notebook 0 defaults to the user's own class-root data.
+production evidence and does not support accuracy claims. Notebook 0 accepts the user's own class-root data.
 Notebooks 6, 16 and 17 are internal batch/research workflows whose original private experiment inputs are not
 redistributed; their source remains public for inspection.
 
@@ -87,8 +89,8 @@ The public repository also includes:
 - 36 extracted notebook cell scripts under [`scripts/notebook_cells/`](../scripts/notebook_cells/);
 - 15 reusable notebook helpers under [`scripts/notebook_helpers/`](../scripts/notebook_helpers/);
 - the remaining operational, validation, calibration and evidence scripts under [`scripts/`](../scripts/);
-- 168 tracked unit, integration, Colab smoke and test-fixture files under [`tests/`](../tests/), including two
-  public-only tests for sample-data and evidence-rebuild behavior.
+- 169 tracked unit, integration, Colab smoke and test-fixture files under [`tests/`](../tests/), including three
+  public-only tests for sample data, evidence rebuilding and the models-free demo replay.
 
 These files matter because the notebooks orchestrate maintained Python code instead of hiding large independent
 implementations inside notebook cells.
@@ -104,7 +106,7 @@ The following private-tree surfaces are not application source and are not copie
 - `runs/`, `outputs/` and `.runtime_tmp/`: generated experiments, caches and telemetry;
 - training images: redistribution permission is not documented for every source image;
 - model binaries in Git history: released separately with checksums in
-  [`aads-public-demo-v1.1.2`](https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2);
+  [`aads-public-demo-v1.1.2`](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2);
 - private credentials, internal project state and unpublished dataset manifests.
 
 This boundary keeps the repository cloneable without pretending that generated outputs or internal automation are

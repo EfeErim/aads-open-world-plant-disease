@@ -9,51 +9,73 @@ import hashlib
 import itertools
 import json
 import math
-import os
 import re
-import shutil
 from collections import defaultdict
-from contextlib import nullcontext
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 from PIL import Image, ImageOps
-from sklearn.neighbors import NearestNeighbors
 
 from src.data.dataset_layout import (
     IMAGE_EXTENSIONS,
     class_name_aliases,
     normalize_class_name,
 )
+from src.data.grouped_dataset_embeddings import (
+    _compute_neighbor_pairs as _compute_neighbor_pairs,
+)
+from src.data.grouped_dataset_embeddings import (
+    _encode_bioclip_with_components as _encode_bioclip_with_components,
+)
+from src.data.grouped_dataset_embeddings import (
+    _encode_dinov3_with_components as _encode_dinov3_with_components,
+)
+from src.data.grouped_dataset_embeddings import _encode_with_oom_retries as _encode_with_oom_retries_impl
+from src.data.grouped_dataset_embeddings import _is_cuda_oom as _is_cuda_oom
+from src.data.grouped_dataset_embeddings import _load_bioclip_components as _load_bioclip_components
+from src.data.grouped_dataset_embeddings import _load_dinov3_components as _load_dinov3_components
+from src.data.grouped_dataset_embeddings import _progress as _progress
+from src.data.grouped_dataset_embeddings import _resolve_amp_dtype as _resolve_amp_dtype
+from src.data.grouped_dataset_embeddings import _resolve_embedding_device as _resolve_embedding_device
+from src.data.grouped_dataset_embeddings import (
+    resolve_safe_embedding_batch_size as resolve_safe_embedding_batch_size,
+)
+from src.data.grouped_dataset_materialization import DEFAULT_RUNTIME_ROOT as DEFAULT_RUNTIME_ROOT
+from src.data.grouped_dataset_materialization import build_prepared_dataset_key as build_prepared_dataset_key
+from src.data.grouped_dataset_materialization import (
+    materialize_grouped_runtime_dataset as materialize_grouped_runtime_dataset,
+)
+from src.data.grouped_dataset_policy import (
+    BIOCLIP_AUTO_MIN,
+    BIOCLIP_REVIEW_MIN,
+    DEFAULT_NEIGHBORS,
+    DINO_AUTO_MIN,
+    DINO_REVIEW_MIN,
+    HUMAN_REVIEW_PACKET_FILENAME,
+    LABEL_REVIEW_SUMMARY_FILENAME,
+    PHASH_AUTO_MAX_DISTANCE,
+    PHASH_REVIEW_MAX_DISTANCE,
+    PHASH_SIZE,
+)
+from src.data.grouped_dataset_policy import (
+    BIOCLIP_CROSS_CLASS_BLOCK_MIN as BIOCLIP_CROSS_CLASS_BLOCK_MIN,
+)
+from src.data.grouped_dataset_policy import (
+    DINO_CROSS_CLASS_BLOCK_MIN as DINO_CROSS_CLASS_BLOCK_MIN,
+)
+from src.data.grouped_dataset_reporting import _skipped_class_entry as _skipped_class_entry
+from src.data.grouped_dataset_reporting import build_human_review_packet as build_human_review_packet
+from src.data.grouped_dataset_reporting import build_label_review_summary as build_label_review_summary
+from src.data.grouped_dataset_reporting import format_human_review_packet as format_human_review_packet
 from src.guided_artifacts import refresh_prep_guided_artifacts
-from src.shared.csv_utils import read_csv_preview as _read_csv_preview
 from src.shared.csv_utils import write_csv_rows
 from src.shared.json_utils import read_json, write_json
 
 DEFAULT_DINOV3_MODEL_ID = "facebook/dinov3-vitl16-pretrain-lvd1689m"
 DEFAULT_BIOCLIP_MODEL_ID = "imageomics/bioclip-2.5-vith14"
-DEFAULT_RUNTIME_ROOT = Path("data") / "prepared_runtime_datasets"
 DEFAULT_ARTIFACT_ROOT = Path("outputs") / "colab_notebook_data_prep"
-PHASH_SIZE = 8
-PHASH_AUTO_MAX_DISTANCE = 4
-PHASH_REVIEW_MAX_DISTANCE = 8
-DINO_AUTO_MIN = 0.985
-DINO_REVIEW_MIN = 0.965
-BIOCLIP_AUTO_MIN = 0.970
-BIOCLIP_REVIEW_MIN = 0.950
-DINO_CROSS_CLASS_BLOCK_MIN = 0.990
-BIOCLIP_CROSS_CLASS_BLOCK_MIN = 0.980
-DEFAULT_NEIGHBORS = 8
-DEFAULT_CPU_EMBEDDING_BATCH_SIZE = 4
-DEFAULT_T4_EMBEDDING_BATCH_SIZE = 4
-DEFAULT_SMALL_GPU_EMBEDDING_BATCH_SIZE = 6
-DEFAULT_MID_GPU_EMBEDDING_BATCH_SIZE = 8
-DEFAULT_LARGE_GPU_EMBEDDING_BATCH_SIZE = 12
-GROUPED_SPLIT_POLICY = "grouped_family_canonical_eval_60_20_20"
-HUMAN_REVIEW_PACKET_FILENAME = "human_review_packet.json"
-LABEL_REVIEW_SUMMARY_FILENAME = "label_review_summary.json"
 SOURCE_HINT_UNKNOWN = "unknown"
 QUALITY_WARN_MIN_SIZE = 224
 QUALITY_CRITICAL_MIN_SIZE = 160
@@ -149,6 +171,28 @@ LABEL_RISK_CLEAR = "clear"
 LABEL_RISK_TRAIN_ONLY = "train_only_risk"
 LABEL_RISK_REVIEW = "review_candidate"
 LABEL_RISK_BLOCKING = "blocking_conflict"
+
+
+def _encode_with_oom_retries(
+    encode_fn: Callable[..., np.ndarray],
+    *,
+    paths: Sequence[Path],
+    batch_size: int,
+    progress_fn: Optional[Callable[[str], None]],
+    batch_progress_fn: Optional[Callable[[int, int], None]] = None,
+    label: str,
+    **kwargs: Any,
+) -> np.ndarray:
+    return _encode_with_oom_retries_impl(
+        encode_fn,
+        paths=paths,
+        batch_size=batch_size,
+        progress_fn=progress_fn,
+        batch_progress_fn=batch_progress_fn,
+        label=label,
+        oom_predicate=_is_cuda_oom,
+        **kwargs,
+    )
 
 
 @dataclass
@@ -255,11 +299,7 @@ def _load_taxonomy_expected_classes(crop_name: str, taxonomy_path: Optional[Path
     crop_specific = payload.get("crop_specific_diseases", {})
     if not isinstance(crop_specific, dict):
         return set()
-    expected = {
-        normalize_class_name(item)
-        for item in crop_specific.get(crop_key, [])
-        if normalize_class_name(item)
-    }
+    expected = {normalize_class_name(item) for item in crop_specific.get(crop_key, []) if normalize_class_name(item)}
     expected.add("healthy")
     return expected
 
@@ -273,22 +313,6 @@ def normalize_prepared_class_name(raw_class_name: str, *, crop_name: str, expect
     if len(matches) == 1:
         return matches[0]
     return normalized
-
-
-def build_prepared_dataset_key(crop_name: str, part_name: str = "unspecified") -> str:
-    crop_key = normalize_class_name(crop_name) or "crop"
-    part_key = normalize_class_name(part_name)
-    if not part_key or part_key == "unspecified":
-        return crop_key
-    return f"{crop_key}__{part_key}"
-
-
-def _fingerprint_paths(paths: Iterable[Path], *, root: Path) -> str:
-    digest = hashlib.sha1()
-    for path in paths:
-        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-    return digest.hexdigest()
 
 
 def _normalize_relative_path(value: Any) -> str:
@@ -318,12 +342,7 @@ def _synthetic_hint_matches(path_like: str) -> List[str]:
         # The first path component is the class folder. Do not let disease names such as
         # botrytis_bunch_rot trip rotation-augmentation detection.
         parts = parts[1:]
-    tokens = [
-        token
-        for part in parts
-        for token in normalize_class_name(Path(part).stem).split("_")
-        if token
-    ]
+    tokens = [token for part in parts for token in normalize_class_name(Path(part).stem).split("_") if token]
     matches: List[str] = []
     for index, token in enumerate(tokens):
         if token in SYNTHETIC_HINT_KEYWORDS and token != "rot":
@@ -429,13 +448,7 @@ def _compute_blur_and_brightness(image: Image.Image) -> tuple[float, float]:
     if grayscale.shape[0] < 3 or grayscale.shape[1] < 3:
         return 0.0, brightness_mean
     center = grayscale[1:-1, 1:-1]
-    lap = (
-        -4.0 * center
-        + grayscale[:-2, 1:-1]
-        + grayscale[2:, 1:-1]
-        + grayscale[1:-1, :-2]
-        + grayscale[1:-1, 2:]
-    )
+    lap = -4.0 * center + grayscale[:-2, 1:-1] + grayscale[2:, 1:-1] + grayscale[1:-1, :-2] + grayscale[1:-1, 2:]
     blur_score = float(lap.var())
     return blur_score, brightness_mean
 
@@ -529,10 +542,7 @@ def _infer_source_style_group(record: ImageRecord) -> str:
     keyword_matches = _source_style_keyword_matches(record.relative_path)
     if keyword_matches:
         keyword = keyword_matches[0]
-        return (
-            f"style:{keyword}:{record.aspect_ratio_bucket}:"
-            f"{record.resolution_bucket}:{record.compression_style}"
-        )
+        return f"style:{keyword}:{record.aspect_ratio_bucket}:{record.resolution_bucket}:{record.compression_style}"
 
     if record.border_layout in {"light_frame", "dark_frame", "flat_frame", "letterbox_or_margin"}:
         return (
@@ -555,7 +565,9 @@ def _apply_source_style_risk(records: Sequence[ImageRecord]) -> List[Dict[str, A
 
     rows: List[Dict[str, Any]] = []
     for (class_name, group), group_records in sorted(groups.items(), key=lambda item: item[0]):
-        keyword_hits = sorted({hit for record in group_records for hit in _source_style_keyword_matches(record.relative_path)})
+        keyword_hits = sorted(
+            {hit for record in group_records for hit in _source_style_keyword_matches(record.relative_path)}
+        )
         has_web_or_screenshot = group.startswith(("web:", "screenshot:"))
         has_style_group = group.startswith(("style:", "layout:"))
         has_eval_risk = any(record.eval_quality_risk for record in group_records)
@@ -581,7 +593,9 @@ def _apply_source_style_risk(records: Sequence[ImageRecord]) -> List[Dict[str, A
         if has_style_group:
             risk_reasons.append("weak_style_cluster")
 
-        risk = bool(risk_reasons) and (len(group_records) >= 2 or has_web_or_screenshot or has_eval_risk or has_style_group)
+        risk = bool(risk_reasons) and (
+            len(group_records) >= 2 or has_web_or_screenshot or has_eval_risk or has_style_group
+        )
         reason = "; ".join(risk_reasons) if risk_reasons else ""
         for record in group_records:
             record.source_style_risk = bool(risk)
@@ -597,7 +611,9 @@ def _apply_source_style_risk(records: Sequence[ImageRecord]) -> List[Dict[str, A
                 "resolution_buckets": "|".join(sorted({record.resolution_bucket for record in group_records})),
                 "border_layouts": "|".join(sorted({record.border_layout for record in group_records})),
                 "compression_styles": "|".join(sorted({record.compression_style for record in group_records})),
-                "relative_paths": "|".join(record.relative_path for record in sorted(group_records, key=lambda item: item.relative_path)),
+                "relative_paths": "|".join(
+                    record.relative_path for record in sorted(group_records, key=lambda item: item.relative_path)
+                ),
             }
         )
     return rows
@@ -684,13 +700,15 @@ def scan_class_root_dataset(
                     readable = True
             except Exception:
                 import logging
-                logging.exception('Unhandled exception')
+
+                logging.exception("Unhandled exception")
                 raise
             try:
                 exact_hash = _compute_exact_hash(image_path)
             except Exception:
                 import logging
-                logging.exception('Unhandled exception')
+
+                logging.exception("Unhandled exception")
                 raise
             records.append(
                 ImageRecord(
@@ -745,308 +763,10 @@ def _refresh_record_availability(records: Sequence[ImageRecord]) -> Dict[str, in
                 _ = ImageOps.exif_transpose(raw.convert("RGB"))
         except Exception:
             import logging
-            logging.exception('Unhandled exception')
+
+            logging.exception("Unhandled exception")
             raise
     return excluded_counts
-
-
-def _resolve_amp_dtype(device: str) -> Any:
-    import torch
-
-    if not str(device).startswith("cuda") or not torch.cuda.is_available():
-        return None
-    major, _minor = torch.cuda.get_device_capability()
-    return torch.bfloat16 if major >= 8 else torch.float16
-
-
-def _resolve_embedding_device(device: str) -> str:
-    requested = str(device or "cpu").strip() or "cpu"
-    if requested.startswith("cuda"):
-        import torch
-
-        try:
-            cuda_available = bool(torch.cuda.is_available())
-        except Exception:
-            cuda_available = False
-        if not cuda_available:
-            return "cpu"
-    return requested
-
-
-def _system_memory_gb() -> Optional[float]:
-    try:
-        sysconf = getattr(os, "sysconf", None)
-        if not callable(sysconf):
-            return None
-        pages = sysconf("SC_PHYS_PAGES")
-        page_size = sysconf("SC_PAGE_SIZE")
-        if pages and page_size:
-            return float(pages * page_size) / (1024**3)
-    except (AttributeError, OSError, ValueError):
-        return None
-    return None
-
-
-def resolve_safe_embedding_batch_size(device: str, requested_batch_size: Optional[int] = None) -> int:
-    """Choose a conservative Notebook 0 embedding batch size for Colab RAM limits."""
-    if requested_batch_size is not None:
-        return max(1, int(requested_batch_size))
-
-    resolved_device = _resolve_embedding_device(device)
-    if not str(resolved_device).startswith("cuda"):
-        return DEFAULT_CPU_EMBEDDING_BATCH_SIZE
-
-    import torch
-
-    try:
-        props = torch.cuda.get_device_properties(0)
-        vram_gb = float(getattr(props, "total_memory", 0.0)) / (1024**3)
-        gpu_name = str(getattr(props, "name", "") or "").lower()
-    except Exception:
-        return DEFAULT_T4_EMBEDDING_BATCH_SIZE
-
-    system_gb = _system_memory_gb()
-    if "t4" in gpu_name or vram_gb <= 16.5 or (system_gb is not None and system_gb <= 14.0):
-        return DEFAULT_T4_EMBEDDING_BATCH_SIZE
-    if vram_gb <= 24.0:
-        return DEFAULT_SMALL_GPU_EMBEDDING_BATCH_SIZE
-    if vram_gb <= 35.0:
-        return DEFAULT_MID_GPU_EMBEDDING_BATCH_SIZE
-    return DEFAULT_LARGE_GPU_EMBEDDING_BATCH_SIZE
-
-
-def _release_embedding_batch_memory(device: str) -> None:
-    gc.collect()
-    if str(device).startswith("cuda"):
-        try:
-            import torch
-
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-
-def _is_cuda_oom(exc: BaseException) -> bool:
-    message = str(exc).lower()
-    if "cuda" in message and ("out of memory" in message or "oom" in message):
-        return True
-    try:
-        import torch
-
-        return isinstance(exc, torch.cuda.OutOfMemoryError)
-    except Exception:
-        return False
-
-
-def _load_dinov3_components(model_id: str, *, device: str = "cpu") -> tuple[Any, Any]:
-    from transformers import AutoImageProcessor, AutoModel
-
-    load_kwargs: Dict[str, Any] = {}
-    amp_dtype = _resolve_amp_dtype(device)
-    if amp_dtype is not None:
-        load_kwargs["dtype"] = amp_dtype
-    processor = AutoImageProcessor.from_pretrained(model_id)
-    try:
-        model = AutoModel.from_pretrained(model_id, **load_kwargs)
-    except TypeError:
-        model = AutoModel.from_pretrained(model_id)
-    model.eval()
-    return processor, model
-
-
-def _autocast_context(*, device: str, amp_dtype: Any) -> Any:
-    import torch
-
-    enabled = amp_dtype is not None and str(device).startswith("cuda") and torch.cuda.is_available()
-    if not enabled:
-        return nullcontext()
-    return torch.autocast(device_type="cuda", dtype=amp_dtype)
-
-
-def _load_bioclip_components(model_id: str, *, device: str = "cpu") -> tuple[Any, Any]:
-    import open_clip
-    import torch
-
-    hub_model_id = f"hf-hub:{model_id}" if not str(model_id).startswith("hf-hub:") else str(model_id)
-    create_kwargs: Dict[str, Any] = {}
-    amp_dtype = _resolve_amp_dtype(device)
-    if amp_dtype is not None:
-        create_kwargs["precision"] = "bf16" if amp_dtype == torch.bfloat16 else "fp16"
-    try:
-        model, _, preprocess_val = open_clip.create_model_and_transforms(hub_model_id, **create_kwargs)
-    except TypeError:
-        model, _, preprocess_val = open_clip.create_model_and_transforms(hub_model_id)
-    model.eval()
-    return preprocess_val, model
-
-
-def _encode_dinov3(paths: Sequence[Path], *, model_id: str, batch_size: int, device: str) -> np.ndarray:
-    processor, model = _load_dinov3_components(model_id, device=device)
-    return _encode_dinov3_with_components(
-        paths,
-        processor=processor,
-        model=model,
-        batch_size=batch_size,
-        device=device,
-        amp_dtype=_resolve_amp_dtype(device),
-    )
-
-
-def _encode_dinov3_with_components(
-    paths: Sequence[Path],
-    *,
-    processor: Any,
-    model: Any,
-    batch_size: int,
-    device: str,
-    amp_dtype: Any = None,
-    progress_fn: Optional[Callable[[int, int], None]] = None,
-) -> np.ndarray:
-    import torch
-
-    embeddings: List[np.ndarray] = []
-    total = len(paths)
-    effective_batch_size = max(1, int(batch_size))
-    for start in range(0, len(paths), effective_batch_size):
-        batch_paths = paths[start : start + effective_batch_size]
-        images = []
-        for path in batch_paths:
-            with Image.open(path) as raw:
-                images.append(ImageOps.exif_transpose(raw.convert("RGB")))
-        inputs = processor(images=images, return_tensors="pt")
-        inputs = {key: value.to(device, non_blocking=True) for key, value in inputs.items()}
-        with torch.inference_mode():
-            with _autocast_context(device=device, amp_dtype=amp_dtype):
-                outputs = model(**inputs)
-                if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-                    batch = outputs.pooler_output
-                else:
-                    batch = outputs.last_hidden_state[:, 0]
-        batch = torch.nn.functional.normalize(batch, dim=-1).to(dtype=torch.float32)
-        embeddings.append(batch.detach().cpu().numpy())
-        del images, inputs, outputs, batch
-        _release_embedding_batch_memory(device)
-        if callable(progress_fn):
-            progress_fn(min(start + len(batch_paths), total), total)
-    return np.concatenate(embeddings, axis=0) if embeddings else np.empty((0, 0), dtype=np.float32)
-
-
-def _encode_bioclip(paths: Sequence[Path], *, model_id: str, batch_size: int, device: str) -> np.ndarray:
-    preprocess_val, model = _load_bioclip_components(model_id, device=device)
-    return _encode_bioclip_with_components(
-        paths,
-        preprocess_val=preprocess_val,
-        model=model,
-        batch_size=batch_size,
-        device=device,
-        amp_dtype=_resolve_amp_dtype(device),
-    )
-
-
-def _encode_bioclip_with_components(
-    paths: Sequence[Path],
-    *,
-    preprocess_val: Any,
-    model: Any,
-    batch_size: int,
-    device: str,
-    amp_dtype: Any = None,
-    progress_fn: Optional[Callable[[int, int], None]] = None,
-) -> np.ndarray:
-    import torch
-
-    embeddings: List[np.ndarray] = []
-    total = len(paths)
-    effective_batch_size = max(1, int(batch_size))
-    for start in range(0, len(paths), effective_batch_size):
-        batch_paths = paths[start : start + effective_batch_size]
-        tensors = []
-        for path in batch_paths:
-            with Image.open(path) as raw:
-                image = ImageOps.exif_transpose(raw.convert("RGB"))
-            tensors.append(preprocess_val(image))
-        image_tensor = torch.stack(tensors, dim=0).to(device, non_blocking=True)
-        with torch.inference_mode():
-            with _autocast_context(device=device, amp_dtype=amp_dtype):
-                batch = model.encode_image(image_tensor)
-        batch = torch.nn.functional.normalize(batch, dim=-1).to(dtype=torch.float32)
-        embeddings.append(batch.detach().cpu().numpy())
-        del tensors, image_tensor, batch
-        _release_embedding_batch_memory(device)
-        if callable(progress_fn):
-            progress_fn(min(start + len(batch_paths), total), total)
-    return np.concatenate(embeddings, axis=0) if embeddings else np.empty((0, 0), dtype=np.float32)
-
-
-def _encode_with_oom_retries(
-    encode_fn: Callable[..., np.ndarray],
-    *,
-    paths: Sequence[Path],
-    batch_size: int,
-    progress_fn: Optional[Callable[[str], None]],
-    batch_progress_fn: Optional[Callable[[int, int], None]] = None,
-    label: str,
-    **kwargs: Any,
-) -> np.ndarray:
-    current_batch_size = max(1, int(batch_size))
-    while True:
-        try:
-            return encode_fn(
-                paths,
-                batch_size=current_batch_size,
-                progress_fn=batch_progress_fn,
-                **kwargs,
-            )
-        except RuntimeError as exc:
-            if not _is_cuda_oom(exc) or current_batch_size <= 1:
-                raise
-            next_batch_size = max(1, current_batch_size // 2)
-            _progress(
-                progress_fn,
-                f"{label} CUDA OOM at batch_size={current_batch_size}; retrying with batch_size={next_batch_size}.",
-            )
-            _release_embedding_batch_memory(str(kwargs.get("device", "")))
-            current_batch_size = next_batch_size
-
-
-def _compute_neighbor_pairs(
-    embeddings: np.ndarray,
-    *,
-    paths: Sequence[str],
-    neighbors: int,
-) -> Dict[tuple[str, str], float]:
-    if embeddings.size == 0 or len(paths) < 2:
-        return {}
-    # Guard against rare NaN/Inf rows from model outputs or normalization.
-    finite_mask = np.isfinite(embeddings).all(axis=1)
-    if not bool(np.all(finite_mask)):
-        embeddings = embeddings[finite_mask]
-        paths = [path for path, keep in zip(paths, finite_mask) if bool(keep)]
-    if embeddings.size == 0 or len(paths) < 2:
-        return {}
-    neigh = NearestNeighbors(
-        n_neighbors=min(len(paths), max(2, int(neighbors))),
-        metric="cosine",
-        algorithm="brute",
-    )
-    neigh.fit(embeddings)
-    distances, indices = neigh.kneighbors(embeddings)
-    pairs: Dict[tuple[str, str], float] = {}
-    for row_index, path_a in enumerate(paths):
-        for distance, col_index in zip(distances[row_index][1:], indices[row_index][1:]):
-            path_b = paths[int(col_index)]
-            if path_a == path_b:
-                continue
-            pair = (min(path_a, path_b), max(path_a, path_b))
-            cosine = 1.0 - float(distance)
-            pairs[pair] = max(cosine, pairs.get(pair, float("-inf")))
-    return pairs
-
-
-def _progress(progress_fn: Optional[Callable[[str], None]], message: str) -> None:
-    if callable(progress_fn):
-        progress_fn(str(message))
 
 
 def _adjacency_distance(a: ImageRecord, b: ImageRecord) -> Optional[int]:
@@ -1068,7 +788,9 @@ def _classify_review_cluster(
     pairs: Sequence[ReviewPair],
 ) -> tuple[str, str]:
     cluster_size = len(records)
-    source_hints = {record.source_hint for record in records if record.source_hint and record.source_hint != SOURCE_HINT_UNKNOWN}
+    source_hints = {
+        record.source_hint for record in records if record.source_hint and record.source_hint != SOURCE_HINT_UNKNOWN
+    }
     source_like_groups = {
         record.source_like_group
         for record in records
@@ -1143,7 +865,11 @@ def _triage_review_clusters(
         resolution, reason = _classify_review_cluster(records=records, pairs=pairs)
         cluster_id = f"{class_name}__review_cluster_{cluster_index:04d}"
         source_hints = sorted(
-            {record.source_hint for record in records if record.source_hint and record.source_hint != SOURCE_HINT_UNKNOWN}
+            {
+                record.source_hint
+                for record in records
+                if record.source_hint and record.source_hint != SOURCE_HINT_UNKNOWN
+            }
         )
         min_adjacency = min(
             (pair.adjacency_distance for pair in pairs if pair.adjacency_distance is not None),
@@ -1239,10 +965,7 @@ def _build_label_risk_audit(
     blocking_conflicts: Sequence[ReviewPair],
 ) -> tuple[Dict[str, LabelRiskRecord], List[Dict[str, Any]], Dict[str, Any]]:
     record_lookup = {record.relative_path: record for record in records}
-    label_risks: Dict[str, LabelRiskRecord] = {
-        record.relative_path: _clear_label_risk(record)
-        for record in records
-    }
+    label_risks: Dict[str, LabelRiskRecord] = {record.relative_path: _clear_label_risk(record) for record in records}
 
     for pair in blocking_conflicts:
         for path in (pair.path_a, pair.path_b):
@@ -1289,7 +1012,12 @@ def _build_label_risk_audit(
     review_candidates: List[Dict[str, Any]] = []
     for risk in sorted(
         label_risks.values(),
-        key=lambda item: (-_risk_rank(item.label_risk_level), -item.label_risk_score, item.normalized_class_name, item.relative_path),
+        key=lambda item: (
+            -_risk_rank(item.label_risk_level),
+            -item.label_risk_score,
+            item.normalized_class_name,
+            item.relative_path,
+        ),
     ):
         if risk.label_risk_level != LABEL_RISK_REVIEW:
             continue
@@ -1406,7 +1134,8 @@ def _select_bioclip_candidate_pairs(
     records_by_path: Dict[str, ImageRecord],
 ) -> List[tuple[str, str]]:
     return [
-        pair for pair, dino_cosine in dino_pairs.items()
+        pair
+        for pair, dino_cosine in dino_pairs.items()
         if dino_cosine >= DINO_REVIEW_MIN
         and _phash_distance(records_by_path[pair[0]].phash_hex, records_by_path[pair[1]].phash_hex)
         > PHASH_AUTO_MAX_DISTANCE
@@ -1512,10 +1241,7 @@ def _assign_splits_for_units(
         used[split_name] += len(unit_records)
     for unit_id, unit_records in ordered[3:]:
         size = len(unit_records)
-        deficits = {
-            split_name: desired[split_name] - used[split_name]
-            for split_name in ("continual", "val", "test")
-        }
+        deficits = {split_name: desired[split_name] - used[split_name] for split_name in ("continual", "val", "test")}
         preferred = sorted(
             deficits.items(),
             key=lambda item: (item[1] < 0, -item[1], used[item[0]], item[0]),
@@ -1789,16 +1515,15 @@ def build_grouped_dataset_plan(
         families[(record.normalized_class_name, root_id)].append(record)
 
     review_excluded_paths = {
-        str(path)
-        for pair in review_pairs
-        for path in (pair.path_a, pair.path_b)
-        if str(path).strip()
+        str(path) for pair in review_pairs for path in (pair.path_a, pair.path_b) if str(path).strip()
     }
     family_details: Dict[tuple[str, str], Dict[str, Any]] = {}
     for family_key, items in families.items():
         ordered_items = sorted(items, key=lambda record: record.relative_path)
         canonical_record = _select_canonical_record(ordered_items)
-        canonical_label_risk = label_risk_by_path.get(canonical_record.relative_path, _clear_label_risk(canonical_record))
+        canonical_label_risk = label_risk_by_path.get(
+            canonical_record.relative_path, _clear_label_risk(canonical_record)
+        )
         review_excluded = any(item.relative_path in review_excluded_paths for item in ordered_items)
         family_has_synthetic = any(item.synthetic_hint for item in ordered_items)
         family_has_eval_risk = any(item.eval_quality_risk for item in ordered_items)
@@ -1896,7 +1621,9 @@ def build_grouped_dataset_plan(
                 if label_risk_by_path.get(item.relative_path, _clear_label_risk(item)).label_risk_level
                 != LABEL_RISK_CLEAR
             ),
-            "review_excluded_family_count": sum(1 for _family_root, _items, detail in class_families if detail["review_excluded"]),
+            "review_excluded_family_count": sum(
+                1 for _family_root, _items, detail in class_families if detail["review_excluded"]
+            ),
             "source_like_bundle_count": len(
                 {
                     str(detail["bundle_key"])
@@ -1985,8 +1712,7 @@ def build_grouped_dataset_plan(
             split_name = (
                 "skipped"
                 if runtime_skipped
-                else
-                assigned_split
+                else assigned_split
                 if bool(family_detail["eval_eligible"]) and is_family_canonical
                 else "continual"
             )
@@ -2097,7 +1823,9 @@ def build_grouped_dataset_plan(
         "blocking_issues": blocking_issues,
         "skipped_classes": skipped_classes,
         "runtime_ready": not blocking_issues and not blocking_conflicts,
-        "prepared_runtime_root": str((DEFAULT_RUNTIME_ROOT / build_prepared_dataset_key(crop_name, part_name)).resolve()),
+        "prepared_runtime_root": str(
+            (DEFAULT_RUNTIME_ROOT / build_prepared_dataset_key(crop_name, part_name)).resolve()
+        ),
         "ood_handoff_checklist": {
             "status": "pending",
             "message": "Prepare a separate runtime_dataset/<dataset_key>/ood tree after ID-side prep completes.",
@@ -2176,482 +1904,21 @@ def build_grouped_dataset_plan(
             "crop_name": str(crop_name),
             "part_name": str(part_name),
             "runtime_ready": bool(summary["runtime_ready"]),
-            "prepared_runtime_root": str((DEFAULT_RUNTIME_ROOT / build_prepared_dataset_key(crop_name, part_name)).resolve()),
+            "prepared_runtime_root": str(
+                (DEFAULT_RUNTIME_ROOT / build_prepared_dataset_key(crop_name, part_name)).resolve()
+            ),
         },
     )
     return summary
-
-
-def _coerce_count(value: Any) -> int:
-    try:
-        return int(value or 0)
-    except (TypeError, ValueError):
-        return 0
-
-
-def _skipped_class_entry(class_name: str, reason: str, health_entry: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "class_name": class_name,
-        "reason": reason,
-        "image_count": int(health_entry["image_count"]),
-        "family_count": int(health_entry["family_count"]),
-        "eval_eligible_family_count": int(health_entry["eval_eligible_family_count"]),
-    }
-
-
-def build_human_review_packet(
-    summary: Dict[str, Any],
-    *,
-    artifact_root: Path,
-    max_review_items: int = 25,
-) -> Dict[str, Any]:
-    """Build the compact human-in-loop decision packet for Notebook 0.
-
-    The packet is intentionally conservative: it highlights audit conditions that
-    can make a benchmark misleading, but it does not relabel images or override
-    the split plan. Notebook 0 uses it to pause only around high-impact decisions.
-    """
-
-    artifact_root = Path(artifact_root)
-    counts = dict(summary.get("summary", {}) or {})
-    blocking_issues = [str(item) for item in list(summary.get("blocking_issues") or []) if str(item).strip()]
-    skipped_classes = list(summary.get("skipped_classes") or [])
-    try:
-        max_rows = max(0, int(max_review_items))
-    except (TypeError, ValueError):
-        max_rows = 25
-
-    cross_class_count, cross_class_preview = _read_csv_preview(
-        artifact_root / "cross_class_conflicts.csv",
-        max_rows=max_rows,
-        fields=("class_a", "class_b", "path_a", "path_b", "reason", "phash_distance"),
-    )
-    high_risk_count, high_risk_preview = _read_csv_preview(
-        artifact_root / "same_class_high_risk_clusters.csv",
-        max_rows=max_rows,
-        fields=("cluster_id", "normalized_class_name", "image_count", "reason", "relative_paths"),
-    )
-    label_review_count, label_review_preview = _read_csv_preview(
-        artifact_root / "label_review_candidates.csv",
-        max_rows=max_rows,
-        fields=("normalized_class_name", "relative_path", "label_risk_level", "label_risk_score", "label_risk_reason"),
-    )
-    source_style_count, source_style_preview = _read_csv_preview(
-        artifact_root / "source_style_groups.csv",
-        max_rows=max_rows,
-        fields=("source_style_group", "source_style_risk", "source_style_reason", "image_count", "relative_paths"),
-    )
-
-    cross_class_count = max(cross_class_count, _coerce_count(counts.get("cross_class_conflicts")))
-    high_risk_count = max(high_risk_count, _coerce_count(counts.get("same_class_high_risk_clusters")))
-    label_review_count = max(label_review_count, _coerce_count(counts.get("label_review_candidates")))
-
-    decision_points: List[Dict[str, Any]] = []
-    if blocking_issues or cross_class_count:
-        decision_points.append(
-            {
-                "id": "blocking_conflicts_or_split_blockers",
-                "severity": "critical",
-                "title": "Direct materialization is not safe yet.",
-                "reason": (
-                    "Cross-class conflicts or split blockers can contaminate the benchmark. "
-                    "Use the prepared working copy cleanup path, fix the source dataset, or stop."
-                ),
-                "default_decision": "stop_direct_materialization",
-                "counts": {
-                    "blocking_issues": len(blocking_issues),
-                    "cross_class_conflicts": cross_class_count,
-                },
-                "artifacts": ["cross_class_conflicts.csv", "class_health_report.json"],
-                "preview": {
-                    "blocking_issues": blocking_issues[:max_rows],
-                    "cross_class_conflicts": cross_class_preview,
-                },
-            }
-        )
-
-    if label_review_count or high_risk_count:
-        decision_points.append(
-            {
-                "id": "label_or_family_review_queue",
-                "severity": "high",
-                "title": "Review candidates were found.",
-                "reason": (
-                    "DINOv3/BioCLIP similarity and hash-family checks found ambiguous samples. "
-                    "The safe default is to keep uncertain non-blocking items out of canonical val/test."
-                ),
-                "default_decision": "continue_with_train_only_routing",
-                "counts": {
-                    "label_review_candidates": label_review_count,
-                    "same_class_high_risk_clusters": high_risk_count,
-                },
-                "artifacts": ["label_review_candidates.csv", "same_class_high_risk_clusters.csv"],
-                "preview": {
-                    "label_review_candidates": label_review_preview,
-                    "same_class_high_risk_clusters": high_risk_preview,
-                },
-            }
-        )
-
-    source_style_risk_images = _coerce_count(counts.get("source_style_risk_images"))
-    train_only_routed_images = _coerce_count(counts.get("train_only_routed_images"))
-    if source_style_risk_images or train_only_routed_images:
-        decision_points.append(
-            {
-                "id": "source_style_or_train_only_routing",
-                "severity": "medium",
-                "title": "Some samples were routed away from canonical evaluation.",
-                "reason": (
-                    "Source-style, synthetic, eval-quality, or label-risk cues were treated as benchmark-risk signals. "
-                    "The samples remain usable for continual training unless they are blocking conflicts."
-                ),
-                "default_decision": "continue_with_conservative_eval_filter",
-                "counts": {
-                    "source_style_risk_images": source_style_risk_images,
-                    "train_only_routed_images": train_only_routed_images,
-                    "source_style_groups": source_style_count,
-                },
-                "artifacts": ["source_style_groups.csv", "family_manifest.csv"],
-                "preview": {
-                    "source_style_groups": source_style_preview,
-                },
-            }
-        )
-
-    if skipped_classes:
-        decision_points.append(
-            {
-                "id": "class_scope_changed",
-                "severity": "medium",
-                "title": "One or more classes were skipped.",
-                "reason": "Skipped classes did not retain enough clean evaluation families for the runtime split contract.",
-                "default_decision": "continue_only_if_scope_is_expected",
-                "counts": {"skipped_classes": len(skipped_classes)},
-                "artifacts": ["class_health_report.json"],
-                "preview": {"skipped_classes": skipped_classes[:max_rows]},
-            }
-        )
-
-    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    decision_points = sorted(
-        decision_points,
-        key=lambda item: (severity_order.get(str(item.get("severity", "low")), 99), str(item.get("id", ""))),
-    )
-    pause_recommended = bool(decision_points)
-    if any(point.get("severity") == "critical" for point in decision_points):
-        recommended_action = "prepare_clean_working_copy_or_stop"
-        safe_default_decision = "do_not_materialize_directly"
-    elif any(point.get("severity") == "high" for point in decision_points):
-        recommended_action = "confirm_train_only_routing_before_materialization"
-        safe_default_decision = "continue_with_conservative_train_only_routing"
-    elif decision_points:
-        recommended_action = "confirm_benchmark_scope_before_materialization"
-        safe_default_decision = "continue_with_conservative_eval_filter"
-    else:
-        recommended_action = "continue"
-        safe_default_decision = "continue"
-
-    return {
-        "schema_version": "v1_human_review_packet",
-        "runtime_ready": bool(summary.get("runtime_ready")),
-        "pause_recommended": pause_recommended,
-        "recommended_action": recommended_action,
-        "safe_default_decision": safe_default_decision,
-        "max_review_items": max_rows,
-        "artifact_root": str(artifact_root),
-        "threshold_policy": {
-            "calibration_mode": "fixed_conservative_defaults",
-            "note": (
-                "These thresholds are repo heuristics used to create review and routing evidence; "
-                "the packet asks for human confirmation instead of claiming ground-truth relabeling."
-            ),
-            "phash_auto_max_distance": PHASH_AUTO_MAX_DISTANCE,
-            "phash_review_max_distance": PHASH_REVIEW_MAX_DISTANCE,
-            "dino_auto_min": DINO_AUTO_MIN,
-            "dino_review_min": DINO_REVIEW_MIN,
-            "bioclip_auto_min": BIOCLIP_AUTO_MIN,
-            "bioclip_review_min": BIOCLIP_REVIEW_MIN,
-            "dino_cross_class_block_min": DINO_CROSS_CLASS_BLOCK_MIN,
-            "bioclip_cross_class_block_min": BIOCLIP_CROSS_CLASS_BLOCK_MIN,
-        },
-        "counts": {
-            "blocking_issues": len(blocking_issues),
-            "cross_class_conflicts": cross_class_count,
-            "same_class_high_risk_clusters": high_risk_count,
-            "label_review_candidates": label_review_count,
-            "source_style_risk_images": source_style_risk_images,
-            "train_only_routed_images": train_only_routed_images,
-            "skipped_classes": len(skipped_classes),
-        },
-        "decision_points": decision_points,
-        "review_artifacts": [
-            "human_review_packet.json",
-            LABEL_REVIEW_SUMMARY_FILENAME,
-            "prep_summary.json",
-            "class_health_report.json",
-            "label_review_candidates.csv",
-            "same_class_high_risk_clusters.csv",
-            "cross_class_conflicts.csv",
-            "source_style_groups.csv",
-        ],
-    }
-
-
-def build_label_review_summary(
-    summary: Dict[str, Any],
-    *,
-    label_risk_summary: Dict[str, Any],
-    human_review_packet: Dict[str, Any],
-    label_review_candidates: Sequence[Dict[str, Any]],
-    max_preview_items: int = 10,
-) -> Dict[str, Any]:
-    """Build the Notebook 0 label-quality summary anchored on the human review gate."""
-
-    nested_summary = dict(summary.get("summary", {}) or {})
-    review_preview = [dict(item) for item in list(label_review_candidates)[: max(0, int(max_preview_items))]]
-    return {
-        "schema_version": "v1_label_review_summary",
-        "surface": "notebook_0_prepare_grouped_dataset_for_training",
-        "runtime_ready": bool(summary.get("runtime_ready")),
-        "crop_name": str(summary.get("crop_name", "") or ""),
-        "part_name": str(summary.get("part_name", "") or ""),
-        "source_root": str(summary.get("source_root", "") or ""),
-        "prepared_runtime_root": str(summary.get("prepared_runtime_root", "") or ""),
-        "human_in_the_loop": {
-            "enabled": True,
-            "pause_recommended": bool(human_review_packet.get("pause_recommended")),
-            "recommended_action": str(human_review_packet.get("recommended_action", "") or ""),
-            "safe_default_decision": str(human_review_packet.get("safe_default_decision", "") or ""),
-            "review_artifacts": list(human_review_packet.get("review_artifacts", []) or []),
-        },
-        "counts": {
-            "label_review_candidates": int(nested_summary.get("label_review_candidates", 0) or 0),
-            "label_train_only_risk_images": int(nested_summary.get("label_train_only_risk_images", 0) or 0),
-            "label_blocking_conflict_images": int(nested_summary.get("label_blocking_conflict_images", 0) or 0),
-            "same_class_high_risk_clusters": int(nested_summary.get("same_class_high_risk_clusters", 0) or 0),
-            "cross_class_conflicts": int(nested_summary.get("cross_class_conflicts", 0) or 0),
-            "train_only_routed_images": int(nested_summary.get("train_only_routed_images", 0) or 0),
-            "source_style_risk_images": int(nested_summary.get("source_style_risk_images", 0) or 0),
-            "skipped_classes": int(nested_summary.get("skipped_classes", 0) or 0),
-        },
-        "label_risk_levels": dict(label_risk_summary.get("level_counts", {}) or {}),
-        "policy": dict(label_risk_summary.get("policy", {}) or {}),
-        "signals": dict(label_risk_summary.get("signals", {}) or {}),
-        "review_queue": {
-            "path": "label_review_candidates.csv",
-            "candidate_count": int(label_risk_summary.get("review_candidate_count", 0) or 0),
-            "preview": review_preview,
-        },
-        "artifacts": {
-            "human_review_packet_json": HUMAN_REVIEW_PACKET_FILENAME,
-            "label_risk_summary_json": "label_risk_summary.json",
-            "label_review_candidates_csv": "label_review_candidates.csv",
-            "same_class_high_risk_clusters_csv": "same_class_high_risk_clusters.csv",
-            "cross_class_conflicts_csv": "cross_class_conflicts.csv",
-            "class_health_report_json": "class_health_report.json",
-        },
-        "note": (
-            "This is the Notebook 0 audit-time label-quality surface. It summarizes heuristic label-risk routing "
-            "and the human review gate before runtime-dataset materialization. It does not auto-relabel samples."
-        ),
-    }
-
-
-def format_human_review_packet(packet: Dict[str, Any]) -> str:
-    """Render a compact console summary for Notebook 0 review prompts."""
-
-    counts = dict(packet.get("counts", {}) or {})
-    lines = [
-        "[HUMAN REVIEW] Notebook 0 audit gate",
-        f"  runtime_ready={packet.get('runtime_ready')} pause_recommended={packet.get('pause_recommended')}",
-        f"  recommended_action={packet.get('recommended_action')} safe_default={packet.get('safe_default_decision')}",
-        (
-            "  counts="
-            f"blocking_issues={counts.get('blocking_issues', 0)} "
-            f"cross_class_conflicts={counts.get('cross_class_conflicts', 0)} "
-            f"label_review_candidates={counts.get('label_review_candidates', 0)} "
-            f"high_risk_clusters={counts.get('same_class_high_risk_clusters', 0)} "
-            f"source_style_risk_images={counts.get('source_style_risk_images', 0)} "
-            f"train_only_routed_images={counts.get('train_only_routed_images', 0)} "
-            f"skipped_classes={counts.get('skipped_classes', 0)}"
-        ),
-        "  artifacts=" + ", ".join(str(item) for item in packet.get("review_artifacts", [])[:7]),
-    ]
-    decision_points = list(packet.get("decision_points") or [])
-    if not decision_points:
-        lines.append("  decision_points=none")
-        return "\n".join(lines)
-
-    lines.append("  decision_points:")
-    for point in decision_points:
-        point_counts = dict(point.get("counts", {}) or {})
-        count_text = ", ".join(f"{key}={value}" for key, value in point_counts.items())
-        lines.append(
-            f"   - {point.get('severity')}:{point.get('id')} "
-            f"default={point.get('default_decision')} counts=({count_text})"
-        )
-    return "\n".join(lines)
-
-
-
-
-
-def materialize_grouped_runtime_dataset(
-    *,
-    class_root: Path,
-    crop_name: str,
-    part_name: str = "unspecified",
-    artifact_root: Path,
-    runtime_root: Path = DEFAULT_RUNTIME_ROOT,
-    ood_root: Optional[Path] = None,
-    oe_root: Optional[Path] = None,
-    materialization_strategy: str = "auto",
-) -> Path:
-    manifest = read_json(artifact_root / "proposed_split_manifest.json", default={}, expect_type=dict)
-    if not isinstance(manifest, dict):
-        raise RuntimeError("Grouped split manifest is missing or invalid.")
-    if manifest.get("blocking_issues"):
-        raise RuntimeError("Grouped split manifest contains blocking issues. Resolve them before materializing.")
-    dataset_key = build_prepared_dataset_key(crop_name, part_name)
-    crop_root = Path(runtime_root) / dataset_key
-    resolved_ood_root = Path(ood_root) if ood_root is not None else None
-    resolved_oe_root = Path(oe_root) if oe_root is not None else None
-    ood_manifest: Optional[Dict[str, Any]] = None
-    oe_manifest: Optional[Dict[str, Any]] = None
-    ood_images: List[Path] = []
-    oe_images: List[Path] = []
-    if resolved_ood_root is not None:
-        if not resolved_ood_root.exists():
-            raise FileNotFoundError(f"OOD root not found: {resolved_ood_root}")
-        if not resolved_ood_root.is_dir():
-            raise NotADirectoryError(f"OOD root is not a directory: {resolved_ood_root}")
-        ood_images = sorted(
-            [
-                path
-                for path in resolved_ood_root.rglob("*")
-                if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
-            ],
-            key=lambda path: str(path).lower(),
-        )
-        ood_manifest = {
-            "source_root": str(resolved_ood_root.resolve()),
-            "image_count": len(ood_images),
-            "image_fingerprint": _fingerprint_paths(ood_images, root=resolved_ood_root),
-        }
-    if resolved_oe_root is not None:
-        if not resolved_oe_root.exists():
-            raise FileNotFoundError(f"OE root not found: {resolved_oe_root}")
-        if not resolved_oe_root.is_dir():
-            raise NotADirectoryError(f"OE root is not a directory: {resolved_oe_root}")
-        oe_images = sorted(
-            [
-                path
-                for path in resolved_oe_root.rglob("*")
-                if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
-            ],
-            key=lambda path: str(path).lower(),
-        )
-        oe_manifest = {
-            "source_root": str(resolved_oe_root.resolve()),
-            "image_count": len(oe_images),
-            "image_fingerprint": _fingerprint_paths(oe_images, root=resolved_oe_root),
-        }
-    if crop_root.exists():
-        shutil.rmtree(crop_root)
-    crop_root.mkdir(parents=True, exist_ok=True)
-    rows = list(manifest.get("rows", []))
-    for row in rows:
-        split_name = str(row.get("split", "")).strip()
-        if split_name not in {"continual", "val", "test"}:
-            continue
-        relative_path = Path(str(row.get("relative_path", "")))
-        class_name = str(row.get("normalized_class_name", "")).strip()
-        # Keep raw class token exactly as recorded in the manifest for path slicing.
-        raw_class_name = str(row.get("raw_class_name", ""))
-        source_path = Path(class_root) / relative_path
-        destination_relative = relative_path.relative_to(raw_class_name)
-        destination_path = crop_root / split_name / class_name / destination_relative
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(source_path), str(destination_path))
-        row["runtime_relative_path"] = destination_path.relative_to(crop_root).as_posix()
-
-    if resolved_ood_root is not None:
-        ood_dir = crop_root / "ood"
-        ood_dir.mkdir(parents=True, exist_ok=True)
-        for source_path in ood_images:
-            destination_path = ood_dir / source_path.relative_to(resolved_ood_root)
-            destination_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(str(source_path), str(destination_path))
-    if resolved_oe_root is not None:
-        oe_dir = crop_root / "oe"
-        oe_dir.mkdir(parents=True, exist_ok=True)
-        for source_path in oe_images:
-            destination_path = oe_dir / source_path.relative_to(resolved_oe_root)
-            destination_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(str(source_path), str(destination_path))
-    split_manifest_path = write_json(
-        crop_root / "split_manifest.json",
-        {
-            "schema_version": "v1_grouped_runtime_layout",
-            "crop_name": str(crop_name),
-            "part_name": str(part_name),
-            "dataset_key": str(dataset_key),
-            "source_root": str(class_root.resolve()),
-            "artifact_root": str(artifact_root.resolve()),
-            "split_policy": GROUPED_SPLIT_POLICY,
-            "ood": ood_manifest,
-            "oe": oe_manifest,
-            "rows": rows,
-        },
-        ensure_ascii=False,
-    )
-    if ood_manifest is not None:
-        ood_handoff_checklist = {
-            "status": "materialized",
-            "message": "Repo or explicit OOD tree was materialized into runtime_dataset/<dataset_key>/ood.",
-            "source_root": str(ood_manifest.get("source_root", "")),
-            "image_count": int(ood_manifest.get("image_count", 0)),
-        }
-        write_json(
-            artifact_root / "ood_handoff_checklist.json",
-            ood_handoff_checklist,
-            ensure_ascii=False,
-        )
-        prep_summary = read_json(artifact_root / "prep_summary.json", default={}, expect_type=dict)
-        if isinstance(prep_summary, dict):
-            prep_summary["ood_handoff_checklist"] = dict(ood_handoff_checklist)
-            write_json(artifact_root / "prep_summary.json", prep_summary, ensure_ascii=False)
-    refresh_prep_guided_artifacts(
-        artifact_root,
-        overview_updates={
-            "crop_name": str(crop_name),
-            "part_name": str(part_name),
-            "materialized_runtime_root": str(crop_root.resolve()),
-            "split_manifest_path": str(split_manifest_path.resolve()),
-            "ood_image_count": int((ood_manifest or {}).get("image_count", 0)),
-        },
-        extra_entries=[
-            {
-                "path": split_manifest_path,
-                "category": "manifests",
-                "priority": "high",
-                "title_tr": "Materyalize edilmis runtime split manifesti",
-                "description_tr": "Gercekten uretilen runtime dataset icindeki split manifest dosyasi.",
-                "reader_goal": "Notebook 2'nin tuketecegi final runtime split yapisini gormek",
-                "generated_by": "scripts.prepare_grouped_runtime_dataset",
-                "decision_importance": "prep_gate",
-                "read_order": 22,
-            }
-        ],
-    )
-    return Path(runtime_root)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare a grouped runtime dataset with duplicate-aware audit.")
     parser.add_argument("--root", type=Path, required=True, help="Flat class-root dataset.")
     parser.add_argument("--crop", type=str, required=True, help="Crop name.")
-    parser.add_argument("--part", type=str, default="unspecified", help="Part name used for prepared runtime dataset naming.")
+    parser.add_argument(
+        "--part", type=str, default="unspecified", help="Part name used for prepared runtime dataset naming."
+    )
     parser.add_argument(
         "--artifact-root",
         type=Path,

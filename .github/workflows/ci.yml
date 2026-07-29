@@ -61,7 +61,7 @@ jobs:
         run: |
           set +e
           pytest tests/unit tests/colab/test_smoke_training.py -q \
-            --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=0 \
+            --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=78 \
             --junitxml=.runtime_tmp/pytest-unit.xml
           status=$?
           python - <<'PY'

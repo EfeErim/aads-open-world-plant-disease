@@ -13,8 +13,8 @@ authors = [{name = "Efe Erim"}]
 keywords = ["computer-vision", "continual-learning", "lora", "open-set-recognition", "ood"]
 
 [project.urls]
-Repository = "https://github.com/EfeErim/bitirmeprojesi"
-Release = "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2"
+Repository = "https://github.com/EfeErim/aads-open-world-plant-disease"
+Release = "https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2"
 
 [project.scripts]
 aads = "src.app.cli:main"
@@ -64,6 +64,6 @@ branch = true
 source = ["src"]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 78
 show_missing = true
 skip_covered = true

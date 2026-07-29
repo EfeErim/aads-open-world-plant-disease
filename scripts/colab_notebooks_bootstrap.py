@@ -219,7 +219,7 @@ def ensure_repo_root(
         clone_target = Path("/content/bitirmeprojesi")
     if repo_url is None:
         repo_url = os.environ.get(
-            "AADS_REPO_URL", "https://github.com/EfeErim/bitirmeprojesi.git"
+            "AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git"
         )
     if github_token is None:
         github_token = os.environ.get("GH_TOKEN", "")

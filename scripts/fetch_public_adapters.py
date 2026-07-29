@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.pipeline.adapter_release import fetch_adapter_release
 
-REPOSITORY = "EfeErim/bitirmeprojesi"
+REPOSITORY = "EfeErim/aads-open-world-plant-disease"
 DEFAULT_MANIFEST = Path("docs/evidence/current/demo_release/release_manifest.json")
 DEFAULT_DESTINATION = Path("models/adapters")
 

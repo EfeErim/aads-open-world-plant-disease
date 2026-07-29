@@ -172,9 +172,9 @@ def test_classify_roi_quality_marks_missing_small_large_and_ok():
 def test_tokenized_git_remote_url_uses_github_token(monkeypatch):
     monkeypatch.setenv("GH_TOKEN", "secret-token")
 
-    push_url = roi_ablation._tokenized_git_remote_url("https://github.com/EfeErim/bitirmeprojesi.git")
+    push_url = roi_ablation._tokenized_git_remote_url("https://github.com/EfeErim/aads-open-world-plant-disease.git")
 
-    assert push_url == "https://x-access-token:secret-token@github.com/EfeErim/bitirmeprojesi.git"
+    assert push_url == "https://x-access-token:secret-token@github.com/EfeErim/aads-open-world-plant-disease.git"
 
 
 def test_grounding_dino_component_loader_reuses_session_cache(monkeypatch):

@@ -11,7 +11,7 @@ cell_script_root = Path(str(globals().get("__notebook_cell_script_root__", "")))
 repo_root = cell_script_root.parents[1] if cell_script_root.name == "notebook_cells" else Path.cwd().resolve()
 config_env = str(globals().get("CONFIG_ENV", "colab"))
 release_manifest_path = repo_root / "docs/evidence/current/demo_release/release_manifest.json"
-os.environ.setdefault("GITHUB_RELEASE_REPOSITORY", "EfeErim/bitirmeprojesi")
+os.environ.setdefault("GITHUB_RELEASE_REPOSITORY", "EfeErim/aads-open-world-plant-disease")
 
 if not os.environ.get("AADS_GITHUB_RELEASE_READ_TOKEN"):
     try:

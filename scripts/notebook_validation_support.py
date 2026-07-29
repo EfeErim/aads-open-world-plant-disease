@@ -160,7 +160,7 @@ def _assert_clone_bootstrap_contract(first_code_source: str, notebook_label: str
         first_code_source,
         (
             "from pathlib import Path",
-            "DEFAULT_REPO_URL = 'https://github.com/EfeErim/bitirmeprojesi.git'",
+            "DEFAULT_REPO_URL = 'https://github.com/EfeErim/aads-open-world-plant-disease.git'",
             "REPO_URL = os.environ.get('AADS_REPO_URL', DEFAULT_REPO_URL)",
             "CLONE_TARGET = Path('/content/bitirmeprojesi')",
             "subprocess.run(",
