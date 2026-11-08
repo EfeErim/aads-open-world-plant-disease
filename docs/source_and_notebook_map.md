@@ -60,15 +60,15 @@ The main code paths are:
 
 | Notebook | Audience | Role |
 |---|---|---|
-| [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | user-facing | audits and materializes the grouped runtime dataset |
+| [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | user-facing | audits and materializes the grouped runtime dataset |
 | [`1_identify_crop_part_with_router.ipynb`](../colab_notebooks/1_identify_crop_part_with_router.ipynb) | support | router building block used by Notebook 8 |
-| [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | user-facing | primary training; calibrates, evaluates, and exports one adapter |
-| [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | user-facing | reloads and validates an exported adapter |
+| [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | user-facing | primary training; calibrates, evaluates, and exports one adapter |
+| [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | user-facing | reloads and validates an exported adapter |
 | [`4_simple_direct_adapter_test_ui.ipynb`](../colab_notebooks/4_simple_direct_adapter_test_ui.ipynb) | internal maintenance | lightweight direct-adapter inspection |
 | [`5_calibrate_router_handoff_thresholds.ipynb`](../colab_notebooks/5_calibrate_router_handoff_thresholds.ipynb) | internal maintenance | evaluates and calibrates handoff thresholds |
 | [`6_train_all_continual_sd_lora_adapters.ipynb`](../colab_notebooks/6_train_all_continual_sd_lora_adapters.ipynb) | internal maintenance | runs the Notebook 2 path for all eight targets |
 | [`7_ood_oe_quality.ipynb`](../colab_notebooks/7_ood_oe_quality.ipynb) | internal maintenance | audits OOD/OE evidence and review decisions |
-| [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | user-facing | primary inference/demo; routes an image and returns a decision |
+| [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | user-facing | primary inference/demo; routes an image and returns a decision |
 | [`16_ablation_dual_view_inference.ipynb`](../colab_notebooks/16_ablation_dual_view_inference.ipynb) | report-only research | compares full-image and ROI evidence; not the default inference policy |
 | [`17_adapter_ood_oe_recovery.ipynb`](../colab_notebooks/17_adapter_ood_oe_recovery.ipynb) | internal recovery | runs candidate selection on dev evidence and a locked-test-once protocol |
 

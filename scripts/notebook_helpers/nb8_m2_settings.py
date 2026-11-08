@@ -64,7 +64,7 @@ def load_m2_cell_settings(notebook_globals: dict[str, object]) -> dict[str, obje
     m2_stop_on_dependency_blocker = bool(notebook_globals.get("M2_STOP_ON_DEPENDENCY_BLOCKER", True))
     m2_auto_push_results = bool(notebook_globals.get("M2_AUTO_PUSH_RESULTS", True))
     m2_auto_push_remote_name = str(notebook_globals.get("M2_AUTO_PUSH_REMOTE_NAME", "origin"))
-    m2_auto_push_branch = str(notebook_globals.get("M2_AUTO_PUSH_BRANCH", "master") or "").strip() or None
+    m2_auto_push_branch = str(notebook_globals.get("M2_AUTO_PUSH_BRANCH", "main") or "").strip() or None
     m2_repo_results_root = str(notebook_globals.get("M2_REPO_RESULTS_ROOT", "docs/demo_results/m2"))
     m2_comparison_baseline = str(notebook_globals.get("M2_COMPARISON_BASELINE", "") or "")
     m2_run_open_world_router_validation = bool(

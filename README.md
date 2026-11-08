@@ -9,8 +9,8 @@ A conventional plant-disease classifier has to return a label even when the phot
 plant part, or no plant at all. I built AADS so it can route an image to the right specialist model and send
 unsupported inputs to review instead of bluffing.
 
-**[Run the demo in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb)** ·
-**[Train in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb)** ·
+**[Run the demo in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb)** ·
+**[Train in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb)** ·
 **[Results and methodology](docs/methodology_and_results.md)** ·
 **[Adapter release](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2)**
 
@@ -26,10 +26,10 @@ dependencies, and manage the expected artifact layout; the intended user path do
 
 | Goal | Colab notebook | Role |
 |---|---|---|
-| Upload an image and run router-to-adapter inference | [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | Primary inference and demo surface |
-| Train one crop/part adapter | [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | Primary training surface |
-| Audit and prepare a dataset | [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | Data preparation before training |
-| Reload and validate an exported adapter | [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | Direct adapter validation |
+| Upload an image and run router-to-adapter inference | [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | Primary inference and demo surface |
+| Train one crop/part adapter | [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | Primary training surface |
+| Audit and prepare a dataset | [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | Data preparation before training |
+| Reload and validate an exported adapter | [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | Direct adapter validation |
 
 Model-backed cells require a Hugging Face token with access to the gated DINOv3 backbone. Meaningful training also
 requires your own images. Notebook 2 can create a deterministic synthetic sample, but that sample only checks the

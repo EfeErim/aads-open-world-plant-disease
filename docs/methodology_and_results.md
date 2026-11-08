@@ -341,7 +341,7 @@ The public Release contains 64 checksum-pinned files for eight adapter bundles a
 bundle includes LoRA weights, classifier/fusion state, configuration, metadata, a readiness record and the required
 DINOv3 license notice.
 
-[Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/8_auto_router_adapter_prediction.ipynb)
+[Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb)
 retrieves the public bundles and checks their SHA-256 values before materializing the Colab runtime layout.
 
 Source:
