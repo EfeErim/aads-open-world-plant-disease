@@ -8,7 +8,7 @@ def test_presentation_colab_profile_does_not_force_incompatible_torchao():
     requirements = (repo_root / "requirements_presentation_colab.txt").read_text(encoding="utf-8").splitlines()
 
     assert not any(line.startswith("torchao") for line in requirements)
-    assert "peft~=0.19.1" in requirements
+    assert "peft~=0.21.2" in requirements
 
 
 def test_setup_notebook_environment_uses_repo_relative_requirements_override(tmp_path: Path, monkeypatch, capsys):
