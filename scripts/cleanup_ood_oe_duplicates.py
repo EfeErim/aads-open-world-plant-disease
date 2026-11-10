@@ -9,6 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def remove_duplicates_from_report(report_path: Path, dry_run: bool = True) -> dict:
     """Remove duplicates based on optimization report."""
@@ -103,7 +105,7 @@ def main():
     # Check for command line argument for auto-yes
     auto_yes = "--yes" in sys.argv or "--force" in sys.argv
 
-    root = Path("<repo-root>")
+    root = REPO_ROOT
     report_path = root / "outputs" / "ood_oe_optimization_report.json"
 
     if not report_path.exists():

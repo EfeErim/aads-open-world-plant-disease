@@ -16,7 +16,7 @@
     "tomato__leaf"
   ],
   "github_release": {
-    "repository": "EfeErim/bitirmeprojesi",
+    "repository": "EfeErim/aads-open-world-plant-disease",
     "access_mode": "public",
     "tag": "aads-public-demo-v1.1.2",
     "name": "AADS controlled-demo artifacts v1.1.2",
@@ -25,7 +25,7 @@
     "release_id": 360462104,
     "draft": false,
     "immutable": true,
-    "html_url": "https://github.com/EfeErim/bitirmeprojesi/releases/tag/aads-public-demo-v1.1.2",
+    "html_url": "https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2",
     "approved_manifest_sha256": "c9cc8018e30c06f8146f7e88189084028c3308daab408cdfadbd3272e5f8b10d",
     "published_at": "2026-07-27T14:02:26Z"
   },
