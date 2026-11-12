@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from scripts.evaluate_router_open_world_readiness import (
+from scripts.router_open_world.readiness import (
     evaluate_readiness,
     main,
     validate_open_world_manifest,

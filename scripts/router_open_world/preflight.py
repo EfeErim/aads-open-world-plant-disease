@@ -11,11 +11,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.evaluate_router_open_world_readiness import validate_open_world_manifest  # noqa: E402
+from scripts.router_open_world.readiness import validate_open_world_manifest  # noqa: E402
 from src.data.dataset_release_runtime import DEFAULT_MATERIALIZED_DATASET_ROOT  # noqa: E402
 
 DEFAULT_RUN_STATE = Path("docs/notebook8_m2_run_state.json")

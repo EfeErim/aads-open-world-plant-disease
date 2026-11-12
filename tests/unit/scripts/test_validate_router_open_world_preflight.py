@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-import scripts.validate_router_open_world_preflight as preflight
+import scripts.router_open_world.preflight as preflight
 
 
 def _write_open_world_manifest(path: Path, image_path: Path) -> None:
