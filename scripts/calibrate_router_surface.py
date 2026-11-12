@@ -511,20 +511,9 @@ def main() -> int:
         adaptive_n_per_group=args.adaptive_n_per_group,
     )
     body = json.dumps(result, indent=2)
-    # Try to write the requested output path; if that fails, write a fallback file
     if args.output is not None:
-        try:
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(body, encoding="utf-8")
-        except Exception as e:
-            print(f"FAILED_TO_WRITE_REQUESTED_OUTPUT: {e}", file=sys.stderr)
-    try:
-        fallback = Path(".runtime_tmp/router_calibration_fallback.json")
-        fallback.parent.mkdir(parents=True, exist_ok=True)
-        fallback.write_text(body, encoding="utf-8")
-        print(f"FALLBACK_WRITTEN {fallback}")
-    except Exception as e:
-        print(f"FAILED_TO_WRITE_FALLBACK_OUTPUT: {e}", file=sys.stderr)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(body, encoding="utf-8")
     print(body)
     return 0
 

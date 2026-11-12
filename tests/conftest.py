@@ -75,7 +75,8 @@ try:
     _PYTEST_TMPDIR = _pytest_tmpdir
     _ORIG_PYTEST_TMPDIR_CLEANUP = getattr(_pytest_tmpdir, "cleanup_dead_symlinks", None)
     _pytest_tmpdir.cleanup_dead_symlinks = _patched_cleanup_dead_symlinks
-except Exception:
+except (ImportError, AttributeError):
+    # These are private pytest internals; if a pytest release moves them, run without the Windows patch.
     pass
 
 

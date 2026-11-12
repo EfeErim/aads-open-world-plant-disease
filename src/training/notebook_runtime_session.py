@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import gc
 import os
 import time
@@ -971,10 +972,9 @@ def cleanup_notebook_training_state(
                     shutdown_workers()
                 except Exception as exc:
                     emit(f"[CLEANUP] DataLoader worker shutdown skipped: {exc}")
-            try:
+            # Some loader wrappers expose a read-only `_iterator`; leaving it set is harmless.
+            with contextlib.suppress(AttributeError):
                 loader._iterator = None
-            except Exception:
-                pass
     if isinstance(state, dict):
         for key in (
             "adapter",
@@ -1003,12 +1003,9 @@ def cleanup_notebook_training_state(
         "evaluation",
     ):
         shared_globals.pop(name, None)
-    try:
-        import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-        plt.close("all")
-    except Exception:
-        pass
+    plt.close("all")
     try:
         import torch
 

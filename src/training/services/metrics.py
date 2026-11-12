@@ -203,7 +203,8 @@ def compute_ood_detection_metrics(
                     valid_tpr = tpr >= 0.95
                     if valid_tpr.any():
                         ood_fpr = float(fpr[valid_tpr].min())
-                except Exception as exc:
+                except ValueError as exc:
+                    # sklearn raises ValueError when only one class is present or scores contain NaN.
                     logger.warning(
                         "Failed to compute OOD detection metrics with ood_total=%s in_dist_total=%s: %s",
                         ood_total,

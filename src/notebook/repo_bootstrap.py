@@ -224,7 +224,7 @@ def _ensure_repo_root_for_update_check() -> Path:
 def running_in_colab() -> bool:
     try:
         import google.colab  # noqa: F401
-    except Exception:
+    except ImportError:
         return False
     return True
 
@@ -252,7 +252,8 @@ def export_current_colab_notebook(
 
     try:
         from google.colab import _message
-    except Exception:
+    except ImportError:
+        # Older Colab images do not ship `_message`; callers treat None as "snapshot not saved".
         return None
 
     payload = None
@@ -530,7 +531,7 @@ def _resolve_colab_secret(secret_name: str) -> str:
 
     try:
         from google.colab import userdata
-    except Exception:
+    except ImportError:
         return ""
 
     try:
@@ -593,7 +594,8 @@ def probe_github_repo_access(
         if is_repo_root(repo):
             try:
                 resolved_repo_url = _git_remote_url(repo, "origin")
-            except Exception:
+            except (OSError, subprocess.CalledProcessError):
+                # No git binary or no `origin` remote: fall back to AADS_REPO_URL below.
                 resolved_repo_url = ""
     if not resolved_repo_url:
         resolved_repo_url = str(os.environ.get("AADS_REPO_URL", "")).strip()
@@ -646,7 +648,7 @@ def probe_hf_model_access(
 
     try:
         from huggingface_hub import HfApi
-    except Exception as exc:
+    except ImportError as exc:
         return {
             "status": "unavailable",
             "model_ids": resolved_model_ids,
@@ -779,7 +781,7 @@ def login_and_check_hf_token(*, print_fn: Optional[Callable[[str], None]] = None
 
     try:
         from huggingface_hub import HfApi, login
-    except Exception as exc:
+    except ImportError as exc:
         emit(f"[HF] huggingface_hub could not be imported: {exc}")
         return False
 

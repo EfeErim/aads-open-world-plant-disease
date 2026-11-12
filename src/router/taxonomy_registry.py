@@ -245,7 +245,8 @@ def build_external_taxonomy_cache(
             continue
         try:
             match = _gbif_match_crop(crop)
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
+            # URLError, HTTPError and timeouts are OSError; a malformed body is ValueError.
             cache[crop] = {**dict(cache.get(crop, {})), "source": "gbif_species_match", "error": str(exc)}
             continue
         if match:

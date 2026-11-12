@@ -95,7 +95,7 @@ def _add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: st
 def _notebook_source_contains(path: Path, snippet: str) -> bool:
     try:
         payload = _load_json(path)
-    except Exception:
+    except (OSError, ValueError):
         return False
     for cell in payload.get("cells", []):
         if cell.get("cell_type") != "code":
@@ -117,7 +117,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     try:
         run_state = _load_json(run_state_path)
         _add_check(checks, "run_state_json_valid", True, str(run_state_path))
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         _add_check(checks, "run_state_json_valid", False, f"{exc.__class__.__name__}: {exc}")
 
     mode = str(run_state.get("mode") or "")
@@ -178,7 +178,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     if baseline_path:
         try:
             baseline_payload, baseline_source = _load_json_from_worktree_or_head(baseline_path)
-        except Exception as exc:
+        except (OSError, ValueError, subprocess.CalledProcessError) as exc:
             _add_check(
                 checks,
                 "open_world_baseline_summary_available",
@@ -204,7 +204,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
                 has_p95 or (has_timing and has_summary_total),
                 baseline_value,
             )
-        except Exception as exc:
+        except (AttributeError, TypeError) as exc:
+            # A baseline that is valid JSON but not an object cannot provide latency fields.
             _add_check(
                 checks,
                 "open_world_baseline_latency_derivable",
@@ -254,7 +255,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
                 int(summary.get("duplicate_hash_count") or 0) == 0,
                 f"duplicate_hash_count={summary.get('duplicate_hash_count')}",
             )
-        except Exception as exc:
+        except (AttributeError, OSError, TypeError, ValueError) as exc:
             _add_check(checks, "open_world_summary_readable", False, f"{exc.__class__.__name__}: {exc}")
 
     failed = [check for check in checks if not check["passed"]]

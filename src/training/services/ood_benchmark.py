@@ -287,7 +287,7 @@ def _dataset_file_signature(dataset: Any) -> str:
             digest.update(str(int(stat.st_size)).encode("utf-8"))
             digest.update(b":")
             digest.update(str(int(stat.st_mtime_ns)).encode("utf-8"))
-        except Exception as exc:
+        except OSError as exc:
             digest.update(f"missing:{exc.__class__.__name__}".encode("utf-8"))
         digest.update(b"\0")
     return digest.hexdigest()
@@ -958,6 +958,8 @@ def _run_benchmark_fold(
             },
         )
     except Exception as exc:
+        # Fold isolation: a failed held-out class is recorded and the benchmark moves on.
+        logger.exception("OOD benchmark fold failed for held_out_class=%s", held_out_class)
         traceback_text = traceback.format_exc()
         failure_reason = f"{exc.__class__.__name__}: {exc}"
         failure_paths = _persist_fold_failure_diagnostics(

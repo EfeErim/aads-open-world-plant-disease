@@ -1,4 +1,7 @@
+import logging
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def emit_event(telemetry: Any, event_type: str, payload: Dict[str, Any], *, phase: str, force_sync: Optional[bool] = None) -> None:
@@ -22,6 +25,6 @@ def update_latest(telemetry: Any, payload: Dict[str, Any]) -> None:
     if callable(updater):
         try:
             updater(payload)
-        except Exception:
-            # Telemetry should not break main flow
-            return
+        except (OSError, TypeError, ValueError) as exc:
+            # Telemetry is a side channel: a failed write or unserializable payload must not stop training.
+            logger.warning("Telemetry update_latest failed: %s", exc)

@@ -621,8 +621,8 @@ class RouterPipeline:
             )[0]
 
             return normalize_sam3_results(results, empty_tensor_factory=lambda: torch.tensor([]))
-        except Exception as e:
-            logger.error(f"SAM3 inference failed: {e}")
+        except (RuntimeError, ValueError) as e:
+            logger.exception("SAM3 inference failed")
             return sam3_error_result(e)
 
     def _run_sam3(self, image: Image.Image, prompt: Any, threshold: float = 0.7) -> Dict[str, Any]:
@@ -691,7 +691,7 @@ class RouterPipeline:
         for text_prompt in prompt_sequence:
             try:
                 prompt_results = self._run_sam3_batch_single_prompt(images, text_prompt, threshold=threshold)
-            except Exception as exc:
+            except (RuntimeError, ValueError) as exc:
                 errors.append(str(exc))
                 continue
             for index, result in enumerate(prompt_results):

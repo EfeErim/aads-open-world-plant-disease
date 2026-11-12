@@ -784,16 +784,13 @@ class ContinualSDLoRATrainer:
                 # Torch Inductor will attempt to invoke a C++ compiler during
                 # codegen and fail if `cl` is missing. Detect that situation and
                 # skip compile to keep tests and lightweight runs stable.
-                try:
-                    import platform
-                    import shutil
+                import platform
+                import shutil
 
-                    if platform.system().lower().startswith("windows") and shutil.which("cl") is None:
-                        logger.debug("MSVC cl compiler not found; skipping torch.compile to avoid inductor build errors")
-                        compile_available = False
-                    else:
-                        compile_available = True
-                except Exception:
+                if platform.system().lower().startswith("windows") and shutil.which("cl") is None:
+                    logger.debug("MSVC cl compiler not found; skipping torch.compile to avoid inductor build errors")
+                    compile_available = False
+                else:
                     compile_available = True
                 if not compile_available:
                     logger.debug("Skipping torch.compile based on platform/compiler checks.")
@@ -812,7 +809,8 @@ class ContinualSDLoRATrainer:
                         # calls the compiled function with the instance as first arg.
                         setattr(self, "training_step", cast(Any, (lambda batch, _compiled=compiled, _self=self: _compiled(_self, batch))))
                         logger.info("torch.compile: training_step compiled successfully (default backend)")
-                    except Exception as exc_default:  # pragma: no cover - runtime guard
+                    # torch.compile raises backend-specific error types; every failure falls back to eager.
+                    except Exception as exc_default:  # noqa: BLE001  # pragma: no cover - runtime guard
                         logger.warning(
                             "torch.compile default backend failed for training_step: %s; attempting eager backend",
                             exc_default,
@@ -822,7 +820,7 @@ class ContinualSDLoRATrainer:
                             compiled_eager = torch.compile(unbound, backend="eager")
                             setattr(self, "training_step", cast(Any, (lambda batch, _compiled=compiled_eager, _self=self: _compiled(_self, batch))))
                             logger.info("torch.compile: training_step compiled successfully (eager backend)")
-                        except Exception as exc_eager:  # pragma: no cover - runtime guard
+                        except Exception as exc_eager:  # noqa: BLE001  # pragma: no cover - runtime guard
                             logger.warning(
                                 "torch.compile eager backend also failed; continuing without compile: %s",
                                 exc_eager,

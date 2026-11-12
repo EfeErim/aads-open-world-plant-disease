@@ -718,7 +718,7 @@ def analyze_sam3_contexts(
                 threshold=chunk_contexts[0].sam3_threshold,
             )
             sam3_total_ms = (time.perf_counter() - sam3_started_at) * 1000.0
-        except Exception as exc:
+        except (RuntimeError, ValueError) as exc:
             logger.info("Retrying chunk with per-image SAM3 analysis: %s", exc)
             analyses.extend(analyze_sam3_image(runtime, context) for context in chunk_contexts)
             continue

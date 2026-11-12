@@ -72,11 +72,8 @@ def _is_cuda_oom(exc: BaseException) -> bool:
 def _release_cuda_memory(device: str = "") -> None:
     gc.collect()
     if str(device).startswith("cuda") and torch.cuda.is_available():
-        try:
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-        except Exception:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
 
 
 @dataclass(frozen=True)

@@ -70,12 +70,9 @@ def _cleanup_runtime_state(shared_globals: dict, *, label: str) -> None:
         "evaluation",
     ):
         shared_globals.pop(name, None)
-    try:
-        import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-        plt.close("all")
-    except Exception:
-        pass
+    plt.close("all")
     try:
         import torch
 

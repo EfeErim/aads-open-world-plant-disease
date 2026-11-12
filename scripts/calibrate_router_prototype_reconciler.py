@@ -83,7 +83,8 @@ def score_manifest(
                     expected_class=row.expected_class,
                 )
             )
-        except Exception as exc:
+        # Per-row isolation: one unreadable image or embedding failure is scored as an error row.
+        except Exception as exc:  # noqa: BLE001
             scored.append(
                 ScoredRow(
                     image_id=row.image_id,

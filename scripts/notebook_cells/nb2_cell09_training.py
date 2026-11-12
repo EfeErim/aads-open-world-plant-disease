@@ -251,8 +251,8 @@ with TELEMETRY.capture_cell_output("Cell 6: Training"):
         telemetry.emit_log("Training stopped by user. Persisting checkpoint.", phase="train", level="warning")
         try:
             STATE["resume_state"] = session.snapshot_state()
-        except Exception:
-            pass
+        except Exception as snapshot_exc:
+            print(f"[TRAIN] Progress snapshot failed: {snapshot_exc}")
         if bool(effective_params["CHECKPOINT_ON_EXCEPTION"]):
             try:
                 _checkpoint(
@@ -264,8 +264,9 @@ with TELEMETRY.capture_cell_output("Cell 6: Training"):
                         "elapsed_sec": time.time() - start_time,
                     },
                 )
-            except Exception:
-                pass
+            except Exception as checkpoint_exc:
+                # Keep the original error as the one that propagates; just report the failed save.
+                print(f"[TRAIN] Emergency checkpoint failed: {checkpoint_exc}")
         raise
     except Exception as exc:
         print(f"[TRAIN] Exception: {exc}")
@@ -281,8 +282,9 @@ with TELEMETRY.capture_cell_output("Cell 6: Training"):
                         "elapsed_sec": time.time() - start_time,
                     },
                 )
-            except Exception:
-                pass
+            except Exception as checkpoint_exc:
+                # Keep the original error as the one that propagates; just report the failed save.
+                print(f"[TRAIN] Emergency checkpoint failed: {checkpoint_exc}")
         raise
 
     elapsed_total = time.time() - start_time

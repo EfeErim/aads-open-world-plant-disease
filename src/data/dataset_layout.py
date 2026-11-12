@@ -79,7 +79,8 @@ def _archive_cache_is_current(target_root: Path, archive_path: Path) -> bool:
         return False
     try:
         payload = read_json(metadata_path, default={}, expect_type=dict)
-    except Exception:
+    except (OSError, ValueError):
+        # A corrupt or non-dict metadata file just means the cache must be rebuilt.
         return False
     expected = _archive_signature(archive_path)
     return (

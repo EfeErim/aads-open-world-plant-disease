@@ -141,7 +141,8 @@ def collect_records(dataset_root: Path) -> List[ImageRecord]:
                     digest = _dhash(image)
                 readable = True
                 error = ""
-            except Exception as exc:
+            except (OSError, SyntaxError, ValueError) as exc:
+                # PIL reports unreadable, truncated or corrupt images with these types.
                 width = 0
                 height = 0
                 digest = ""

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 StatusPrinter = Callable[[str], None]
 GroundingDinoRunner = Callable[..., Dict[str, Any]]
@@ -276,6 +279,8 @@ def run_grounding_dino_target_detection(
         status = "ok" if detections else "no_candidates"
         return {"detections": kept, "candidate_count": len(detections), "status": status}
     except Exception as exc:
+        # Optional Colab-only detector: any load or inference failure falls back to full-image routing.
+        logger.exception("GroundingDINO detection failed; continuing without ROI candidates")
         _emit_status(status_printer, f"[GROUNDING_DINO] skipped: {exc}")
         return {"detections": [], "candidate_count": 0, "status": "error", "error": str(exc)}
 

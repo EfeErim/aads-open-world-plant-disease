@@ -35,7 +35,7 @@ class TrainingCheckpointManager:
             return default
         try:
             return read_json(path, default=default)
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.warning("Failed to read checkpoint metadata %s: %s", path, exc)
             return default
 
@@ -122,7 +122,7 @@ class TrainingCheckpointManager:
         if self.best_manifest_path.exists():
             try:
                 best = read_json(self.best_manifest_path, default=None)
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 logger.warning(
                     "Failed to read best checkpoint manifest %s; skipping checkpoint pruning to avoid "
                     "losing the best checkpoint: %s",

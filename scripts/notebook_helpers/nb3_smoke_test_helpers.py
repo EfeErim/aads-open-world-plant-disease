@@ -9,7 +9,8 @@ def run_bootstrap_notebook_nb3(notebook_name: str = "Notebook 3: Adapter Smoke T
     try:
         from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
         _ensure_repo_root_for_update_check()
-    except Exception:
+    except (ImportError, FileNotFoundError):
+        # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
         pass
 
     # [KONTROL] Ilk hucre: Bootstrap kontrati

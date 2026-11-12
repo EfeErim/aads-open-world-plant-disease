@@ -26,8 +26,9 @@ class DiagnosticScoutingAnalyzer:
 
             self.vlm_pipeline = RouterPipeline(config, device=device)
         except Exception as exc:
+            # Model loading can fail with Hugging Face, CUDA or import errors; scouting is optional.
             self.vlm_pipeline_init_error = f"{exc.__class__.__name__}: {exc}"
-            logger.warning(
+            logger.exception(
                 "Diagnostic scouting could not initialize the VLM pipeline: %s",
                 self.vlm_pipeline_init_error,
             )
@@ -52,6 +53,7 @@ class DiagnosticScoutingAnalyzer:
                 explanation = {"analysis": analysis}
                 status = "ok"
             except Exception as e:
+                logger.exception("Diagnostic scouting analysis failed")
                 explanation = {"error": str(e)}
                 status = "error"
         else:
@@ -136,6 +138,7 @@ class DiagnosticScoutingAnalyzer:
                 "processing_time_ms": float(analysis_result.processing_time_ms),
             }
         except Exception as e:
+            logger.exception("Diagnostic scouting detection failed")
             return {
                 "status": "error",
                 "crop": "unknown",
