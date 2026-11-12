@@ -13,18 +13,18 @@ from typing import Any
 
 import torch
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.demo_checklist_grading import (  # noqa: E402
+from scripts.demo_checklist.grading import (  # noqa: E402
     ABSTAIN_STATUSES,
     CLASSLESS_SUPPORTED_PROBE_MARKERS,
 )
-from scripts.demo_checklist_handoff_cache import (  # noqa: E402
+from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _handoff_cache_key as _build_handoff_cache_key,
 )
-from scripts.demo_checklist_handoff_cache import (  # noqa: E402
+from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _path_fingerprint as _build_path_fingerprint,
 )
 

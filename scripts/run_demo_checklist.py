@@ -23,22 +23,22 @@ from scripts.colab_auto_router_adapter_prediction import (  # noqa: E402
 )
 from scripts.colab_router_adapter_inference import run_inference as run_router_inference  # noqa: E402
 from scripts.colab_router_adapter_inference import run_inference_batch as run_router_inference_batch  # noqa: E402
-from scripts.demo_checklist_cli import build_parser as build_parser  # noqa: E402
-from scripts.demo_checklist_handoff_cache import (  # noqa: E402
+from scripts.demo_checklist.cli import build_parser as build_parser  # noqa: E402
+from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _cached_handoff_by_key,
     _load_handoff_cache,
     _lookup_cached_handoff_by_key,
     _write_handoff_cache,
 )
-from scripts.demo_checklist_reporting import (  # noqa: E402
+from scripts.demo_checklist.reporting import (  # noqa: E402
     build_analysis_summary,
     summarize_results,
     write_run_artifacts,
 )
-from scripts.demo_checklist_reporting import (  # noqa: E402
+from scripts.demo_checklist.reporting import (  # noqa: E402
     write_markdown_report as write_markdown_report,
 )
-from scripts.demo_checklist_rows import (  # noqa: E402
+from scripts.demo_checklist.rows import (  # noqa: E402
     ChecklistRow,
     _blocked_classless_probe_handoff,
     _blocked_expected_negative_handoff,
@@ -57,9 +57,9 @@ from scripts.demo_checklist_rows import (  # noqa: E402
     resolve_image_path,
     resolve_prototype_thresholds_from_calibration,
 )
-from scripts.demo_checklist_rows import _path_fingerprint as _path_fingerprint  # noqa: E402,F401
-from scripts.demo_checklist_rows import classify_failure as classify_failure  # noqa: E402,F401
-from scripts.demo_checklist_rows import evaluate_pass as evaluate_pass  # noqa: E402,F401
+from scripts.demo_checklist.rows import _path_fingerprint as _path_fingerprint  # noqa: E402,F401
+from scripts.demo_checklist.rows import classify_failure as classify_failure  # noqa: E402,F401
+from scripts.demo_checklist.rows import evaluate_pass as evaluate_pass  # noqa: E402,F401
 from src.data.transforms import preprocess_image  # noqa: E402
 from src.pipeline.inference_payloads import build_router_skipped_analysis, build_success_result  # noqa: E402
 from src.workflows.inference import InferenceWorkflow  # noqa: E402
