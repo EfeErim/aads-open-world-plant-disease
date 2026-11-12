@@ -536,7 +536,7 @@ def refresh_prep_guided_artifacts(
     telemetry: Any = None,
     overview_updates: Dict[str, Any] | None = None,
     extra_entries: Sequence[Dict[str, Any]] | None = None,
-    generated_by: str = "scripts.prepare_grouped_runtime_dataset",
+    generated_by: str = "src.data.grouped_runtime_dataset_preparation",
 ) -> Dict[str, Any]:
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)

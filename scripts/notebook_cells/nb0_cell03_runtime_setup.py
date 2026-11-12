@@ -16,7 +16,7 @@ from scripts.colab_repo_bootstrap import (
     running_in_colab,
 )
 from scripts.colab_live_telemetry import ColabLiveTelemetry
-from scripts.prepare_grouped_runtime_dataset import resolve_safe_embedding_batch_size
+from src.data.grouped_runtime_dataset_preparation import resolve_safe_embedding_batch_size
 from src.core.config_manager import ConfigurationManager
 
 # Install Colab requirements if running in Colab

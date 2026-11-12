@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-from scripts.prepare_grouped_runtime_dataset import (
+from src.data.grouped_runtime_dataset_preparation import (
     ImageRecord,
     _compute_neighbor_pairs,
     _encode_with_oom_retries,
@@ -54,7 +54,7 @@ def test_encode_with_oom_retries_forwards_batch_progress_and_reduces_batch_size(
         return np.ones((len(paths), 1), dtype=np.float32)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._is_cuda_oom",
+        "src.data.grouped_runtime_dataset_preparation._is_cuda_oom",
         lambda exc: "out of memory" in str(exc).lower(),
     )
     result = _encode_with_oom_retries(
@@ -225,19 +225,19 @@ def test_build_grouped_dataset_plan_blocks_cross_class_exact_duplicate(tmp_path:
     duplicate_target.write_bytes(image_path.read_bytes())
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 
@@ -263,19 +263,19 @@ def test_materialize_grouped_runtime_dataset_writes_runtime_layout(tmp_path: Pat
         _write_pattern(source_root / "Early Blight" / f"disease_{index}.jpg", offset=offset + 1)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 
@@ -314,19 +314,19 @@ def test_materialize_grouped_runtime_dataset_uses_part_aware_dataset_key(tmp_pat
         _write_pattern(source_root / "Early Blight" / f"disease_{index}.jpg", offset=offset + 1)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 
@@ -376,19 +376,19 @@ def test_materialize_grouped_runtime_dataset_includes_optional_ood_tree(tmp_path
     _write_pattern(ood_root / "background" / "nested" / "ood_b.jpg", offset=7)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 
@@ -429,23 +429,23 @@ def test_review_candidates_include_adjacency_ranking_fields(tmp_path: Path, monk
     _write_pattern(source_root / "Healthy" / "source_c" / "healthy_2.jpg", offset=20)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {
             tuple(sorted((paths[0], paths[1]))): 0.97,
             tuple(sorted((paths[0], paths[2]))): 0.966,
@@ -512,30 +512,30 @@ def test_low_risk_same_class_review_clusters_are_auto_resolved(tmp_path: Path, m
     _write_pattern(source_root / "Healthy" / "healthy_aug_2.jpg", offset=4)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {
             tuple(sorted((paths[0], paths[1]))): 0.97,
             tuple(sorted((paths[1], paths[2]))): 0.969,
         },
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._phash_distance",
+        "src.data.grouped_runtime_dataset_preparation._phash_distance",
         lambda a, b: 6,
     )
 
@@ -569,23 +569,23 @@ def test_source_like_group_bundles_eval_families_into_one_split(tmp_path: Path, 
         _write_pattern(source_root / class_name / "source_c" / f"{class_name.lower().replace(' ', '_')}_d.jpg", offset=offsets[2] + 5)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -619,23 +619,23 @@ def test_eval_risk_families_are_continual_only(tmp_path: Path, monkeypatch):
     _write_pattern(source_root / "Early Blight" / "pngtree-preview-image.jpg", offset=24)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -682,23 +682,23 @@ def test_source_style_risk_is_train_only_and_excluded_from_eval(tmp_path: Path, 
     _write_pattern(source_root / "Early Blight" / "download_612x612_leaf_b.jpg", offset=24)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -730,23 +730,23 @@ def test_source_style_filter_blocks_when_safe_eval_families_are_insufficient(tmp
         _write_pattern(source_root / class_name / "download_612x612_leaf.jpg", offset=base_offset + 16)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -772,23 +772,23 @@ def test_under_min_eval_policy_skip_skips_classes_with_too_few_eval_families(tmp
         _write_pattern(source_root / class_name / "download_612x612_leaf.jpg", offset=base_offset + 16)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -823,23 +823,23 @@ def test_label_train_only_risk_is_excluded_from_canonical_eval(tmp_path: Path, m
     _write_pattern(source_root / "Healthy" / "leaf_aug_flip.jpg", offset=25)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {
             tuple(sorted((real_path, aug_path))): 0.97
             for real_path in paths
@@ -848,7 +848,7 @@ def test_label_train_only_risk_is_excluded_from_canonical_eval(tmp_path: Path, m
         },
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._phash_distance",
+        "src.data.grouped_runtime_dataset_preparation._phash_distance",
         lambda a, b: 6,
     )
 
@@ -880,23 +880,23 @@ def test_zero_eval_eligible_class_is_skipped_during_materialization(tmp_path: Pa
         _write_pattern(source_root / "Skip Me" / f"gan_leaf_{index}.jpg", offset=offset + 2)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {},
     )
 
@@ -946,23 +946,23 @@ def test_materialized_eval_splits_only_contain_canonical_clean_family_members(tm
     _write_pattern(source_root / "Early Blight" / "disease_aug_flip.jpg", offset=25)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._compute_neighbor_pairs",
+        "src.data.grouped_runtime_dataset_preparation._compute_neighbor_pairs",
         lambda embeddings, *, paths, neighbors: {
             tuple(sorted((real_path, aug_path))): 0.99
             for real_path in paths
@@ -971,7 +971,7 @@ def test_materialized_eval_splits_only_contain_canonical_clean_family_members(tm
         },
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._phash_distance",
+        "src.data.grouped_runtime_dataset_preparation._phash_distance",
         lambda a, b: 6,
     )
 
@@ -1029,23 +1029,23 @@ def test_build_grouped_dataset_plan_excludes_images_missing_after_scan(tmp_path:
     missing_record.absolute_path = str(missing_path.resolve())
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset.scan_class_root_dataset",
+        "src.data.grouped_runtime_dataset_preparation.scan_class_root_dataset",
         lambda **kwargs: (real_records, normalization_report),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 
@@ -1070,19 +1070,19 @@ def test_grouped_dataset_plan_writes_guided_catalog(tmp_path: Path, monkeypatch)
         _write_pattern(source_root / "Early Blight" / f"disease_{index}.jpg", offset=offset + 1)
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_dinov3_components",
+        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._load_bioclip_components",
+        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
         lambda model_id, device="cpu": (object(), _FakeModel()),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_dinov3_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset._encode_bioclip_with_components",
+        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
         lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
     )
 

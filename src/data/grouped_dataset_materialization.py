@@ -175,7 +175,7 @@ def materialize_grouped_runtime_dataset(
                 "title_tr": "Materyalize edilmis runtime split manifesti",
                 "description_tr": "Gercekten uretilen runtime dataset icindeki split manifest dosyasi.",
                 "reader_goal": "Notebook 2'nin tuketecegi final runtime split yapisini gormek",
-                "generated_by": "scripts.prepare_grouped_runtime_dataset",
+                "generated_by": "src.data.grouped_runtime_dataset_preparation",
                 "decision_importance": "prep_gate",
                 "read_order": 22,
             }

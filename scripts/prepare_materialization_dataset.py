@@ -8,13 +8,6 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
-from scripts.prepare_grouped_runtime_dataset import (
-    DEFAULT_BIOCLIP_MODEL_ID,
-    DEFAULT_DINOV3_MODEL_ID,
-    DEFAULT_NEIGHBORS,
-    build_grouped_dataset_plan,
-    build_prepared_dataset_key,
-)
 from scripts.prune_exact_duplicates import (
     DEFAULT_SEED,
     DuplicateCleanupAction,
@@ -23,6 +16,13 @@ from scripts.prune_exact_duplicates import (
     write_cleanup_report,
 )
 from src.data.dataset_layout import IMAGE_EXTENSIONS
+from src.data.grouped_runtime_dataset_preparation import (
+    DEFAULT_BIOCLIP_MODEL_ID,
+    DEFAULT_DINOV3_MODEL_ID,
+    DEFAULT_NEIGHBORS,
+    build_grouped_dataset_plan,
+    build_prepared_dataset_key,
+)
 from src.shared.csv_utils import read_csv_rows
 from src.shared.json_utils import write_json
 
