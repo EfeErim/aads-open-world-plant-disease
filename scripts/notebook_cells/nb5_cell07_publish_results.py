@@ -71,7 +71,7 @@ if PUBLISH_RESULTS_TO_GIT:
         commit_message = f'Add router calibration results {stamp}'
         commit = subprocess.run(['git', 'commit', '-m', commit_message], check=False)
         if commit.returncode == 0:
-            push = subprocess.run(['git', 'push', 'origin', 'master'], check=False)
+            push = subprocess.run(['git', 'push', 'origin', 'main'], check=False)
             print(f'[PUBLISH] git push returncode={push.returncode}')
         else:
             print(f'[PUBLISH] git commit skipped/failed returncode={commit.returncode}')

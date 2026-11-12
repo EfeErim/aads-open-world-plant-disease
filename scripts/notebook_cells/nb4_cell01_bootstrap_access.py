@@ -40,7 +40,7 @@ _configure_colab_git_read_access()
 CLONE_TARGET = Path("/content/bitirmeprojesi")
 DEFAULT_REPO_URL = "https://github.com/EfeErim/aads-open-world-plant-disease.git"
 REPO_URL = os.environ.get("AADS_REPO_URL", DEFAULT_REPO_URL)
-REPO_REF = os.environ.get("AADS_REPO_REF", "master")
+REPO_REF = os.environ.get("AADS_REPO_REF", "main")
 
 
 def _run_git(args: list[str], *, cwd: Path | None = None) -> None:

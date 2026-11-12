@@ -8,11 +8,13 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def generate_recommendations() -> dict:
     """Generate comprehensive optimization recommendations."""
 
-    root = Path("<repo-root>")
+    root = REPO_ROOT
 
     # Load cleanup log
     cleanup_log_path = root / "outputs" / "duplicate_removal_log.json"
@@ -138,7 +140,7 @@ def generate_recommendations() -> dict:
     return recommendations
 
 def main():
-    root = Path("<repo-root>")
+    root = REPO_ROOT
 
     print("📊 Generating optimization recommendations...")
     recommendations = generate_recommendations()

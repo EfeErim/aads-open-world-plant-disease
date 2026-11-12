@@ -1,8 +1,8 @@
 # Data layout
 
 The original research datasets are not distributed with this repository. The intended path is to provide your own
-images through [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb)
-and train with [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/master/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb).
+images through [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb)
+and train with [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb).
 
 For a zero-data plumbing test, Notebook 2 can automatically create 56 deterministic synthetic images across the
 `continual`, `val`, `test`, `ood`, and `oe` roles. Its manifest marks the data as `production_eligible: false`: it is
