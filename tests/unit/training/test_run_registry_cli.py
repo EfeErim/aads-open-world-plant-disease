@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from scripts.index_training_runs import build_run_registry, collect_trial_records
+from src.training.services.run_registry import build_run_registry, collect_trial_records
 
 
 def _write_json(path: Path, payload: dict) -> None:

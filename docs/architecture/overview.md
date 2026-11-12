@@ -332,11 +332,11 @@ This prevents optimizer code from mixing runs that came from different prepared 
 
 Historical and new training runs can be indexed locally with:
 
-```powershell
-.\scripts\python.cmd scripts/index_training_runs.py --runs-root runs
+```bash
+python -m src.training.services.run_registry --runs-root runs
 ```
 
-That script writes local-generated registry outputs under:
+That command writes local-generated registry outputs under:
 
 ```text
 runs/_index/
@@ -359,8 +359,8 @@ Current automatic behavior:
 
 Phase 2 optimization entrypoint:
 
-```powershell
-.\scripts\python.cmd scripts/optimize_training_runs.py --dataset-lineage-key <dataset_key>::<split_manifest_sha256> --crop-name <crop> --part-name <part>
+```bash
+python scripts/optimize_training_runs.py --dataset-lineage-key <dataset_key>::<split_manifest_sha256> --crop-name <crop> --part-name <part>
 ```
 
 That surface reads the canonical run registry, stays inside one comparable cohort, and reports:
@@ -455,12 +455,11 @@ The repo validates the maintained surface through:
 
 - `scripts/validate_notebook_imports.py`
 - `scripts/validate_config_schema.py`
-- `scripts/validate_router_open_world_preflight.py`
-- `scripts/validate_router_open_world_result.py`
+- `python -m scripts.router_open_world.preflight`
+- `python -m scripts.router_open_world.result`
 - `scripts/evaluate_dataset_layout.py`
 - `scripts/evaluate_router_part_surface.py`
 - `scripts/benchmark_surfaces.py`
-- `scripts/benchmark_runtime_real.py` (opt-in real-model benchmark when assets are available)
 - `tests/unit/`
 - `tests/integration/`
 - `tests/colab/test_smoke_training.py`
