@@ -16,7 +16,6 @@ from scripts.colab_repo_bootstrap import (
     mirror_checkpoint_state_to_repo,
     mirror_path_to_repo,
 )
-from scripts.prepare_grouped_runtime_dataset import resolve_safe_embedding_batch_size
 from src.core.config_manager import ConfigurationManager
 from src.data.dataset_release_runtime import (
     DatasetReleaseAccessBlocker as DatasetReleaseAccessBlocker,
@@ -25,6 +24,7 @@ from src.data.dataset_release_runtime import (
     fetch_materialize_dataset_release,
     resolve_dataset_release_manifest,
 )
+from src.data.grouped_runtime_dataset_preparation import resolve_safe_embedding_batch_size
 
 
 def run_bootstrap_notebook(notebook_name: str = "Notebook 0: Dataset Preparation", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
@@ -168,7 +168,7 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
     """Run dataset audit and return STATE updates and resolved values."""
     from scripts.colab_dataset_layout import resolve_repo_dataset_directory
     from scripts.evaluate_dataset_layout import evaluate_layout
-    from scripts.prepare_grouped_runtime_dataset import (
+    from src.data.grouped_runtime_dataset_preparation import (
         build_grouped_dataset_plan,
         build_human_review_packet,
         format_human_review_packet,
@@ -322,8 +322,8 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
 
 def run_prepare_dataset(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DEVICE: str, EMBEDDING_BATCH_SIZE: int, NEIGHBORS: int, CROP_NAME: str, PART_NAME: str, PREPARED_CLASS_ROOT: str, CLEANUP_SEED: int, PREP_DINOV3_MODEL_ID: str, PREP_BIOCLIP_MODEL_ID: str, UNDER_MIN_EVAL_POLICY: dict, PREPARE_DATASET_FROM_REPORTS: bool) -> None:
     """Prepare dataset from audit reports."""
-    from scripts.prepare_grouped_runtime_dataset import build_prepared_dataset_key
     from scripts.prepare_materialization_dataset import prepare_class_root_for_materialization
+    from src.data.grouped_runtime_dataset_preparation import build_prepared_dataset_key
 
     if not STATE.get("validated") or STATE.get("audit_summary") is None:
         raise RuntimeError("Once dataset audit hucresini calistirin.")
@@ -409,7 +409,7 @@ def run_materialize_runtime_dataset(
     INTERACTIVE_AUDIT_REVIEW: bool = True,
 ) -> None:
     from scripts.colab_dataset_layout import resolve_repo_dataset_directory
-    from scripts.prepare_grouped_runtime_dataset import (
+    from src.data.grouped_runtime_dataset_preparation import (
         build_prepared_dataset_key,
         format_human_review_packet,
         materialize_grouped_runtime_dataset,

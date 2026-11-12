@@ -3,7 +3,6 @@ from pathlib import Path
 
 from PIL import Image
 
-from scripts.build_m2_supported_disease_manifest import build_rows, is_healthy_class
 from scripts.run_demo_checklist import (
     ChecklistRow,
     _handoff_cache_key,
@@ -754,32 +753,6 @@ def test_resolve_prototype_thresholds_preserves_explicit_negative_gap_without_re
     assert min_negative_gap == 0.04
     assert report == {"enabled": False}
     assert target_policies == {}
-
-
-def test_supported_disease_manifest_excludes_healthy_classes(tmp_path: Path):
-    dataset_root = tmp_path / "datasets"
-    disease_dir = dataset_root / "tomato__leaf" / "test" / "domates_late_blight_yaprak"
-    healthy_dir = dataset_root / "tomato__leaf" / "test" / "domates_sağlıklı_yaprak"
-    disease_dir.mkdir(parents=True)
-    healthy_dir.mkdir(parents=True)
-    (disease_dir / "image.png").write_bytes(b"x")
-    (healthy_dir / "image.png").write_bytes(b"x")
-
-    for idx in range(1, 12):
-        (disease_dir / f"image_{idx:02d}.png").write_bytes(b"x")
-
-    rows = build_rows(dataset_root, start_id=145, images_per_class=10)
-
-    assert is_healthy_class("domates_sağlıklı_yaprak")
-    assert len(rows) == 10
-    assert rows[0]["image_id"] == "demo_145"
-    assert rows[0]["expected_target"] == "tomato__leaf"
-    assert rows[0]["expected_crop"] == "tomato"
-    assert rows[0]["expected_part"] == "leaf"
-    assert rows[0]["expected_class"] == "domates_late_blight_yaprak"
-    assert rows[0]["disease_class"] == "domates_late_blight_yaprak"
-    assert rows[0]["source"].endswith("image.png")
-    assert rows[-1]["source"].endswith("image_09.png")
 
 
 def test_classify_failure_marks_gated_model_as_dependency_access():

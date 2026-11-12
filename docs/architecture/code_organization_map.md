@@ -100,8 +100,8 @@ When a notebook needs new behavior, first decide whether it is:
 
 Run the organization audit before large notebook/script refactors:
 
-```powershell
-.\scripts\python.cmd scripts/audit_code_organization.py
+```bash
+python scripts/audit_code_organization.py
 ```
 
 The audit checks import direction and reports a categorized inventory of Python and notebook surfaces. It is intentionally conservative: hard failures are limited to boundary violations, while size and notebook-shape signals are warnings for follow-up refactors.

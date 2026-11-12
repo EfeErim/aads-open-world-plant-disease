@@ -2,7 +2,7 @@ import csv
 import json
 from pathlib import Path
 
-from scripts.validate_router_open_world_result import validate_result_dir
+from scripts.router_open_world.result import validate_result_dir
 
 
 def _write_csv(path: Path, rows: list[dict[str, str]] | None = None) -> None:

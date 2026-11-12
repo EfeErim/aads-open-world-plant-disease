@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.notebook_validation_support import (  # noqa: E402
+from scripts.notebook_contracts.support import (  # noqa: E402
     ROOT,
     VALIDATION_GROUP_ORDER,
     ValidationCheck,
@@ -213,14 +213,7 @@ def test_repo_dataset_scaffold() -> None:
     missing = [str(path.relative_to(ROOT)) for path in required_paths if not path.exists()]
     assert not missing, f"Missing dataset scaffold path(s): {', '.join(missing)}"
 
-from scripts.customer_notebook_contracts import (  # noqa: E402
-    test_auto_router_adapter_notebook_contract,
-    test_colab_helpers,
-    test_data_prep_notebook_contract,
-    test_training_notebook_bootstrap_contract,
-    test_training_notebook_dataset_contract_detection,
-)
-from scripts.internal_notebook_contracts import (  # noqa: E402
+from scripts.notebook_contracts.maintenance_notebooks import (  # noqa: E402
     test_adapter_ood_oe_recovery_notebook_contract,
     test_adapter_smoke_notebook_bootstrap_contract,
     test_adapter_smoke_notebook_surface,
@@ -229,6 +222,13 @@ from scripts.internal_notebook_contracts import (  # noqa: E402
     test_roi_ablation_notebook_contract,
     test_router_calibration_notebook_contract,
     test_simple_adapter_smoke_notebook_bootstrap_contract,
+)
+from scripts.notebook_contracts.user_notebooks import (  # noqa: E402
+    test_auto_router_adapter_notebook_contract,
+    test_colab_helpers,
+    test_data_prep_notebook_contract,
+    test_training_notebook_bootstrap_contract,
+    test_training_notebook_dataset_contract_detection,
 )
 
 CHECKS = (
@@ -268,7 +268,7 @@ CHECKS = (
         success_message="Continual trainer surface imported and validated",
         failure_prefix="Continual trainer test failed",
         callback=test_continual_trainer_imports,
-        validation_group="customer-notebook-support",
+        validation_group="user-notebook-support",
     ),
     ValidationCheck(
         result_name="Quantization Guard",
@@ -277,7 +277,7 @@ CHECKS = (
         success_message="Quantization guard behaves correctly",
         failure_prefix="Quantization guard failed",
         callback=test_quantization_guard,
-        validation_group="customer-notebook-support",
+        validation_group="user-notebook-support",
     ),
     ValidationCheck(
         result_name="Adapter Lifecycle",
@@ -286,7 +286,7 @@ CHECKS = (
         success_message="Adapter lifecycle surface available",
         failure_prefix="Adapter API test failed",
         callback=test_adapter_surface,
-        validation_group="customer-notebook-support",
+        validation_group="user-notebook-support",
     ),
     ValidationCheck(
         result_name="Router Runtime",
@@ -295,7 +295,7 @@ CHECKS = (
         success_message="Router runtime surface available",
         failure_prefix="Router runtime test failed",
         callback=test_runtime_surface,
-        validation_group="customer-notebook-support",
+        validation_group="user-notebook-support",
     ),
     ValidationCheck(
         result_name="Adapter Smoke Notebook",
@@ -304,7 +304,7 @@ CHECKS = (
         success_message="Adapter smoke-test helper surface available",
         failure_prefix="Adapter smoke-test surface failed",
         callback=test_adapter_smoke_notebook_surface,
-        validation_group="customer-notebook-support",
+        validation_group="user-notebook-support",
     ),
     ValidationCheck(
         result_name="Notebook 3 Bootstrap",
@@ -313,7 +313,7 @@ CHECKS = (
         success_message="Notebook 3 bootstrap uses GitHub/local repo discovery without Drive repo mounts",
         failure_prefix="Notebook 3 bootstrap contract failed",
         callback=test_adapter_smoke_notebook_bootstrap_contract,
-        validation_group="customer-facing-notebooks",
+        validation_group="user-facing-notebooks",
     ),
     ValidationCheck(
         result_name="Notebook 4 Bootstrap (internal-maintenance)",
@@ -371,7 +371,7 @@ CHECKS = (
         success_message="Notebook 8 wraps Notebook 1 routing and canonical adapter inference",
         failure_prefix="Notebook 8 auto inference contract failed",
         callback=test_auto_router_adapter_notebook_contract,
-        validation_group="customer-facing-notebooks",
+        validation_group="user-facing-notebooks",
         requires_runtime_dependencies=False,
     ),
     ValidationCheck(
@@ -400,7 +400,7 @@ CHECKS = (
         success_message="Notebook 2 bootstrap globals are defined before use",
         failure_prefix="Notebook 2 bootstrap contract failed",
         callback=test_training_notebook_bootstrap_contract,
-        validation_group="customer-facing-notebooks",
+        validation_group="user-facing-notebooks",
         requires_runtime_dependencies=False,
     ),
     ValidationCheck(
@@ -410,7 +410,7 @@ CHECKS = (
         success_message="Notebook 0 bootstrap globals are defined before use",
         failure_prefix="Notebook 0 bootstrap contract failed",
         callback=test_data_prep_notebook_contract,
-        validation_group="customer-facing-notebooks",
+        validation_group="user-facing-notebooks",
         requires_runtime_dependencies=False,
     ),
     ValidationCheck(
@@ -430,7 +430,7 @@ CHECKS = (
         success_message="Notebook 2 supports the public sample and verified prepared datasets",
         failure_prefix="Notebook 2 dataset contract check failed",
         callback=test_training_notebook_dataset_contract_detection,
-        validation_group="customer-facing-notebooks",
+        validation_group="user-facing-notebooks",
         requires_runtime_dependencies=False,
     ),
 )

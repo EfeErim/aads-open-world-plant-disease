@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
 from scripts.colab_dataset_layout import IMAGE_EXTENSIONS
-from scripts.prepare_grouped_runtime_dataset import (
+from src.data.grouped_runtime_dataset_preparation import (
     ImageRecord,
     ReviewPair,
     UnionFind,

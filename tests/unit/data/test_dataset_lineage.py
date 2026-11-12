@@ -123,7 +123,7 @@ def test_local_legacy_is_explicitly_non_production(tmp_path: Path) -> None:
 
 def test_local_legacy_is_unavailable_without_explicit_compatibility(tmp_path: Path) -> None:
     target = _target(tmp_path)
-    with pytest.raises(DatasetLineageError, match="unavailable to new customer training"):
+    with pytest.raises(DatasetLineageError, match="unavailable to new training runs"):
         resolve_dataset_lineage(
             source_kind="local_legacy",
             dataset_key="tomato__leaf",

@@ -31,7 +31,7 @@ def test_runtime_materialization_uses_copy_for_portable_prepared_dataset(tmp_pat
         return Path(kwargs["runtime_root"])
 
     monkeypatch.setattr(
-        "scripts.prepare_grouped_runtime_dataset.materialize_grouped_runtime_dataset",
+        "src.data.grouped_runtime_dataset_preparation.materialize_grouped_runtime_dataset",
         _fake_materialize_grouped_runtime_dataset,
     )
     monkeypatch.setattr(

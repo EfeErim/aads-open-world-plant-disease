@@ -169,7 +169,7 @@ def validate_balanced_manifest_request(settings: Mapping[str, Any], run_state: M
         and settings["M2_DEMO_MANIFEST"] != expected_balanced_manifest
     ):
         raise RuntimeError(
-            "[M2] Refusing to run stale Notebook 8 customer-demo manifest while run-state requests "
+            "[M2] Refusing to run stale Notebook 8 controlled-demo manifest while run-state requests "
             f"the balanced 664-row manifest. Expected M2_DEMO_MANIFEST={expected_balanced_manifest!r}, "
             f"got {settings['M2_DEMO_MANIFEST']!r}. Pull latest/restart the Colab runtime or set M2_FORCE_RUN_STATE=True."
         )
