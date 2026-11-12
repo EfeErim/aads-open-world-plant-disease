@@ -1,8 +1,8 @@
-"""Customer-facing notebook contract checks."""
+"""Contract checks for the user-facing notebooks (0, 2, 3 and 8)."""
 
 from __future__ import annotations
 
-from scripts.notebook_validation_support import (
+from scripts.notebook_contracts.support import (
     ACCESS_CHECK_CAPTURE,
     PARAMETER_CAPTURE,
     ROOT,
@@ -176,7 +176,7 @@ def test_auto_router_adapter_notebook_contract() -> None:
         "def validate_balanced_manifest_request(",
         "Applied run-state config",
         "force_run_state",
-        "Refusing to run stale Notebook 8 customer-demo manifest",
+        "Refusing to run stale Notebook 8 controlled-demo manifest",
         'm2_problem_only_manifest = str(',
         'm2_problem_only_calibration_manifest = str(',
         'notebook_globals.get("M2_PROBLEM_ONLY_COMPARISON_BASELINE", "") or ""',
@@ -268,12 +268,12 @@ def test_colab_helpers() -> None:
     )
     from scripts.colab_simple_adapter_smoke_ui import launch_simple_adapter_smoke_ui
     from scripts.evaluate_dataset_layout import evaluate_layout
-    from scripts.prepare_grouped_runtime_dataset import (
+    from scripts.prepare_materialization_dataset import prepare_class_root_for_materialization
+    from src.data.grouped_runtime_dataset_preparation import (
         build_grouped_dataset_plan,
         materialize_grouped_runtime_dataset,
         scan_class_root_dataset,
     )
-    from scripts.prepare_materialization_dataset import prepare_class_root_for_materialization
 
     assert hasattr(ColabLiveTelemetry, "configure_repo_output_export")
     assert callable(export_current_colab_notebook)

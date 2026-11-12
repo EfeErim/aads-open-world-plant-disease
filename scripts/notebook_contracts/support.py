@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -230,8 +230,8 @@ class ValidationCheck:
 
 VALIDATION_GROUP_ORDER = (
     "shared-prerequisite",
-    "customer-notebook-support",
-    "customer-facing-notebooks",
+    "user-notebook-support",
+    "user-facing-notebooks",
     "internal-maintenance-notebooks",
     "historical-report-only-notebooks",
 )

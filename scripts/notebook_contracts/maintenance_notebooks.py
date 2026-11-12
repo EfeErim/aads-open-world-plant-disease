@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scripts.notebook_validation_support import (
+from scripts.notebook_contracts.support import (
     ROOT,
     _assert_clone_bootstrap_contract,
     _assert_code_cells_compile,

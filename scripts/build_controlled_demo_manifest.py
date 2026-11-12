@@ -1,4 +1,4 @@
-"""Build the controlled customer-demo manifest from the latest M2 stress result."""
+"""Build the controlled controlled-demo manifest from the latest M2 stress result."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ from typing import Any
 
 DEFAULT_RESULT_JSON = Path("docs/demo_results/m2/20260706T140135Z/m2_demo_checklist_run.json")
 DEFAULT_SOURCE_MANIFEST = Path("docs/demo_assets/m2_full_image_set/manifests/m2_full_image_set_run_manifest.csv")
-DEFAULT_OUTPUT = Path("docs/demo_assets/customer_demo_manifest/customer_demo_manifest.csv")
-DEFAULT_SUMMARY_JSON = Path("docs/demo_assets/customer_demo_manifest/customer_demo_manifest_summary.json")
-DEFAULT_SUMMARY_MD = Path("docs/demo_assets/customer_demo_manifest/customer_demo_manifest_summary.md")
+DEFAULT_OUTPUT = Path("docs/demo_assets/controlled_demo_manifest/controlled_demo_manifest.csv")
+DEFAULT_SUMMARY_JSON = Path("docs/demo_assets/controlled_demo_manifest/controlled_demo_manifest_summary.json")
+DEFAULT_SUMMARY_MD = Path("docs/demo_assets/controlled_demo_manifest/controlled_demo_manifest_summary.md")
 
 EXCLUDED_STRESS_ROWS = {"demo_236", "demo_432"}
 
@@ -112,7 +112,7 @@ def _bucket_for_target(target: str) -> str:
 def _selection_reason(target: str) -> str:
     label = SUPPORT_LABELS[target]
     if label == "strong":
-        return "20260706T140135Z strong target; pass row selected for customer acceptance"
+        return "20260706T140135Z strong target; pass row selected for the controlled demo"
     if label == "caution":
         return "20260706T140135Z caution target; pass row selected with limitation label"
     if label == "problematic":
@@ -192,7 +192,7 @@ def build_controlled_manifest(result_json: Path, source_manifest: Path) -> Build
     excluded_present = sorted(image_id for image_id in EXCLUDED_STRESS_ROWS if image_id in result_by_id)
 
     summary = {
-        "schema_version": "v1_controlled_customer_demo_manifest",
+        "schema_version": "v1_controlled_demo_manifest",
         "source_result": str(result_json),
         "source_manifest": str(source_manifest),
         "source_result_finished_at": result_payload.get("finished_at"),
@@ -222,7 +222,7 @@ def write_outputs(build: BuildResult, output: Path, summary_json: Path, summary_
         file.write("\n")
 
     lines = [
-        "# Controlled Customer Demo Manifest",
+        "# Controlled Demo Manifest",
         "",
         "Generated from `docs/demo_results/m2/20260706T140135Z/m2_demo_checklist_run.json`.",
         "",
@@ -252,9 +252,9 @@ def write_outputs(build: BuildResult, output: Path, summary_json: Path, summary_
             "## Commands",
             "",
             "```powershell",
-            ".\\scripts\\python.cmd scripts\\build_controlled_customer_demo_manifest.py",
-            ".\\scripts\\python.cmd scripts\\run_demo_checklist.py --mode asset-audit --no-checklist --extra-manifest docs\\demo_assets\\customer_demo_manifest\\customer_demo_manifest.csv --output .runtime_tmp\\customer_demo_asset_audit.json --markdown-output .runtime_tmp\\customer_demo_asset_audit.md",
-            ".\\scripts\\python.cmd scripts\\run_demo_checklist.py --no-checklist --extra-manifest docs\\demo_assets\\customer_demo_manifest\\customer_demo_manifest.csv --device cuda --adapter-root runs --batch-size 4 --adapter-batch-size 2 --handoff-cache .runtime_tmp\\m2_customer_demo_handoff_cache.json",
+            "python scripts\\build_controlled_demo_manifest.py",
+            "python scripts\\run_demo_checklist.py --mode asset-audit --no-checklist --extra-manifest docs\\demo_assets\\controlled_demo_manifest\\controlled_demo_manifest.csv --output .runtime_tmp\\controlled_demo_asset_audit.json --markdown-output .runtime_tmp\\controlled_demo_asset_audit.md",
+            "python scripts\\run_demo_checklist.py --no-checklist --extra-manifest docs\\demo_assets\\controlled_demo_manifest\\controlled_demo_manifest.csv --device cuda --adapter-root runs --batch-size 4 --adapter-batch-size 2 --handoff-cache .runtime_tmp\\m2_controlled_demo_handoff_cache.json",
             "```",
             "",
         ]

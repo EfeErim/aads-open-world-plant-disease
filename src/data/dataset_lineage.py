@@ -224,7 +224,7 @@ def resolve_dataset_lineage(
             compatibility_reason=compatibility_reason,
         )
     if kind == LOCAL_LEGACY_SOURCE:
-        raise DatasetLineageError("local_legacy lineage is unavailable to new customer training")
+        raise DatasetLineageError("local_legacy lineage is unavailable to new training runs")
     if kind == PUBLIC_SAMPLE_SOURCE:
         return build_public_sample_lineage(
             dataset_key=dataset_key,
