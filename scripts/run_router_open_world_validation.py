@@ -86,7 +86,7 @@ def _read_report_or_empty(path: Path, *, label: str) -> tuple[dict, str]:
         return {"rows": [], "summary": {"total": 0}}, f"{label}_report_missing"
     try:
         return read_json(path), ""
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         return {
             "rows": [],
             "summary": {"total": 0},

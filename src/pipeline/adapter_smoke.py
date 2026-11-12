@@ -888,12 +888,8 @@ def _occlusion_sensitivity_grid(
             masked[:, top:bottom, left:right] = original_patch
 
     del masked
-    try:
-        import torch
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except Exception:
-        pass
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     max_drop = float(heatmap.max().item()) if heatmap.numel() else 0.0
     if max_drop > 0.0:

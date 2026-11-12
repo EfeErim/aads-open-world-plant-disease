@@ -84,8 +84,9 @@ def _try_refresh_run_registry(
             runs_root=runs_root,
             enable_bayesian_proposals=bool(enable_bayesian_proposals),
         )
-    except Exception as exc:
-        logger.warning("Automatic run-registry refresh failed for artifact_root=%s: %s", artifact_root, exc)
+    except Exception:
+        # Best-effort index refresh after a run; the run's own artifacts are already persisted.
+        logger.exception("Automatic run-registry refresh failed for artifact_root=%s", artifact_root)
         return {}
     _merge_registry_to_telemetry(telemetry, result)
     return {

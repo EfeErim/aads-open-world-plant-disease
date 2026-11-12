@@ -68,7 +68,7 @@ def test_compute_plan_metrics_logs_ood_metric_failures(monkeypatch, caplog):
     from src.training.services import metrics as metrics_module
 
     def _raise_auc(*_args, **_kwargs):
-        raise RuntimeError("forced_roc_failure")
+        raise ValueError("forced_roc_failure")
 
     monkeypatch.setattr(metrics_module, "roc_auc_score", _raise_auc)
 

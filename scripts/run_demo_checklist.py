@@ -285,7 +285,8 @@ def _run_row(
                         expected_class_label=row.expected_class,
                         handoff_result=handoff_result,
                     )
-        except Exception as exc:  # Notebook execution surfaces dependency failures as runtime exceptions.
+        # Per-row isolation: model, CUDA and image errors become a failed row instead of stopping the run.
+        except Exception as exc:  # noqa: BLE001
             if _is_cuda_oom(exc):
                 _release_cuda_memory(device)
             result = {
@@ -405,7 +406,8 @@ def _run_adapter_batched_rows(
                         asset_status="ok",
                         mode="official",
                     )
-        except Exception as exc:
+        # Per-row isolation, as above.
+        except Exception as exc:  # noqa: BLE001
             if _is_cuda_oom(exc):
                 _release_cuda_memory(device)
                 print(
@@ -557,7 +559,8 @@ def _run_official_batch_rows(
                 )
                 if len(router_results) != len(chunk):
                     raise RuntimeError(f"Batch router returned {len(router_results)} results for {len(chunk)} rows.")
-            except Exception as exc:
+            # Per-chunk isolation: CUDA OOM halves the chunk, anything else marks the chunk's rows as failed.
+            except Exception as exc:  # noqa: BLE001
                 if _is_cuda_oom(exc) and chunk_size > 1:
                     next_chunk_size = max(1, chunk_size // 2)
                     print(

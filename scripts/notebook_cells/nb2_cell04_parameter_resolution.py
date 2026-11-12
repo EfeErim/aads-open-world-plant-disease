@@ -475,8 +475,8 @@ if str(INITIAL_EFFECTIVE_PARAMS.get("RESUME_MODE", RESUME_MODE)) == "resume":
                 f"[RESUME] Checkpoint bulundu: {manifest.get('name', '?')} "
                 f"epoch={manifest.get('epoch', 0)} step={manifest.get('global_step', 0)}"
             )
-    except Exception:
-        pass
+    except Exception as resume_exc:
+        print(f"[RESUME] Could not read the latest checkpoint manifest: {resume_exc}")
 
 hf_token_ready = False
 hf_token = str(resolve_hf_token() or "").strip()

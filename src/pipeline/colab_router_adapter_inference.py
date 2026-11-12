@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -15,6 +16,8 @@ from src.core.config_manager import get_config
 from src.pipeline.inference_payloads import build_router_skipped_analysis
 from src.router.router_pipeline import RouterPipeline
 from src.shared.contracts import RouterAnalysisResult
+
+logger = logging.getLogger(__name__)
 
 StatusPrinter = Callable[[str], None]
 RouterCacheKey = tuple[str, str]
@@ -29,7 +32,8 @@ def _coerce_optional_max_side(value: Any) -> Optional[int]:
         return None
     try:
         parsed = int(value)
-    except Exception:
+    except (TypeError, ValueError):
+        # Blank and non-numeric widget values both mean "do not resize".
         return None
     return parsed if parsed > 0 else None
 
@@ -51,7 +55,8 @@ def _prepare_router_image(
             int(stat_result.st_size),
             clamped_side,
         )
-    except Exception:
+    except OSError:
+        # A missing file skips the cache; Image.open below reports the real error.
         cache_key = None
 
     if cache_key is not None:
@@ -92,9 +97,8 @@ def _prepare_router_image(
 def _coerce_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value)
-    except Exception:
-        import logging
-        logging.debug(f'Coercing {value!r} to float failed; using default {default}')
+    except (TypeError, ValueError):
+        logger.debug("Coercing %r to float failed; using default %s", value, default)
         return float(default)
 
 

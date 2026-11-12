@@ -19,9 +19,11 @@ EXCLUDED_PUSH_PATH_PARTS = ("checkpoint_state/checkpoints",)
 
 
 def _read_json_dict(path: Path) -> dict:
+    # A missing or corrupt manifest falls through to the `checkpoints/best` lookup in the caller,
+    # which raises "Best checkpoint could not be resolved" when nothing usable is found.
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, ValueError):
         return {}
     return dict(payload) if isinstance(payload, dict) else {}
 
@@ -162,7 +164,7 @@ def _sanitize_run_text_artifacts(run_dir: Path, *, explicit_secrets: Sequence[st
                 payload = json.loads(raw_text)
                 redacted_payload = _redact_nested_obj(payload, explicit_secrets)
                 redacted_text = json.dumps(redacted_payload, ensure_ascii=False, indent=2) + "\n"
-            except Exception:
+            except json.JSONDecodeError:
                 redacted_text = _redact_possible_tokens_with_secrets(raw_text, explicit_secrets)
         elif suffix == ".jsonl":
             redacted_lines: list[str] = []
@@ -175,7 +177,7 @@ def _sanitize_run_text_artifacts(run_dir: Path, *, explicit_secrets: Sequence[st
                     parsed_line = json.loads(stripped)
                     redacted_line_payload = _redact_nested_obj(parsed_line, explicit_secrets)
                     redacted_lines.append(json.dumps(redacted_line_payload, ensure_ascii=False))
-                except Exception:
+                except json.JSONDecodeError:
                     redacted_lines.append(_redact_possible_tokens_with_secrets(raw_line, explicit_secrets))
             redacted_text = "\n".join(redacted_lines)
             if raw_text.endswith("\n"):

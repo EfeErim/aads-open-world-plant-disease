@@ -125,7 +125,8 @@ def copy_reusable_calibration_if_available(
             continue
         try:
             payload = json.loads(calibration_path.read_text(encoding="utf-8"))
-        except Exception:
+        except json.JSONDecodeError:
+            print(f"[M2] Skipping unreadable calibration file: {calibration_path}")
             continue
         if not constraints_match(payload, settings):
             continue

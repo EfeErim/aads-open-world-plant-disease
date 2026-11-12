@@ -242,7 +242,8 @@ def _run_check(check: ValidationCheck, *, leading_newline: bool = False) -> bool
     print(f"{prefix}Testing {gate_label(check.step_id, check.description)}...")
     try:
         check.callback()
-    except Exception as exc:
+    except (AssertionError, ImportError, OSError, ValueError) as exc:
+        # Contract failures are assertions or missing imports/files; anything else is a validator bug and should crash.
         detail = str(exc).strip()
         failure_message = check.failure_prefix if not detail else f"{check.failure_prefix}: {detail}"
         print(f"FAIL {gate_label(check.step_id, failure_message)}")

@@ -55,11 +55,7 @@ def run_classifier_rebalance_logic(
     if train_loader is None or loader_size(train_loader) <= 0:
         return trainer, {}, "", None, {}, False
 
-    log_priors = None
-    try:
-        log_priors = getattr(trainer, "class_balance_runtime", {})
-    except Exception:
-        log_priors = None
+    log_priors = getattr(trainer, "class_balance_runtime", {})
     # The caller is expected to configure the trainer as needed
     if hasattr(trainer, "configure_classifier_rebalance_stage"):
         trainer.configure_classifier_rebalance_stage(log_priors=log_priors)

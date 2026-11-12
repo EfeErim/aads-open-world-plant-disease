@@ -167,7 +167,8 @@ class CropDataset(Dataset):
                 self._verify_image_file(img_path)
                 valid_paths.append(img_path)
                 valid_labels.append(label)
-            except Exception as exc:
+            except (OSError, SyntaxError, ValueError) as exc:
+                # PIL reports truncated or corrupt files with any of these types.
                 failed.append({"path": str(img_path), "error": str(exc)})
 
         if failed and self.error_policy == "strict":

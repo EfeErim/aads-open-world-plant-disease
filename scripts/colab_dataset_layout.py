@@ -91,20 +91,12 @@ def prepare_runtime_dataset_layout(*args, **kwargs):
             rel = file_path.relative_to(source_root)
             dest = crop_root / "continual" / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                # copy file bytes
-                with file_path.open("rb") as src, dest.open("wb") as dst:
-                    dst.write(src.read())
-            except Exception:
-                continue
+            with file_path.open("rb") as src, dest.open("wb") as dst:
+                dst.write(src.read())
 
     # write a basic split manifest
     manifest = build_runtime_split_manifest(class_root=source_root, crop_name=crop_name, seed=kwargs.get("seed"))
-    try:
-        write_path = manifest_path
-        write_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return Path(runtime_root)
 

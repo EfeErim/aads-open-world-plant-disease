@@ -42,8 +42,9 @@ def _resolve_embedding_device(device: str) -> str:
         import torch
 
         try:
-            cuda_available = bool(torch.cuda.is_available())
-        except Exception:
+            cuda_available = torch.cuda.is_available()
+        except RuntimeError:
+            # A broken driver install can make the CUDA probe itself raise; embed on CPU instead.
             cuda_available = False
         if not cuda_available:
             return "cpu"
@@ -79,7 +80,8 @@ def resolve_safe_embedding_batch_size(device: str, requested_batch_size: Optiona
         props = torch.cuda.get_device_properties(0)
         vram_gb = float(getattr(props, "total_memory", 0.0)) / (1024**3)
         gpu_name = str(getattr(props, "name", "") or "").lower()
-    except Exception:
+    except (AssertionError, RuntimeError):
+        # torch raises these when CUDA is not initialised or no device 0 exists.
         return DEFAULT_T4_EMBEDDING_BATCH_SIZE
 
     system_gb = _system_memory_gb()
@@ -95,25 +97,19 @@ def resolve_safe_embedding_batch_size(device: str, requested_batch_size: Optiona
 def _release_embedding_batch_memory(device: str) -> None:
     gc.collect()
     if str(device).startswith("cuda"):
-        try:
-            import torch
+        import torch
 
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except Exception:
-            pass
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 def _is_cuda_oom(exc: BaseException) -> bool:
     message = str(exc).lower()
     if "cuda" in message and ("out of memory" in message or "oom" in message):
         return True
-    try:
-        import torch
+    import torch
 
-        return isinstance(exc, torch.cuda.OutOfMemoryError)
-    except Exception:
-        return False
+    return isinstance(exc, torch.cuda.OutOfMemoryError)
 
 
 def _load_dinov3_components(model_id: str, *, device: str = "cpu") -> tuple[Any, Any]:

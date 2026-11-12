@@ -391,7 +391,7 @@ def load_curation_feature_records(
                 device=device,
             )
             digest = artifact_sha256(image_path)
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             skipped.append(
                 {
                     "image_id": str(row.get("image_id") or ""),
@@ -491,7 +491,7 @@ def build_prototype_bank(
                 device=device,
             )
             digest = artifact_sha256(image_path)
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             skipped.append({"path": str(image_path), "reason": str(exc)})
             continue
         records.append(
