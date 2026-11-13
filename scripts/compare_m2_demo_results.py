@@ -4,20 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
+from src.shared.hash_utils import sha256_file
+
 DEFAULT_TARGETS = ("tomato__leaf", "tomato__fruit", "apricot__fruit", "strawberry__fruit")
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def enrich_summary_manifest_sha256(payload: dict[str, Any], *, repo_root: Path) -> dict[str, Any]:
@@ -33,7 +26,7 @@ def enrich_summary_manifest_sha256(payload: dict[str, Any], *, repo_root: Path) 
     except ValueError:
         return payload
     if manifest_path.is_file():
-        payload["manifest_sha256"] = _sha256_file(manifest_path)
+        payload["manifest_sha256"] = sha256_file(manifest_path)
         payload["manifest_sha256_source"] = "local_manifest_enriched"
     return payload
 

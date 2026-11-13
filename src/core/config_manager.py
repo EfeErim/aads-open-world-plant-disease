@@ -29,15 +29,16 @@ def _read_json(path: Path) -> Dict[str, Any]:
     return read_json_dict(path)
 
 
-def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    return deep_merge(base, override)
+# The repository's own config/ directory. Used when no config_dir is given, so the CLI and library calls work
+# from any working directory; an explicit config_dir keeps its usual meaning (relative paths resolve from cwd).
+DEFAULT_CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 
 
 class ConfigurationManager:
     """Load `config/base.json` and optionally merge `config/<environment>.json`."""
 
-    def __init__(self, config_dir: str = "config", environment: Optional[str] = None) -> None:
-        self.config_dir = Path(config_dir)
+    def __init__(self, config_dir: str | Path | None = None, environment: Optional[str] = None) -> None:
+        self.config_dir = DEFAULT_CONFIG_DIR if config_dir is None else Path(config_dir)
         self._environment = environment
         self._base_config: Optional[Dict[str, Any]] = None
         self._merged_config: Optional[Dict[str, Any]] = None
@@ -92,7 +93,7 @@ class ConfigurationManager:
             return copy.deepcopy(self._merged_config)
         merged = self.load_base_config()
         if self._environment:
-            merged = _deep_merge(merged, self.get_environment_config(self._environment))
+            merged = deep_merge(merged, self.get_environment_config(self._environment))
         self._normalize_training_surface(merged)
         merged[CONFIG_SCHEMA_VERSION_KEY] = CURRENT_CONFIG_SCHEMA_VERSION
         assert_no_prohibited_4bit_flags(merged)
@@ -161,8 +162,8 @@ _CONFIG_LOCK = RLock()
 _CONFIG_CACHE: Dict[tuple[str, Optional[str]], ConfigurationManager] = {}
 
 
-def _get_manager(config_dir: str = "config", environment: Optional[str] = None) -> ConfigurationManager:
-    key = (str(Path(config_dir)), environment)
+def _get_manager(config_dir: str | Path | None = None, environment: Optional[str] = None) -> ConfigurationManager:
+    key = (str(DEFAULT_CONFIG_DIR if config_dir is None else Path(config_dir)), environment)
     with _CONFIG_LOCK:
         manager = _CONFIG_CACHE.get(key)
         if manager is None:
@@ -171,9 +172,9 @@ def _get_manager(config_dir: str = "config", environment: Optional[str] = None) 
         return manager
 
 
-def get_config(environment: Optional[str] = None, config_dir: str = "config") -> Dict[str, Any]:
+def get_config(environment: Optional[str] = None, config_dir: str | Path | None = None) -> Dict[str, Any]:
     return _get_manager(config_dir=config_dir, environment=environment).load_all_configs()
 
 
-def reload_configuration(environment: Optional[str] = None, config_dir: str = "config") -> Dict[str, Any]:
+def reload_configuration(environment: Optional[str] = None, config_dir: str | Path | None = None) -> Dict[str, Any]:
     return _get_manager(config_dir=config_dir, environment=environment).reload_config()

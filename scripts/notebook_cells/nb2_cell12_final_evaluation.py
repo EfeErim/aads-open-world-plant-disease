@@ -8,9 +8,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
         merge_training_summary_fields,
         notebook_artifact_root,
         persist_behavioral_acceptance_artifact,
-        persist_behavioral_dev_report_artifact,
         persist_production_readiness_artifact,
-        persist_training_run_context_artifact,
         persist_validation_artifacts,
         print_notebook_optimization_campaign_status,
         resolve_notebook_optimization_campaign,
@@ -18,6 +16,10 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     )
     from src.adapter.independent_crop_adapter import IndependentCropAdapter
     from src.colab.training_helpers import select_notebook_ood_policy
+    from src.colab.training_session import (
+        persist_behavioral_dev_report_artifact,
+        persist_training_run_context_artifact,
+    )
     from src.training.services.ood_benchmark import run_leave_one_class_out_benchmark
     from src.training.services.ood_score_selection import apply_primary_score_method_to_evaluation
     from src.training.validation import evaluate_model_with_artifact_metrics

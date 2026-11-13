@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import shutil
@@ -13,6 +12,7 @@ from typing import Any
 
 from scripts.notebook_helpers.nb8_m2_reporting import write_m2_failure_summary
 from src.colab.repo_bootstrap import push_repo_paths_to_github
+from src.shared.hash_utils import sha256_file
 
 
 def m2_subprocess_env(settings: dict[str, Any]) -> dict[str, str]:
@@ -23,14 +23,6 @@ def m2_subprocess_env(settings: dict[str, Any]) -> dict[str, str]:
         if not existing:
             env["PYTORCH_CUDA_ALLOC_CONF"] = pytorch_cuda_alloc_conf
     return env
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def expected_calibration_constraints(settings: dict[str, Any]) -> dict[str, Any]:

@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 _EXPORTS = {
-    "ContinualSDLoRAConfig": ("src.training.continual_sd_lora", "ContinualSDLoRAConfig"),
+    "ContinualSDLoRAConfig": ("src.training.config", "ContinualSDLoRAConfig"),
     "ContinualSDLoRATrainer": ("src.training.continual_sd_lora", "ContinualSDLoRATrainer"),
     "ContinualTrainingSession": ("src.training.session", "ContinualTrainingSession"),
     "TrainBatchStats": ("src.training.types", "TrainBatchStats"),

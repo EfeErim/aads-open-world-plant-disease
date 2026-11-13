@@ -175,7 +175,7 @@ def test_batch_training_notebook_contract() -> None:
         '"NUM_WORKERS": 2',
         '"PREFETCH": 2',
         '"USE_CACHE": False',
-        "from src.colab.training_helpers import cleanup_notebook_training_state",
+        "from src.colab.training_session import cleanup_notebook_training_state",
         "from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker",
         "from src.pipeline.adapter_release import resolve_token",
         'if not str(resolve_token(write=False) or "").strip():',

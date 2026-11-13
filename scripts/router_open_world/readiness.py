@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import math
 from pathlib import Path
 from typing import Any
+
+from src.shared.hash_utils import sha256_file
 
 SUPPORTED_TARGETS = {
     "apricot__fruit",
@@ -100,14 +101,6 @@ def _zero_failure_upper_bound(sample_count: int, *, confidence: float = 0.95) ->
     return 1.0 - math.pow(alpha, 1.0 / sample_count)
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _resolve_manifest_source(source: str, *, repo_root: Path) -> Path | None:
     value = source.strip()
     for prefix in ("staged_external:", "local_test_pool:"):
@@ -162,7 +155,7 @@ def validate_open_world_manifest(
 
         source_path = _resolve_manifest_source(str(row.get("source") or ""), repo_root=repo_root)
         if source_path and source_path.is_file():
-            digest = _sha256_file(source_path)
+            digest = sha256_file(source_path)
             prior = local_hashes.get(digest)
             if prior:
                 duplicate_hashes.append({"sha256": digest, "first_image_id": prior, "image_id": image_id})
@@ -178,7 +171,7 @@ def validate_open_world_manifest(
             root_path = root if root.is_absolute() else repo_root / root
             for path in _iter_image_files(root_path):
                 try:
-                    digest = _sha256_file(path)
+                    digest = sha256_file(path)
                 except OSError:
                     continue
                 if digest in manifest_hashes:

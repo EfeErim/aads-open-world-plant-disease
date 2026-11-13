@@ -29,13 +29,15 @@ from src.training.services.runtime import resolve_runtime_device, resolve_sessio
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+    from src.training.config import ContinualSDLoRAConfig
+    from src.training.continual_sd_lora import ContinualSDLoRATrainer
     from src.training.session import ContinualTrainingSession
     from src.training.types import TrainingCheckpointPayload
 
 
 def _trainer_types() -> tuple[type["ContinualSDLoRAConfig"], type["ContinualSDLoRATrainer"]]:
-    from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+    from src.training.config import ContinualSDLoRAConfig
+    from src.training.continual_sd_lora import ContinualSDLoRATrainer
 
     return ContinualSDLoRAConfig, ContinualSDLoRATrainer
 
@@ -104,10 +106,6 @@ class IndependentCropAdapter:
         config_cls, trainer_cls = _trainer_types()
         trainer_config = config_cls.from_training_config(continual_dict)
         return trainer_cls(trainer_config)
-
-    @staticmethod
-    def _resolve_asset_dir(checkpoint_dir: str | Path) -> Path:
-        return resolve_adapter_bundle_dir(checkpoint_dir)
 
     @property
     def trainer(self) -> "ContinualSDLoRATrainer":
@@ -337,7 +335,7 @@ class IndependentCropAdapter:
 
     def load_adapter(self, checkpoint_dir: str) -> None:
         """Load adapter assets and metadata from disk."""
-        asset_dir = self._resolve_asset_dir(checkpoint_dir)
+        asset_dir = resolve_adapter_bundle_dir(checkpoint_dir)
 
         meta_path = asset_dir / "adapter_meta.json"
         if not meta_path.exists():

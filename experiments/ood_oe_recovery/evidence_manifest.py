@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping, Sequence
 
 from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from src.shared.hash_utils import sha256_file
 
 EVIDENCE_ROLES = {"id_train", "id_val", "id_test", "oe_train", "ood_dev", "ood_test"}
 REQUIRED_OOD_TYPES = (
@@ -37,14 +37,6 @@ class EvidenceIssue:
     message: str
     target: str = ""
     row: int = 0
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def read_manifest(path: Path, *, require_v2: bool = True) -> list[dict[str, str]]:

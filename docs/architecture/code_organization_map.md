@@ -41,7 +41,13 @@ Every Python file should fit one primary category:
 
 Dataset release ownership is split by lifecycle without duplicating transport code: `src/data/dataset_release.py`
 owns local snapshot/audit/quarantine/shard-plan contracts, `src/data/dataset_release_github.py` owns the remote immutable
-release lifecycle, and both reuse the GitHub REST/authentication client in `src/pipeline/adapter_release.py`.
+release lifecycle; both it and the adapter release in `src/pipeline/adapter_release.py` use the GitHub
+REST client and token lookup in `src/shared/github_releases.py`.
+
+The trainer owns its own state. `ContinualSDLoRATrainer` (`src/training/continual_sd_lora.py`) runs the
+optimizer cycle, class expansion and prediction itself; the helpers it calls in `src/training/services/runtime.py`
+and `prediction_payloads.py` take explicit inputs and return values instead of a whole trainer. Its validated
+configuration lives in `src/training/config.py`.
 
 Large notebook/research surfaces are split by responsibility:
 

@@ -507,7 +507,7 @@ def estimate_split_counts(total: int) -> tuple[int, int, int]:
     return train_count, val_count, test_count
 
 
-def _fingerprint_paths(paths: Iterable[Path], *, root: Path) -> str:
+def fingerprint_paths(paths: Iterable[Path], *, root: Path) -> str:
     digest = hashlib.sha1()
     for path in paths:
         digest.update(path.relative_to(root).as_posix().encode("utf-8"))

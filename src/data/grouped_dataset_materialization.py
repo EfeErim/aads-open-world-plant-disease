@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
-from src.data.dataset_layout import IMAGE_EXTENSIONS, normalize_class_name
+from src.data.dataset_layout import IMAGE_EXTENSIONS, fingerprint_paths, normalize_class_name
 from src.guided_artifacts import refresh_prep_guided_artifacts
 from src.shared.json_utils import read_json, write_json
 
@@ -23,14 +22,6 @@ def build_prepared_dataset_key(crop_name: str, part_name: str = "unspecified") -
     if not part_key or part_key == "unspecified":
         return crop_key
     return f"{crop_key}__{part_key}"
-
-
-def _fingerprint_paths(paths: Iterable[Path], *, root: Path) -> str:
-    digest = hashlib.sha1()
-    for path in paths:
-        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-    return digest.hexdigest()
 
 
 def materialize_grouped_runtime_dataset(
@@ -73,7 +64,7 @@ def materialize_grouped_runtime_dataset(
         ood_manifest = {
             "source_root": str(resolved_ood_root.resolve()),
             "image_count": len(ood_images),
-            "image_fingerprint": _fingerprint_paths(ood_images, root=resolved_ood_root),
+            "image_fingerprint": fingerprint_paths(ood_images, root=resolved_ood_root),
         }
     if resolved_oe_root is not None:
         if not resolved_oe_root.exists():
@@ -91,7 +82,7 @@ def materialize_grouped_runtime_dataset(
         oe_manifest = {
             "source_root": str(resolved_oe_root.resolve()),
             "image_count": len(oe_images),
-            "image_fingerprint": _fingerprint_paths(oe_images, root=resolved_oe_root),
+            "image_fingerprint": fingerprint_paths(oe_images, root=resolved_oe_root),
         }
     if crop_root.exists():
         shutil.rmtree(crop_root)

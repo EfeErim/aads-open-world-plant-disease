@@ -4,7 +4,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+from src.training.config import ContinualSDLoRAConfig
+from src.training.continual_sd_lora import ContinualSDLoRATrainer
 from src.training.validation import (
     evaluate_model,
     evaluate_model_with_artifact_metrics,

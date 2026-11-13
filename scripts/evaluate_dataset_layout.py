@@ -9,6 +9,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List
 
+from src.data.dataset_layout import estimate_split_counts
+
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 SPLIT_NAMES = ("train", "val", "test")
 
@@ -24,31 +26,6 @@ class ClassSummary:
 
 def _is_image(path: Path) -> bool:
     return path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
-
-
-def _estimate_split_counts(total: int) -> tuple[int, int, int]:
-    """Estimate an upper bound assuming all images survive grouped prep as independent families."""
-    if total <= 0:
-        return 0, 0, 0
-    if total < 3:
-        return total, 0, 0
-
-    train_count = max(1, int(total * 0.8))
-    val_count = max(1, int(total * 0.1))
-
-    if train_count + val_count >= total:
-        val_count = 1
-        train_count = max(1, total - 2)
-
-    test_count = total - train_count - val_count
-    if test_count < 1:
-        test_count = 1
-        if train_count > 1:
-            train_count -= 1
-        elif val_count > 0:
-            val_count -= 1
-
-    return train_count, val_count, test_count
 
 
 def evaluate_layout(
@@ -114,7 +91,7 @@ def evaluate_layout(
                     f"Class '{class_dir.name}' has only {image_count} image(s); "
                     f"minimum requested is {min_images_per_class}."
                 )
-            train_n, val_n, test_n = _estimate_split_counts(image_count)
+            train_n, val_n, test_n = estimate_split_counts(image_count)
 
         class_summaries.append(
             ClassSummary(

@@ -26,7 +26,7 @@ from src.data.dataset_release import (
     validate_release_candidate,
     write_json,
 )
-from src.pipeline.adapter_release import (
+from src.shared.github_releases import (
     COMMIT_SHA_PATTERN,
     READ_TOKEN_NAMES,
     REPOSITORY_ENV,

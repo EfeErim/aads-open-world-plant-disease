@@ -36,7 +36,9 @@ At a high level, AADS has four layers:
 
 The configuration path is intentionally simple.
 
-1. `src/core/config_manager.py` loads `config/base.json`.
+1. `src/core/config_manager.py` loads `config/base.json`. Without an explicit `config_dir` it reads the repository's
+   own `config/` directory, so it works from any working directory; an explicit relative `config_dir` still resolves
+   from the current directory.
 2. If an environment is requested, such as `colab`, it deep-merges `config/colab.json` on top.
 3. `src/core/config_migrations.py` upgrades each config file through the declared `config_schema_version`.
 4. `src/training/services/config_surface.py` normalizes the public training surface under `training.continual`.
@@ -71,10 +73,11 @@ src/workflows/training.py -> TrainingWorkflow.run(...)
 3. `src/data/loaders.py` creates the training loaders from the runtime dataset. The shipped `training.continual.data.sampler` default is `"auto"`, which keeps shuffle for roughly balanced continual splits and promotes the train loader to weighted sampling when the largest class is at least 1.5x the smallest non-zero class.
 4. `src/training/services/class_balance.py` computes the training-side class-support policy and effective-number class-balanced weights. When all supported classes resolve to at least `100` images and at least one class is in the `100-200` band, the trainer applies Cui et al.-style effective-number weighting to the training classifier loss across all supported classes while leaving validation/test loss unweighted for artifact comparability. If the train loader already resolved to weighted sampling, effective-number loss weighting is disabled by default unless `training.continual.class_balance.allow_sampler_and_loss_rebalance=true`. Few-shot research mode can lower the hard floor for ablation runs while recording the production guardrail bypass in artifacts.
 5. `src/adapter/independent_crop_adapter.py` exposes the public adapter lifecycle.
-5. `src/training/continual_sd_lora.py` owns the actual training engine:
+5. `src/training/continual_sd_lora.py` owns the actual training engine (its configuration is
+   `ContinualSDLoRAConfig` in `src/training/config.py`):
    - backbone loading
    - LoRA wrapping
-   - optimization
+   - optimization: gradient accumulation, clipping, optimizer and LR-scheduler steps
    - prediction
    - OOD calibration
 6. `src/training/session.py` runs epochs and emits observer events for progress, telemetry, and checkpoints.

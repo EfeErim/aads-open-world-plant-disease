@@ -110,7 +110,8 @@ def test_private_repo_bootstrap_security_contract() -> None:
 
 
 def test_continual_trainer_imports() -> None:
-    from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+    from src.training.config import ContinualSDLoRAConfig
+    from src.training.continual_sd_lora import ContinualSDLoRATrainer
     from src.training.session import ContinualTrainingSession
     from src.training.validation import evaluate_model
     from src.workflows.training import TrainingWorkflow

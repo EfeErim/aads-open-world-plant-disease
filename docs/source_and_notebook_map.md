@@ -12,15 +12,15 @@ used by the developer CLI and the test suite.
 
 ## Application source
 
-The 130 files under [`src/`](../src/) are grouped as follows.
+The 132 files under [`src/`](../src/) are grouped as follows.
 
 | Package | Files | Responsibility |
 |---|---:|---|
-| [`src/training/`](../src/training/) | 25 | continual SD-LoRA training, validation, persistence and reporting |
+| [`src/training/`](../src/training/) | 26 | continual SD-LoRA training, validation, persistence and reporting |
 | [`src/router/`](../src/router/) | 26 | crop/part routing, taxonomy, prototypes, calibration and abstention |
 | [`src/data/`](../src/data/) | 18 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
 | [`src/colab/`](../src/colab/) | 17 | Colab bootstrap, widgets, telemetry, checkpoint mirroring and notebook run helpers |
-| [`src/shared/`](../src/shared/) | 10 | typed contracts and shared serialization/path utilities |
+| [`src/shared/`](../src/shared/) | 11 | typed contracts, serialization/path/hash utilities and the GitHub Releases client |
 | [`src/ood/`](../src/ood/) | 7 | OOD scoring, conformal prediction and behavioral acceptance |
 | [`src/workflows/`](../src/workflows/) | 7 | training and inference entry points and their run stages |
 | [`src/pipeline/`](../src/pipeline/) | 6 | adapter discovery, release loading, input guard and inference payloads |

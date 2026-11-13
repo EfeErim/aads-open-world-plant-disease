@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 
 from src.ood.continual_ood import ContinualOODDetector
-from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+from src.training.config import ContinualSDLoRAConfig
+from src.training.continual_sd_lora import ContinualSDLoRATrainer
 
 
 class _IdentityModule(nn.Module):
