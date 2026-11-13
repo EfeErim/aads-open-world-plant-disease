@@ -192,10 +192,6 @@ class ContinualOODDetector:
         resolved_method = normalize_primary_score_method(method_name)
         self.score_threshold_overrides[resolved_method] = float(threshold)
 
-    @staticmethod
-    def _safe_std(value: torch.Tensor) -> torch.Tensor:
-        return safe_std(value)
-
     def _energy(self, logits: torch.Tensor) -> torch.Tensor:
         return energy_from_logits(logits, temperature=self.energy_temperature)
 
@@ -669,10 +665,10 @@ class ContinualOODDetector:
 
             distances = mahalanobis_distance(class_features, mean, var)
             mahalanobis_mu = float(distances.mean().item())
-            mahalanobis_sigma = float(self._safe_std(distances.std(unbiased=False)).item())
+            mahalanobis_sigma = float(safe_std(distances.std(unbiased=False)).item())
 
             energy_mu = float(class_energy.mean().item())
-            energy_sigma = float(self._safe_std(class_energy.std(unbiased=False)).item())
+            energy_sigma = float(safe_std(class_energy.std(unbiased=False)).item())
 
             ensemble_scores = ensemble_z_score(
                 distances,
@@ -693,7 +689,7 @@ class ContinualOODDetector:
                 exclude_self=True,
             )
             knn_distance_mu = float(knn_distances.mean().item())
-            knn_distance_sigma = float(self._safe_std(knn_distances.std(unbiased=False)).item())
+            knn_distance_sigma = float(safe_std(knn_distances.std(unbiased=False)).item())
             knn_threshold_value = distribution_threshold(knn_distances, self.threshold_factor)
 
             self.class_stats[int(class_id)] = ClassCalibration(

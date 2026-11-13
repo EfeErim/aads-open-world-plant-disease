@@ -140,10 +140,6 @@ class RouterAdapterRuntime:
             adapter_dir_override=Path(adapter_dir) if adapter_dir is not None else None,
         )
 
-    @staticmethod
-    def _adapter_meta_state(adapter_dir: Path) -> tuple[Path, str, int, int]:
-        return adapter_meta_state(adapter_dir)
-
     def load_adapter(
         self,
         crop_name: str,
@@ -158,7 +154,7 @@ class RouterAdapterRuntime:
             resolved_part_name,
             adapter_meta_mtime_ns,
             adapter_meta_size,
-        ) = self._adapter_meta_state(resolved_dir)
+        ) = adapter_meta_state(resolved_dir)
         cache_key = self._adapter_cache_key(crop_key, part_key or resolved_part_name)
         cached = self.adapters.get(cache_key)
         if cached is not None:

@@ -65,7 +65,7 @@ from src.colab.checkpointing import TrainingCheckpointManager
 from src.colab.live_telemetry import ColabLiveTelemetry
 from src.core.config_manager import ConfigurationManager
 from src.shared.adapter_paths import build_adapter_bundle_root
-from src.colab.training_helpers import build_notebook_run_dir, build_notebook_run_id
+from src.colab.training_session import build_notebook_run_dir, build_notebook_run_id
 
 # Install Colab requirements if running in Colab
 IN_COLAB = running_in_colab()

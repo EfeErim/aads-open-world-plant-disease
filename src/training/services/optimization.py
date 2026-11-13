@@ -47,10 +47,6 @@ def _coerce_float(value: Any) -> Optional[float]:
         return None
 
 
-def _copy_json(value: Any) -> Any:
-    return copy.deepcopy(value)
-
-
 def _objective_direction(
     trial: Mapping[str, Any],
     objective_name: str,
@@ -147,7 +143,7 @@ class SearchDimension:
         if self.kind == "categorical":
             if not self.values:
                 raise ValueError(f"Search dimension {self.name} is missing categorical values.")
-            return _copy_json(rng.choice(self.values))
+            return copy.deepcopy(rng.choice(self.values))
         raise ValueError(f"Unsupported search dimension type: {self.kind}")
 
     def encode(self, value: Any) -> Optional[List[float]]:
@@ -210,7 +206,7 @@ def resolve_search_space(
         if not name or not kind:
             raise ValueError("Each search-space parameter requires 'name' and 'type'.")
         if kind == "categorical":
-            values = tuple(_copy_json(list(raw_dimension.get("values", []))))
+            values = tuple(copy.deepcopy(list(raw_dimension.get("values", []))))
             if not values:
                 raise ValueError(f"Categorical search-space parameter {name} must define values.")
             dimensions.append(SearchDimension(name=name, kind=kind, values=values))
@@ -237,7 +233,7 @@ def build_search_space_payload(dimensions: Sequence[SearchDimension]) -> JsonDic
     for dimension in dimensions:
         payload: JsonDict = {"name": dimension.name, "type": dimension.kind}
         if dimension.kind == "categorical":
-            payload["values"] = [_copy_json(value) for value in dimension.values]
+            payload["values"] = [copy.deepcopy(value) for value in dimension.values]
         else:
             payload["low"] = dimension.low
             payload["high"] = dimension.high
@@ -338,7 +334,7 @@ def build_training_config_override(flat_parameters: Mapping[str, Any]) -> JsonDi
                 child = {}
                 current[part] = child
             current = child
-        current[path[-1]] = _copy_json(raw_value)
+        current[path[-1]] = copy.deepcopy(raw_value)
     return override
 
 
@@ -435,9 +431,9 @@ def build_pareto_frontiers(
                     "run_label": trial.get("run_label"),
                     "created_at": trial.get("created_at"),
                     "record_quality": trial.get("record_quality"),
-                    "status": _copy_json(trial.get("status", {})),
-                    "objectives": _copy_json(trial.get("objectives", {})),
-                    "parameters": _copy_json(trial.get("parameters", {})),
+                    "status": copy.deepcopy(trial.get("status", {})),
+                    "objectives": copy.deepcopy(trial.get("objectives", {})),
+                    "parameters": copy.deepcopy(trial.get("parameters", {})),
                     "artifact_root": trial.get("registry_source", {}).get("artifact_root"),
                 }
             )
@@ -491,12 +487,12 @@ def _encode_parameters(parameters: Mapping[str, Any], dimensions: Sequence[Searc
 
 
 def _parameter_signature(parameters: Mapping[str, Any]) -> str:
-    normalized = {str(key): _copy_json(value) for key, value in sorted(parameters.items(), key=lambda item: item[0])}
+    normalized = {str(key): copy.deepcopy(value) for key, value in sorted(parameters.items(), key=lambda item: item[0])}
     return json.dumps(normalized, ensure_ascii=False, sort_keys=True)
 
 
 def _search_space_signature(parameters: Mapping[str, Any], dimensions: Sequence[SearchDimension]) -> str:
-    scoped = {dimension.name: _copy_json(parameters.get(dimension.name)) for dimension in dimensions}
+    scoped = {dimension.name: copy.deepcopy(parameters.get(dimension.name)) for dimension in dimensions}
     return _parameter_signature(scoped)
 
 
@@ -596,7 +592,7 @@ def _heuristic_dimension_value(dimension: SearchDimension, unit_value: float) ->
         if not dimension.values:
             raise ValueError(f"Search dimension {dimension.name} is missing categorical values.")
         index = min(len(dimension.values) - 1, int(math.floor(unit * len(dimension.values))))
-        return _copy_json(dimension.values[index])
+        return copy.deepcopy(dimension.values[index])
     raise ValueError(f"Unsupported search dimension type: {dimension.kind}")
 
 
@@ -615,7 +611,7 @@ def _generate_anchor_neighbors(
         value = anchor_parameters.get(dimension.name)
         if dimension.encode(value) is None:
             value = _heuristic_dimension_value(dimension, 0.5)
-        anchor[dimension.name] = _copy_json(value)
+        anchor[dimension.name] = copy.deepcopy(value)
     seen = set(observed_signatures)
     seen.add(_parameter_signature(anchor))
     generated: List[JsonDict] = []
@@ -687,7 +683,7 @@ def _generate_anchor_neighbors(
                 if value == current_value:
                     continue
                 candidate = dict(anchor)
-                candidate[name] = _copy_json(value)
+                candidate[name] = copy.deepcopy(value)
                 _try_add(candidate)
 
     return generated[:max_candidates]
@@ -697,7 +693,7 @@ def _build_default_anchor_parameters(dimensions: Sequence[SearchDimension]) -> J
     anchor: JsonDict = {}
     for dimension in dimensions:
         if dimension.kind == "categorical" and dimension.values:
-            anchor[dimension.name] = _copy_json(dimension.values[0])
+            anchor[dimension.name] = copy.deepcopy(dimension.values[0])
             continue
         anchor[dimension.name] = _heuristic_dimension_value(dimension, 0.5)
     return anchor

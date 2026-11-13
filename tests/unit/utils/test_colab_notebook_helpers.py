@@ -6,12 +6,8 @@ from types import SimpleNamespace
 
 from src.colab.checkpointing import TrainingCheckpointManager
 from src.colab.training_helpers import (
-    NotebookTrainingStatusPrinter,
     apply_notebook_optimization_proposal,
     build_notebook_completion_report,
-    build_notebook_run_dir,
-    build_notebook_run_id,
-    cleanup_notebook_training_state,
     complete_notebook_training_run,
     ensure_notebook_checkpoint_manager,
     finalize_notebook_optimization_campaign,
@@ -22,8 +18,14 @@ from src.colab.training_helpers import (
     persist_validation_artifacts,
     prepare_notebook_access_and_dataset,
     resolve_notebook_optimization_campaign,
-    run_notebook_training_session,
     summarize_notebook_optimization_campaign,
+)
+from src.colab.training_session import (
+    NotebookTrainingStatusPrinter,
+    build_notebook_run_dir,
+    build_notebook_run_id,
+    cleanup_notebook_training_state,
+    run_notebook_training_session,
 )
 from src.training.types import EvaluationArtifactsPayload, ValidationReport
 
