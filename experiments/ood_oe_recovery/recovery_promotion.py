@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 from src.ood.behavioral_acceptance import behavioral_acceptance_pass
-from src.ood.recovery import TARGET_ADAPTERS
 
 PROMOTION_SCHEMA = "v2_adapter_behavioral_promotion_report"
 

@@ -15,7 +15,7 @@ from scripts.notebook_contracts.support import (
 
 
 def test_roi_ablation_notebook_contract() -> None:
-    from scripts.colab_roi_ablation import ABLATION_CONFIGS
+    from experiments.roi_ablation.runtime import ABLATION_CONFIGS
 
     expected = {
         "16_ablation_dual_view_inference.ipynb": "dual_view_inference",

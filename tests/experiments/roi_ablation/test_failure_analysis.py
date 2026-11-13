@@ -1,4 +1,4 @@
-from src.pipeline.notebook16_failure_analysis import (
+from experiments.roi_ablation.failure_analysis import (
     build_notebook16_failure_analysis,
     build_target_missed_wrong_audit,
     render_notebook16_failure_markdown,

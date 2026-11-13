@@ -41,7 +41,7 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def iter_python_files(root: Path) -> Iterable[Path]:
-    for base in ("src", "scripts", "tests"):
+    for base in ("src", "scripts", "tests", "experiments"):
         base_path = root / base
         if not base_path.exists():
             continue
@@ -87,6 +87,8 @@ def categorize_path(path: Path, root: Path) -> str:
         return "validation"
     if rel.startswith("scripts/"):
         return "cli"
+    if rel.startswith("experiments/"):
+        return "experiment"
     if rel.startswith("tests/"):
         return "test"
     if rel.startswith("colab_notebooks/"):
@@ -168,7 +170,7 @@ def _audit_import_boundaries(path: Path, root: Path) -> list[Finding]:
     imports = set(_imported_top_level_modules(path))
     findings: list[Finding] = []
     if rel.startswith("src/"):
-        forbidden = sorted(imports.intersection({"scripts", "tests", "colab_notebooks"}))
+        forbidden = sorted(imports.intersection({"scripts", "tests", "colab_notebooks", "experiments"}))
         for module in forbidden:
             findings.append(
                 Finding(

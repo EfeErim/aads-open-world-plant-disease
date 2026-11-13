@@ -17,45 +17,45 @@ from urllib.parse import urlsplit, urlunsplit
 
 from PIL import Image
 
-from src.core.config_manager import get_config
-from src.data.dataset_release_runtime import DEFAULT_MATERIALIZED_DATASET_ROOT
-from src.pipeline.colab_roi_router import (
+from experiments.roi_ablation.evidence_analysis import analyze_dual_view_evidence_rows
+from experiments.roi_ablation.roi_router import (
     DEFAULT_GROUNDING_DINO_BOX_THRESHOLD as DEFAULT_GROUNDING_DINO_BOX_THRESHOLD,
 )
-from src.pipeline.colab_roi_router import (
+from experiments.roi_ablation.roi_router import (
     DEFAULT_GROUNDING_DINO_MAX_CANDIDATES as DEFAULT_GROUNDING_DINO_MAX_CANDIDATES,
 )
-from src.pipeline.colab_roi_router import DEFAULT_GROUNDING_DINO_MODEL_ID as DEFAULT_GROUNDING_DINO_MODEL_ID
-from src.pipeline.colab_roi_router import DEFAULT_GROUNDING_DINO_PROMPTS as DEFAULT_GROUNDING_DINO_PROMPTS
-from src.pipeline.colab_roi_router import (
+from experiments.roi_ablation.roi_router import DEFAULT_GROUNDING_DINO_MODEL_ID as DEFAULT_GROUNDING_DINO_MODEL_ID
+from experiments.roi_ablation.roi_router import DEFAULT_GROUNDING_DINO_PROMPTS as DEFAULT_GROUNDING_DINO_PROMPTS
+from experiments.roi_ablation.roi_router import (
     DEFAULT_GROUNDING_DINO_TEXT_THRESHOLD as DEFAULT_GROUNDING_DINO_TEXT_THRESHOLD,
 )
-from src.pipeline.colab_roi_router import DEFAULT_TARGET_ROI_BACKEND as DEFAULT_TARGET_ROI_BACKEND
-from src.pipeline.colab_roi_router import _batch_input_ids as _batch_input_ids
-from src.pipeline.colab_roi_router import _box_to_float_list as _box_to_float_list
-from src.pipeline.colab_roi_router import _detection_confidence as _detection_confidence
-from src.pipeline.colab_roi_router import _detection_sort_key as _detection_sort_key
-from src.pipeline.colab_roi_router import _emit_status as _emit_status
-from src.pipeline.colab_roi_router import _format_grounding_prompt as _format_grounding_prompt
-from src.pipeline.colab_roi_router import _grounding_dino_cache_key as _grounding_dino_cache_key
-from src.pipeline.colab_roi_router import _load_grounding_dino_components as _load_grounding_dino_components
-from src.pipeline.colab_roi_router import _normalize_grounding_prompts as _normalize_grounding_prompts
-from src.pipeline.colab_roi_router import _normalize_text as _normalize_text
-from src.pipeline.colab_roi_router import _post_process_grounding_dino as _post_process_grounding_dino
-from src.pipeline.colab_roi_router import _primary_detection as _primary_detection
-from src.pipeline.colab_roi_router import _router_detections as _router_detections
-from src.pipeline.colab_roi_router import _router_payload as _router_payload
-from src.pipeline.colab_roi_router import _score_to_float as _score_to_float
-from src.pipeline.colab_roi_router import _to_device_batch as _to_device_batch
-from src.pipeline.colab_roi_router import build_grounding_dino_prompts as build_grounding_dino_prompts
-from src.pipeline.colab_roi_router import clear_grounding_dino_cache as clear_grounding_dino_cache
-from src.pipeline.colab_roi_router import resolve_router_handoff as resolve_router_handoff
-from src.pipeline.colab_roi_router import resolve_target_router_handoff as resolve_target_router_handoff
-from src.pipeline.colab_roi_router import (
+from experiments.roi_ablation.roi_router import DEFAULT_TARGET_ROI_BACKEND as DEFAULT_TARGET_ROI_BACKEND
+from experiments.roi_ablation.roi_router import _batch_input_ids as _batch_input_ids
+from experiments.roi_ablation.roi_router import _box_to_float_list as _box_to_float_list
+from experiments.roi_ablation.roi_router import _detection_confidence as _detection_confidence
+from experiments.roi_ablation.roi_router import _detection_sort_key as _detection_sort_key
+from experiments.roi_ablation.roi_router import _emit_status as _emit_status
+from experiments.roi_ablation.roi_router import _format_grounding_prompt as _format_grounding_prompt
+from experiments.roi_ablation.roi_router import _grounding_dino_cache_key as _grounding_dino_cache_key
+from experiments.roi_ablation.roi_router import _load_grounding_dino_components as _load_grounding_dino_components
+from experiments.roi_ablation.roi_router import _normalize_grounding_prompts as _normalize_grounding_prompts
+from experiments.roi_ablation.roi_router import _normalize_text as _normalize_text
+from experiments.roi_ablation.roi_router import _post_process_grounding_dino as _post_process_grounding_dino
+from experiments.roi_ablation.roi_router import _primary_detection as _primary_detection
+from experiments.roi_ablation.roi_router import _router_detections as _router_detections
+from experiments.roi_ablation.roi_router import _router_payload as _router_payload
+from experiments.roi_ablation.roi_router import _score_to_float as _score_to_float
+from experiments.roi_ablation.roi_router import _to_device_batch as _to_device_batch
+from experiments.roi_ablation.roi_router import build_grounding_dino_prompts as build_grounding_dino_prompts
+from experiments.roi_ablation.roi_router import clear_grounding_dino_cache as clear_grounding_dino_cache
+from experiments.roi_ablation.roi_router import resolve_router_handoff as resolve_router_handoff
+from experiments.roi_ablation.roi_router import resolve_target_router_handoff as resolve_target_router_handoff
+from experiments.roi_ablation.roi_router import (
     run_grounding_dino_target_detection as run_grounding_dino_target_detection,
 )
+from src.core.config_manager import get_config
+from src.data.dataset_release_runtime import DEFAULT_MATERIALIZED_DATASET_ROOT
 from src.pipeline.colab_router_adapter_inference import run_inference as run_router_inference
-from src.pipeline.roi_evidence_analysis import analyze_dual_view_evidence_rows
 from src.router.roi_helpers import bbox_area_ratio, extract_roi, sanitize_bbox
 from src.shared.json_utils import deep_merge
 from src.workflows.inference import InferenceWorkflow

@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 from src.ood.behavioral_acceptance import behavioral_acceptance_pass, behavioral_dev_report_pass
-from src.ood.recovery import TARGET_ADAPTERS
 
 CLASSIFICATION_CHECKS = ("accuracy", "balanced_accuracy", "macro_f1", "id_test_samples")
 ID_BEHAVIOR_CHECKS = (*CLASSIFICATION_CHECKS, "id_false_rejection_rate", "id_decisions_complete")

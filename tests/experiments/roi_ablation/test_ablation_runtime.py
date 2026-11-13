@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from scripts import colab_roi_ablation as roi_ablation
+from experiments.roi_ablation import runtime as roi_ablation
 
 
 class FakeWorkflow:

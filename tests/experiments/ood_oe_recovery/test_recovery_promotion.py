@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery_promotion import evaluate_candidate_promotion
 from src.ood.behavioral_acceptance import build_behavioral_acceptance
-from src.ood.recovery import TARGET_ADAPTERS
-from src.ood.recovery_promotion import evaluate_candidate_promotion
 
 
 def _acceptance(*, forced_answers: int = 0) -> dict:

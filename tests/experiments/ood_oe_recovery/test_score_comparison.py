@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.ood.recovery import TARGET_ADAPTERS
-from src.ood.score_comparison import build_score_comparison
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.score_comparison import build_score_comparison
 
 
 def _rows() -> list[dict]:

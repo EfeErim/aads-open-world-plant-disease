@@ -1,4 +1,4 @@
-from src.pipeline.roi_evidence_analysis import analyze_dual_view_evidence_rows, classify_dual_view_evidence_row
+from experiments.roi_ablation.evidence_analysis import analyze_dual_view_evidence_rows, classify_dual_view_evidence_row
 
 
 def _base_row(**overrides):

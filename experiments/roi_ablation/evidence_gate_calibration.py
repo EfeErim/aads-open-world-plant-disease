@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from src.pipeline.roi_evidence_analysis import target_key as resolve_target_key
+from experiments.roi_ablation.evidence_analysis import target_key as resolve_target_key
 
 SCHEMA_VERSION = "v1_evidence_gate_calibration"
 V2_SCHEMA_VERSION = "v2_evidence_gate_calibration"

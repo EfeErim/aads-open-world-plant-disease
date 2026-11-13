@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.stage_a import build_stage_a_report
 from src.ood.behavioral_acceptance import build_behavioral_acceptance
-from src.ood.recovery import TARGET_ADAPTERS
-from src.ood.stage_a import build_stage_a_report
 
 
 def _comparison(split: str, *, knn_fpr: float) -> dict:

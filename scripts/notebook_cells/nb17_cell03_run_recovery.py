@@ -15,10 +15,10 @@ from scripts.colab_notebook_helpers import maybe_auto_disconnect_colab_runtime
 from scripts.notebook_helpers.adapter_recommendations import get_adapter_recs
 from scripts.notebook_helpers.cell_script_runner import run_cell_script
 from src.notebook.repo_bootstrap import push_repo_paths_to_github
-from src.ood import notebook_campaign as _ood_notebook_campaign
+from experiments.ood_oe_recovery import notebook_campaign as _ood_notebook_campaign
 from src.ood.behavioral_acceptance import behavioral_acceptance_pass, behavioral_dev_report_pass
-from src.ood.notebook_campaign import experiment_gate, read_behavioral_acceptance, read_behavioral_dev_report
-from src.ood.recovery_runtime import reclaim_failed_run_payloads, require_recovery_disk_budget
+from experiments.ood_oe_recovery.notebook_campaign import experiment_gate, read_behavioral_acceptance, read_behavioral_dev_report
+from experiments.ood_oe_recovery.recovery_runtime import reclaim_failed_run_payloads, require_recovery_disk_budget
 
 
 def _run_checked(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -383,7 +383,7 @@ try:
     manifest_validation_path = audit_output / "manifest_validation.json"
     manifest_command = [
         sys.executable,
-        "scripts/validate_adapter_ood_oe_manifest.py",
+        "experiments/ood_oe_recovery/validate_manifest.py",
         str(EVIDENCE_MANIFEST_PATH),
         "--base-dir",
         str(EVIDENCE_MANIFEST_BASE_DIR),

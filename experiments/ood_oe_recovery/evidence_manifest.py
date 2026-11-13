@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping, Sequence
 
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 
 EVIDENCE_ROLES = {"id_train", "id_val", "id_test", "oe_train", "ood_dev", "ood_test"}
 REQUIRED_OOD_TYPES = (

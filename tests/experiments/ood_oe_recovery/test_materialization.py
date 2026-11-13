@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from src.data.adapter_ood_oe_materialization import build_materialization_plan, materialize_plan
-from src.data.ood_evidence_manifest import read_manifest
+from experiments.ood_oe_recovery.evidence_manifest import read_manifest
+from experiments.ood_oe_recovery.materialization import build_materialization_plan, materialize_plan
 
 
 def _write_bytes(path: Path, content: bytes) -> str:

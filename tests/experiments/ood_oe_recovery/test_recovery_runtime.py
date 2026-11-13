@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from src.ood.recovery_runtime import RecoveryDiskBudgetError, reclaim_failed_run_payloads, require_recovery_disk_budget
+from experiments.ood_oe_recovery.recovery_runtime import (
+    RecoveryDiskBudgetError,
+    reclaim_failed_run_payloads,
+    require_recovery_disk_budget,
+)
 
 
 def test_disk_budget_fails_before_training_when_free_space_is_below_floor(tmp_path: Path) -> None:

@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 
 from sklearn.metrics import roc_auc_score
 
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 from src.training.services.ood_score_selection import (
     SUPPORTED_CONCRETE_OOD_SCORE_METHODS,
     select_best_ood_score_method,

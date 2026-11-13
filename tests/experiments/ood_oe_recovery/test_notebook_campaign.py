@@ -1,7 +1,6 @@
 import json
 
-from src.ood.behavioral_acceptance import BEHAVIORAL_ACCEPTANCE_SCHEMA, build_behavioral_dev_report
-from src.ood.notebook_campaign import (
+from experiments.ood_oe_recovery.notebook_campaign import (
     build_campaign_lineage,
     build_notebook_completion_report,
     evidence_preflight_blocked_targets,
@@ -12,7 +11,8 @@ from src.ood.notebook_campaign import (
     resumable_experiment,
     write_campaign_ledger,
 )
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from src.ood.behavioral_acceptance import BEHAVIORAL_ACCEPTANCE_SCHEMA, build_behavioral_dev_report
 
 
 def _acceptance(*, classification: bool, id_behavior: bool, ood: bool, floor: bool, dev: bool = True) -> dict:

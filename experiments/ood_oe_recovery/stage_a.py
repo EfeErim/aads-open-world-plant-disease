@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS, discover_latest_readiness
 from src.ood.behavioral_acceptance import behavioral_acceptance_pass
-from src.ood.recovery import TARGET_ADAPTERS, discover_latest_readiness
 from src.training.services.ood_score_selection import select_best_ood_score_method
 
 STAGE_A_SCHEMA = "v1_adapter_ood_stage_a_report"

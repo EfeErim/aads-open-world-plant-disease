@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 
 CAMPAIGN_SCHEMA = "v4_bounded_adapter_recovery_campaign"
 MAX_ATTEMPTS_PER_TARGET = 4

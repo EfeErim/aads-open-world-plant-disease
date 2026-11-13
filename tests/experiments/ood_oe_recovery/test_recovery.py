@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS, build_recovery_report, evaluate_readiness
 from src.ood.behavioral_acceptance import build_behavioral_acceptance
-from src.ood.recovery import TARGET_ADAPTERS, build_recovery_report, evaluate_readiness
 
 
 def _write_ready(path: Path, *, target: str, status: str = "ready") -> None:

@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from src.data.ood_evidence_manifest import EVIDENCE_ROLES, MANIFEST_SCHEMA, sha256_file
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.evidence_manifest import EVIDENCE_ROLES, MANIFEST_SCHEMA, sha256_file
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 OUTPUT_FIELDS = (

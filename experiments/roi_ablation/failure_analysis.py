@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from src.pipeline.roi_evidence_analysis import target_key
+from experiments.roi_ablation.evidence_analysis import target_key
 
 SCHEMA_VERSION = "v1_notebook16_failure_analysis"
 DEFAULT_SOURCE_REPORT = Path("docs/ablation_results/dual_view_inference/multi_target_report.json")

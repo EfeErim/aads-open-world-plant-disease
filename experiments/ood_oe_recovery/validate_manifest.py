@@ -8,12 +8,12 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.ood_evidence_manifest import MANIFEST_SCHEMA, read_manifest, validate_manifest_rows  # noqa: E402
-from src.ood.recovery import TARGET_ADAPTERS  # noqa: E402
+from experiments.ood_oe_recovery.evidence_manifest import MANIFEST_SCHEMA, read_manifest, validate_manifest_rows  # noqa: E402
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

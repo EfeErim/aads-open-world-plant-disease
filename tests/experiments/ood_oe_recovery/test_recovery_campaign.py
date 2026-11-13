@@ -1,5 +1,5 @@
-from src.ood.recovery import TARGET_ADAPTERS
-from src.ood.recovery_campaign import build_recovery_campaign
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.recovery_campaign import build_recovery_campaign
 
 
 def test_campaign_builds_bounded_dev_selected_sequence() -> None:

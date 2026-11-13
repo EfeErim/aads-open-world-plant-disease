@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 
-from src.data.ood_evidence_manifest import REQUIRED_OOD_TYPES, validate_manifest_rows
-from src.ood.recovery import TARGET_ADAPTERS
+from experiments.ood_oe_recovery.evidence_manifest import REQUIRED_OOD_TYPES, validate_manifest_rows
+from experiments.ood_oe_recovery.recovery import TARGET_ADAPTERS
 
 
 def _digest(index: int) -> str:

@@ -46,8 +46,8 @@ Large notebook/research surfaces are split by responsibility while their existin
 - `src/data/grouped_runtime_dataset_preparation.py` owns the grouped split plan, while
   `grouped_dataset_embeddings.py`, `grouped_dataset_reporting.py` and `grouped_dataset_materialization.py` own the
   corresponding focused stages;
-- `src/pipeline/colab_roi_ablation_runtime.py` owns the report-only ablation flow, while
-  `src/pipeline/colab_roi_router.py` owns crop/part handoff and the Grounding DINO fallback;
+- `experiments/roi_ablation/runtime.py` owns the report-only ablation flow, while
+  `experiments/roi_ablation/roi_router.py` owns crop/part handoff and the Grounding DINO fallback;
 - `scripts/colab_simple_adapter_smoke_ui.py` owns Notebook 4 interaction state, while
   `scripts/simple_adapter_smoke_ui_view.py` owns its HTML rendering.
 

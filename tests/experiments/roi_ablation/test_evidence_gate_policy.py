@@ -1,4 +1,4 @@
-from src.pipeline.evidence_gate_policy_recommendations import (
+from experiments.roi_ablation.evidence_gate_policy import (
     build_policy_recommendations,
     render_policy_recommendations_markdown,
 )
