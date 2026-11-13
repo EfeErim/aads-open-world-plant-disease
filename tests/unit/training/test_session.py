@@ -2,7 +2,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from src.training.continual_sd_lora import ContinualSDLoRAConfig, ContinualSDLoRATrainer
+from src.training.config import ContinualSDLoRAConfig
+from src.training.continual_sd_lora import ContinualSDLoRATrainer
 from src.training.session import ContinualTrainingSession
 
 

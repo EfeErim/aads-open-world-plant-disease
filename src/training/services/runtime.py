@@ -101,33 +101,26 @@ def resolve_session_num_epochs(config: Any, explicit_num_epochs: Optional[int], 
         return int(max(1, default))
 
 
-def configure_training_plan_state(trainer: Any, *, total_batches: int, num_epochs: Optional[int] = None) -> None:
-    epochs = int(max(1, num_epochs if num_epochs is not None else trainer.config.num_epochs))
-    trainer._planned_epochs = epochs
+def plan_optimizer_steps(config: Any, *, total_batches: int, num_epochs: Optional[int] = None) -> tuple[int, int]:
+    """Return (epochs, scheduler steps) for a run: optimizer steps, or epochs when the scheduler steps per epoch."""
+    epochs = int(max(1, num_epochs if num_epochs is not None else config.num_epochs))
+    if config.scheduler_step_on == "epoch":
+        return epochs, epochs
     optimizer_steps = max(
         1,
-        epochs * math.ceil(max(1, int(total_batches)) / max(1, int(trainer.config.grad_accumulation_steps))),
+        epochs * math.ceil(max(1, int(total_batches)) / max(1, int(config.grad_accumulation_steps))),
     )
-    if trainer.config.scheduler_step_on == "epoch":
-        optimizer_steps = epochs
-    trainer._planned_scheduler_steps = int(optimizer_steps)
-    if trainer.optimizer is not None:
-        ensure_scheduler(trainer)
+    return epochs, int(optimizer_steps)
 
 
-def ensure_scheduler(trainer: Any) -> None:
-    if trainer.optimizer is None or trainer.scheduler is not None or trainer.config.scheduler_name == "none":
-        return
-
-    total_units = max(
-        1,
-        int(trainer._planned_scheduler_steps if trainer._planned_scheduler_steps > 0 else trainer._planned_epochs),
-    )
-    if trainer.config.scheduler_name == "linear":
-        warmup_steps = int(max(0, round(total_units * float(trainer.config.scheduler_warmup_ratio))))
+def build_lr_scheduler(optimizer: torch.optim.Optimizer, config: Any, *, total_units: int) -> Any:
+    """Build the configured LR scheduler over `total_units` steps; None for unknown or "none" names."""
+    total_units = max(1, int(total_units))
+    if config.scheduler_name == "linear":
+        warmup_steps = int(max(0, round(total_units * float(config.scheduler_warmup_ratio))))
         min_lr_scale = (
-            float(trainer.config.scheduler_min_lr) / float(trainer.config.learning_rate)
-            if trainer.config.learning_rate > 0
+            float(config.scheduler_min_lr) / float(config.learning_rate)
+            if config.learning_rate > 0
             else 0.0
         )
         min_lr_scale = max(0.0, min(1.0, min_lr_scale))
@@ -141,40 +134,24 @@ def ensure_scheduler(trainer: Any) -> None:
             progress = max(0.0, min(1.0, progress))
             return max(min_lr_scale, 1.0 - progress * (1.0 - min_lr_scale))
 
-        trainer.scheduler = torch.optim.lr_scheduler.LambdaLR(trainer.optimizer, lr_lambda=_lr_lambda)
-        return
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=_lr_lambda)
 
-    if trainer.config.scheduler_name == "cosine":
-        trainer.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            trainer.optimizer,
+    if config.scheduler_name == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
             T_max=total_units,
-            eta_min=float(trainer.config.scheduler_min_lr),
+            eta_min=float(config.scheduler_min_lr),
         )
-
-
-def step_scheduler(trainer: Any) -> None:
-    if trainer.scheduler is None:
-        return
-    trainer.scheduler.step()
+    return None
 
 
 def build_idx_to_class(class_to_idx: dict[str, int]) -> dict[int, str]:
     return {idx: name for name, idx in class_to_idx.items()}
 
 
-def collect_trainable_parameters(trainer: Any) -> list[torch.nn.Parameter]:
-    cached = getattr(trainer, "_trainable_params_cache", None)
-    if cached is not None:
-        return list(cached)
-
-    if trainer.adapter_model is None or trainer.classifier is None or trainer.fusion is None:
-        raise RuntimeError("initialize_engine() must be called before setup_optimizer().")
-
-    trainable_params = [p for p in trainer.adapter_model.parameters() if p.requires_grad]
-    trainable_params.extend([p for p in trainer.classifier.parameters() if p.requires_grad])
-    trainable_params.extend([p for p in trainer.fusion.parameters() if p.requires_grad])
-    trainer._trainable_params_cache = list(trainable_params)
-    return list(trainable_params)
+def trainable_parameters(*modules: torch.nn.Module) -> list[torch.nn.Parameter]:
+    """Parameters with requires_grad=True, in module order."""
+    return [param for module in modules for param in module.parameters() if param.requires_grad]
 
 
 def _optimizer_supports_kwarg(optimizer_cls: Any, keyword: str) -> bool:
@@ -225,27 +202,6 @@ def build_adamw_optimizer(
     raise RuntimeError("Unable to construct AdamW optimizer.")
 
 
-def setup_optimizer(trainer: Any) -> None:
-    if (
-        not trainer._is_initialized
-        or trainer.adapter_model is None
-        or trainer.classifier is None
-        or trainer.fusion is None
-    ):
-        raise RuntimeError("initialize_engine() must be called before setup_optimizer().")
-
-    trainer.optimizer = build_adamw_optimizer(
-        collect_trainable_parameters(trainer),
-        lr=trainer.config.learning_rate,
-        weight_decay=trainer.config.weight_decay,
-        device=trainer.device,
-    )
-    trainer.scaler = build_grad_scaler(trainer.device, trainer.config.mixed_precision)
-    ensure_scheduler(trainer)
-    trainer.optimizer.zero_grad(set_to_none=True)
-    trainer._last_grad_norm = 0.0
-
-
 def compute_grad_norm(optimizer: Optional[torch.optim.Optimizer]) -> float:
     if optimizer is None:
         return 0.0
@@ -266,13 +222,13 @@ def compute_grad_norm(optimizer: Optional[torch.optim.Optimizer]) -> float:
     return float(total_norm_sq ** 0.5)
 
 
-def clip_gradients(trainer: Any) -> None:
-    if trainer.optimizer is None or trainer.config.max_grad_norm <= 0.0:
+def clip_gradients(parameters: Iterable[torch.nn.Parameter], max_grad_norm: float) -> None:
+    """Clip the global gradient norm in place; a non-positive max_grad_norm disables clipping."""
+    if max_grad_norm <= 0.0:
         return
-    params = [param for param in collect_trainable_parameters(trainer) if param is not None]
-    if not params:
-        return
-    torch.nn.utils.clip_grad_norm_(params, max_norm=float(trainer.config.max_grad_norm))
+    params = [param for param in parameters if param is not None]
+    if params:
+        torch.nn.utils.clip_grad_norm_(params, max_norm=float(max_grad_norm))
 
 
 def build_train_batch_stats(

@@ -1,7 +1,7 @@
 import sys
 import types
 
-from src.training.services import trainer_runtime
+from src.training import continual_sd_lora
 
 
 def test_resolve_auto_model_factory_imports_transformers_late(monkeypatch):
@@ -9,4 +9,4 @@ def test_resolve_auto_model_factory_imports_transformers_late(monkeypatch):
     fake_transformers.AutoModel = object()
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
-    assert trainer_runtime._resolve_auto_model_factory(None) is fake_transformers.AutoModel
+    assert continual_sd_lora._resolve_auto_model_factory(None) is fake_transformers.AutoModel

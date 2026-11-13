@@ -6,7 +6,7 @@ import torch
 
 from src.adapter.independent_crop_adapter import IndependentCropAdapter
 from src.core.config_manager import ConfigurationManager
-from src.training.continual_sd_lora import ContinualSDLoRAConfig
+from src.training.config import ContinualSDLoRAConfig
 from src.training.session import ContinualTrainingSession
 from src.training.types import TrainingCheckpointPayload
 
