@@ -3,7 +3,7 @@
 
 import json
 
-from scripts.colab_auto_router_adapter_prediction import run_auto_router_adapter_prediction
+from src.colab.auto_router_adapter_prediction import run_auto_router_adapter_prediction
 
 ROUTER_RESULT = dict(globals().get("result") or {})
 ANALYSIS_IMAGE_PATH = globals().get("ANALYSIS_IMAGE_PATH", None)

@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "AADS: Open-World Plant Disease Recognition"
+abstract: >-
+  Undergraduate graduation project. A PyTorch pipeline that routes apricot, grape, strawberry and tomato images
+  to one of eight crop/part-specific SD-LoRA adapters on a DINOv3 backbone, and sends unsupported or
+  out-of-distribution inputs to review instead of forcing a disease label.
+authors:
+  - family-names: Erim
+    given-names: Efe
+license: MIT
+repository-code: "https://github.com/EfeErim/aads-open-world-plant-disease"
+url: "https://github.com/EfeErim/aads-open-world-plant-disease"
+date-released: "2026-07-27"
+keywords:
+  - plant disease recognition
+  - open-set recognition
+  - out-of-distribution detection
+  - continual learning
+  - LoRA

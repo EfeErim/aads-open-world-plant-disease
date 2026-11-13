@@ -44,7 +44,7 @@ jobs:
 
       - name: Lint maintained repository
         run: |
-          ruff check src scripts tests
+          ruff check src scripts tests experiments
 
       - name: Type-check maintained runtime surfaces
         run: |
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pytest tests/unit tests/colab/test_smoke_training.py -q \
+          pytest tests/unit tests/experiments tests/colab/test_smoke_training.py -q \
             --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=78 \
             --junitxml=.runtime_tmp/pytest-unit.xml
           status=$?

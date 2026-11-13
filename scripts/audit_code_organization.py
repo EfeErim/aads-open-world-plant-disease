@@ -41,7 +41,7 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def iter_python_files(root: Path) -> Iterable[Path]:
-    for base in ("src", "scripts", "tests"):
+    for base in ("src", "scripts", "tests", "experiments"):
         base_path = root / base
         if not base_path.exists():
             continue
@@ -77,6 +77,8 @@ def categorize_path(path: Path, root: Path) -> str:
         return "domain"
     if rel.startswith("src/app/"):
         return "cli"
+    if rel.startswith("src/colab/"):
+        return "colab"
     if rel.startswith("src/"):
         return "domain"
     if rel.startswith("scripts/notebook_cells/"):
@@ -87,6 +89,8 @@ def categorize_path(path: Path, root: Path) -> str:
         return "validation"
     if rel.startswith("scripts/"):
         return "cli"
+    if rel.startswith("experiments/"):
+        return "experiment"
     if rel.startswith("tests/"):
         return "test"
     if rel.startswith("colab_notebooks/"):
@@ -125,6 +129,20 @@ def _imported_top_level_modules(path: Path) -> list[str]:
             modules.extend(alias.name.split(".", 1)[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             modules.append(node.module.split(".", 1)[0])
+    return modules
+
+
+def _imported_modules(path: Path) -> list[str]:
+    tree = _parse_python(path)
+    if tree is None:
+        return []
+    modules: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
+            modules.extend(f"{node.module}.{alias.name}" for alias in node.names)
     return modules
 
 
@@ -168,13 +186,22 @@ def _audit_import_boundaries(path: Path, root: Path) -> list[Finding]:
     imports = set(_imported_top_level_modules(path))
     findings: list[Finding] = []
     if rel.startswith("src/"):
-        forbidden = sorted(imports.intersection({"scripts", "tests", "colab_notebooks"}))
+        forbidden = sorted(imports.intersection({"scripts", "tests", "colab_notebooks", "experiments"}))
         for module in forbidden:
             findings.append(
                 Finding(
                     severity="error",
                     path=rel,
                     message=f"`src` modules must not import `{module}`; move shared logic into `src` instead.",
+                )
+            )
+    if rel.startswith("src/") and not rel.startswith("src/colab/"):
+        if any(name == "src.colab" or name.startswith("src.colab.") for name in _imported_modules(path)):
+            findings.append(
+                Finding(
+                    severity="error",
+                    path=rel,
+                    message="Core `src` modules must not import the Colab layer `src.colab`.",
                 )
             )
     if rel.startswith("src/shared/"):

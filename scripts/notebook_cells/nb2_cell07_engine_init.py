@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 with TELEMETRY.capture_cell_output("Cell 5: Engine Init"):
-    from scripts.colab_dataset_layout import resolve_notebook_training_classes
+    from src.colab.dataset_layout import resolve_notebook_training_classes
     from src.adapter.independent_crop_adapter import IndependentCropAdapter
     from src.data.loaders import create_training_loaders
 
@@ -30,7 +30,7 @@ with TELEMETRY.capture_cell_output("Cell 5: Engine Init"):
     if not class_root.is_dir():
         raise RuntimeError(f"Prepared runtime continual split not found: {class_root}")
 
-    from scripts.colab_notebook_helpers import (
+    from src.colab.training_helpers import (
         apply_notebook_optimization_proposal,
         print_notebook_optimization_campaign_status,
         resolve_notebook_optimization_campaign,

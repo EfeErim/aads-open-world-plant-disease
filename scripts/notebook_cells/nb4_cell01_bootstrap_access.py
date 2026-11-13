@@ -91,7 +91,7 @@ SEARCH_ROOTS = [
     ROOT / "models" / "adapters",
 ]
 
-from scripts.colab_repo_bootstrap import (  # noqa: E402
+from src.colab.repo_bootstrap import (  # noqa: E402
     collect_notebook_access_report,
     install_colab_requirements,
     login_and_check_hf_token,

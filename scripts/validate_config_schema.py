@@ -73,7 +73,7 @@ def main() -> int:
     checked_paths, errors = validate_config_schema_versions()
 
     print("=" * 60)
-    print("AADS v6 Config Schema Validation")
+    print("AADS Config Schema Validation")
     print("=" * 60)
     for path in checked_paths:
         print(f"CHECK {path.relative_to(ROOT)}")

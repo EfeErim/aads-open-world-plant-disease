@@ -2,49 +2,37 @@
 
 This page answers a simple question: what is actually included in the public repository?
 
-The public tree was compared against the maintained project tree at source commit
-`539397bb72bde59e4b092ac1286b5415fe78dbac`. The comparison is path-based because the public edition has a few
-necessary changes for anonymous Release access, safer defaults and cross-platform CI.
-
-## Coverage snapshot
-
-| Surface | Maintained project | Public repository | Public coverage |
-|---|---:|---:|---:|
-| maintained `src/` files | 130 | 130 | 100% |
-| public-only sample-data module | 0 | 1 | added for public use |
-| authored Colab notebooks | 11 | 11 | 100% |
-| `colab_notebooks/requirements_colab.txt` | 1 | 1 | 100% |
-| `config/` files | 3 | 3 | 100% |
-| operational scripts shared by both trees | 177 | 177 | 100% |
-| public-only operational or extracted scripts | 0 | 5 | added for public use |
-| tests shared by both trees | 166 | 166 | 100% |
-| public-only focused tests | 0 | 3 | added for public use |
+The public repository started as a path-for-path copy of the maintained private project tree (source commit
+`539397bb72bde59e4b092ac1286b5415fe78dbac`). It has since been restructured on its own: one-off research scripts
+were removed, the Colab layer was gathered into one package and report-only research moved to `experiments/`. It
+therefore no longer mirrors the private tree file for file.
 
 The application implementation is not embedded only in notebooks. Colab notebooks call the same maintained modules
-used by the developer-only CLI and the test suite.
+used by the developer CLI and the test suite.
 
 ## Application source
 
-The 137 files under [`src/`](../src/) are grouped as follows. Six public modules split large responsibilities from
-their original compatibility entry points; they reorganize the same implementation rather than adding a second
-pipeline.
+The 130 files under [`src/`](../src/) are grouped as follows.
 
 | Package | Files | Responsibility |
 |---|---:|---|
-| [`src/training/`](../src/training/) | 28 | continual SD-LoRA training, validation, persistence and reporting |
+| [`src/training/`](../src/training/) | 25 | continual SD-LoRA training, validation, persistence and reporting |
 | [`src/router/`](../src/router/) | 26 | crop/part routing, taxonomy, prototypes, calibration and abstention |
-| [`src/data/`](../src/data/) | 20 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
-| [`src/ood/`](../src/ood/) | 14 | OOD scoring, conformal prediction and behavioral acceptance |
-| [`src/pipeline/`](../src/pipeline/) | 14 | adapter discovery, release loading, inference payloads and evidence analysis |
+| [`src/data/`](../src/data/) | 18 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
+| [`src/colab/`](../src/colab/) | 17 | Colab bootstrap, widgets, telemetry, checkpoint mirroring and notebook run helpers |
 | [`src/shared/`](../src/shared/) | 10 | typed contracts and shared serialization/path utilities |
-| [`src/workflows/`](../src/workflows/) | 8 | stable training and inference entry points |
+| [`src/ood/`](../src/ood/) | 7 | OOD scoring, conformal prediction and behavioral acceptance |
+| [`src/workflows/`](../src/workflows/) | 7 | training and inference entry points and their run stages |
+| [`src/pipeline/`](../src/pipeline/) | 6 | adapter discovery, release loading, input guard and inference payloads |
 | [`src/adapter/`](../src/adapter/) | 4 | adapter configuration, checkpointing and lifecycle helpers |
-| [`src/core/`](../src/core/) | 3 | configuration loading and core runtime support |
-| [`src/notebook/`](../src/notebook/) | 3 | notebook bootstrap and Git integration |
-| [`src/app/`](../src/app/) | 2 | developer and maintenance CLI surface |
+| [`src/core/`](../src/core/) | 3 | configuration loading and migrations |
+| [`src/app/`](../src/app/) | 2 | developer CLI (`aads inference`, `aads training`) |
 | [`src/utils/`](../src/utils/) | 2 | small maintained utilities |
-| root modules | 2 | guided artifact contracts |
-| package marker | 1 | `src/__init__.py` |
+| root modules | 3 | package marker and guided artifact contracts |
+
+Report-only research lives outside `src/`, in [`experiments/`](../experiments/): the Notebook 16 dual-view ROI
+ablation with its evidence-gate analysis, and the Notebook 17 adapter OOD/OE recovery campaign. Their tests are under
+[`tests/experiments/`](../tests/experiments/).
 
 The main code paths are:
 
@@ -88,12 +76,35 @@ The public repository also includes:
 
 - 36 extracted notebook cell scripts under [`scripts/notebook_cells/`](../scripts/notebook_cells/);
 - 15 reusable notebook helpers under [`scripts/notebook_helpers/`](../scripts/notebook_helpers/);
-- the remaining operational, validation, calibration and evidence scripts under [`scripts/`](../scripts/);
-- 169 tracked unit, integration, Colab smoke and test-fixture files under [`tests/`](../tests/), including three
-  public-only tests for sample data, evidence rebuilding and the models-free demo replay.
+- the operational, validation, calibration, release and evidence scripts under [`scripts/`](../scripts/), listed below;
+- unit, integration, experiment and Colab smoke tests under [`tests/`](../tests/).
 
 These files matter because the notebooks orchestrate maintained Python code instead of hiding large independent
 implementations inside notebook cells.
+
+| Script | Role |
+|---|---|
+| `audit_code_organization.py` | CI: import-direction and layout audit |
+| `validate_config_schema.py` | CI: config schema check |
+| `validate_notebook_imports.py` + `notebook_contracts/` | CI: notebook bootstrap and import contracts |
+| `build_behavioral_acceptance_summary.py` | CI: rebuilds and checks the behavioral-acceptance evidence summary |
+| `benchmark_surfaces.py` | CI (mypy): deterministic orchestration benchmarks |
+| `replay_public_demo.py` | replays the controlled demo from checked-in evidence without models |
+| `fetch_public_adapters.py` | downloads and verifies the public adapter Release |
+| `manage_adapter_release.py` | builds, verifies and publishes the immutable adapter Release |
+| `manage_dataset_release.py` | audits, packages and verifies dataset Releases |
+| `build_controlled_demo_manifest.py` | how the 48-row controlled-demo manifest was selected (needs private run outputs) |
+| `run_demo_checklist.py` + `demo_checklist/` | Notebook 8 batch demo runner and grading |
+| `compare_m2_demo_results.py` | Notebook 8: compares two demo runs |
+| `run_router_open_world_validation.py` + `router_open_world/` | Notebook 8 open-world router gate |
+| `build_router_prototype_bank.py`, `build_taxonomy_registry.py` | Notebook 8: router prototype bank and taxonomy |
+| `calibrate_router_prototype_reconciler.py` | Notebook 8: prototype reconciler calibration |
+| `evaluate_router_surface.py`, `calibrate_router_surface.py` | Notebook 5: router threshold evaluation and calibration |
+| `evaluate_router_part_surface.py` | Notebook 1: part-routing evaluation |
+| `evaluate_dataset_layout.py` | Notebook 0: dataset layout audit |
+| `prepare_materialization_dataset.py`, `prune_exact_duplicates.py` | Notebook 0: cleaned working copy before materialization |
+| `audit_ood_oe_quality.py` | Notebooks 7 and 17: OOD/OE evidence audit |
+| `optimize_training_runs.py` | analyses a comparable training cohort and writes Bayesian proposals |
 
 ## Deliberate exclusions
 

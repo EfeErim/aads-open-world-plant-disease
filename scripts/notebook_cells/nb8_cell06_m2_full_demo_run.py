@@ -10,8 +10,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from scripts.colab_notebook_helpers import maybe_auto_disconnect_colab_runtime
-from scripts.colab_repo_bootstrap import push_repo_paths_to_github
+from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime
+from src.colab.repo_bootstrap import push_repo_paths_to_github
 from scripts.compare_m2_demo_results import enrich_summary_manifest_sha256
 from scripts.notebook_helpers.nb8_m2_commands import build_m2_demo_checklist_command
 from scripts.notebook_helpers.nb8_m2_reporting import (

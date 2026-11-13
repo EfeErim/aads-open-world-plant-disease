@@ -5,9 +5,9 @@ from pathlib import Path
 
 def run_bootstrap_notebook_nb2(notebook_name: str = "Notebook 2: Continual Adapter Training", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
     """Bootstrap Notebook 2."""
-    from scripts.colab_notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
+    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
     try:
-        from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
+        from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
         _ensure_repo_root_for_update_check()
     except (ImportError, FileNotFoundError):
         # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
@@ -25,7 +25,7 @@ def run_bootstrap_notebook_nb2(notebook_name: str = "Notebook 2: Continual Adapt
 
 def run_access_check_nb2(ROOT: Path, print_fn=print) -> dict:
     """Check training model access."""
-    from scripts.colab_repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
+    from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
     from src.core.config_manager import get_config
 
     CONFIG = get_config(environment='colab')

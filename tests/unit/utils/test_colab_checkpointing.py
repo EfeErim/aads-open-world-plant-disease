@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts.colab_checkpointing import TrainingCheckpointManager
+from src.colab.checkpointing import TrainingCheckpointManager
 
 
 class _FakeAdapter:
@@ -62,7 +62,7 @@ def test_checkpoint_manager_uses_unique_names_for_same_step_in_same_second(tmp_p
             cls.calls += 1
             return _FakeStamp(cls.calls)
 
-    monkeypatch.setattr("scripts.colab_checkpointing.datetime", _FakeDateTime)
+    monkeypatch.setattr("src.colab.checkpointing.datetime", _FakeDateTime)
 
     manager = TrainingCheckpointManager(tmp_path / "telemetry" / "run_2", retention=2)
     first = manager.save_checkpoint(

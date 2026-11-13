@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 from src.core.config_manager import get_config
-from scripts.colab_repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
+from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
 
 CONFIG_FOR_ACCESS = get_config(environment='colab')
 ROUTER_VLM_CFG = dict(dict(CONFIG_FOR_ACCESS.get('router', {})).get('vlm', {}))

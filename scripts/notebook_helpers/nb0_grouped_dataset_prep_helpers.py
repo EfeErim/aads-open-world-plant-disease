@@ -10,8 +10,8 @@ matplotlib.use("Agg")
 
 import torch
 
-from scripts.colab_live_telemetry import ColabLiveTelemetry
-from scripts.colab_repo_bootstrap import (
+from src.colab.live_telemetry import ColabLiveTelemetry
+from src.colab.repo_bootstrap import (
     export_current_colab_notebook,
     mirror_checkpoint_state_to_repo,
     mirror_path_to_repo,
@@ -28,7 +28,7 @@ from src.data.grouped_runtime_dataset_preparation import resolve_safe_embedding_
 
 
 def run_bootstrap_notebook(notebook_name: str = "Notebook 0: Dataset Preparation", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
-    from scripts.colab_notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
+    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
 
     BOOTSTRAP = bootstrap_notebook(
         notebook_name=notebook_name,
@@ -166,8 +166,8 @@ def _prompt_yes_no(prompt: str, default_value: bool = True) -> bool:
 
 def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DEVICE: str, EMBEDDING_BATCH_SIZE: int, NEIGHBORS: int, REPO_DATASET_ROOT: str, REPO_DATASET_NAME: str, DATASET_ROOT: str, CROP_NAME: str, PART_NAME: str, PREP_ARTIFACT_ROOT: str, PREP_DINOV3_MODEL_ID: str, PREP_BIOCLIP_MODEL_ID: str, UNDER_MIN_EVAL_POLICY: dict, IMPORT_FROM_DRIVE: bool = False, DRIVE_DATASET_PATH: str = "", INTERACTIVE_AUDIT_REVIEW: bool = True, MAX_INTERACTIVE_REVIEW_ITEMS: int = 25) -> tuple[dict, str, str]:
     """Run dataset audit and return STATE updates and resolved values."""
-    from scripts.colab_dataset_layout import resolve_repo_dataset_directory
     from scripts.evaluate_dataset_layout import evaluate_layout
+    from src.colab.dataset_layout import resolve_repo_dataset_directory
     from src.data.grouped_runtime_dataset_preparation import (
         build_grouped_dataset_plan,
         build_human_review_packet,
@@ -408,7 +408,7 @@ def run_materialize_runtime_dataset(
     DATASET_RELEASE_CACHE_ROOT: str = ".runtime_tmp/dataset_release_cache",
     INTERACTIVE_AUDIT_REVIEW: bool = True,
 ) -> None:
-    from scripts.colab_dataset_layout import resolve_repo_dataset_directory
+    from src.colab.dataset_layout import resolve_repo_dataset_directory
     from src.data.grouped_runtime_dataset_preparation import (
         build_prepared_dataset_key,
         format_human_review_packet,

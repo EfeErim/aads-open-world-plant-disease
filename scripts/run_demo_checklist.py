@@ -16,13 +16,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.colab_auto_router_adapter_prediction import (  # noqa: E402
-    resolve_router_adapter_handoff,
-    router_handoff_skip_result,
-    run_auto_router_adapter_prediction,
-)
-from scripts.colab_router_adapter_inference import run_inference as run_router_inference  # noqa: E402
-from scripts.colab_router_adapter_inference import run_inference_batch as run_router_inference_batch  # noqa: E402
 from scripts.demo_checklist.cli import build_parser as build_parser  # noqa: E402
 from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _cached_handoff_by_key,
@@ -60,6 +53,13 @@ from scripts.demo_checklist.rows import (  # noqa: E402
 from scripts.demo_checklist.rows import _path_fingerprint as _path_fingerprint  # noqa: E402,F401
 from scripts.demo_checklist.rows import classify_failure as classify_failure  # noqa: E402,F401
 from scripts.demo_checklist.rows import evaluate_pass as evaluate_pass  # noqa: E402,F401
+from src.colab.auto_router_adapter_prediction import (  # noqa: E402
+    resolve_router_adapter_handoff,
+    router_handoff_skip_result,
+    run_auto_router_adapter_prediction,
+)
+from src.colab.router_adapter_inference import run_inference as run_router_inference  # noqa: E402
+from src.colab.router_adapter_inference import run_inference_batch as run_router_inference_batch  # noqa: E402
 from src.data.transforms import preprocess_image  # noqa: E402
 from src.pipeline.inference_payloads import build_router_skipped_analysis, build_success_result  # noqa: E402
 from src.workflows.inference import InferenceWorkflow  # noqa: E402

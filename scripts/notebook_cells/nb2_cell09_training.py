@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 with TELEMETRY.capture_cell_output("Cell 6: Training"):
-    from scripts.colab_notebook_helpers import (
+    from src.colab.training_helpers import (
         build_history_snapshot,
         persist_training_curve_figure,
         persist_training_history_artifacts,

@@ -52,7 +52,7 @@ The canonical code path is:
 src/workflows/inference.py
   -> src/pipeline/router_adapter_runtime.py
   -> src/router/router_pipeline.py
-  -> src/adapter/continual_adapter.py
+  -> src/adapter/independent_crop_adapter.py
   -> src/ood/continual_ood.py
 ```
 

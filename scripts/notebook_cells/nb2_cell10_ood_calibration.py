@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 with TELEMETRY.capture_cell_output("Cell 7: OOD Calibration"):
-    from src.training.notebook_runtime_helpers import calibrate_notebook_ood_policy
+    from src.colab.training_helpers import calibrate_notebook_ood_policy
 
     if STATE.get("adapter") is None or STATE.get("loaders") is None:
         raise RuntimeError("Once engine init hucresini calistirin.")

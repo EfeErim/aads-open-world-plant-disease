@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
-from scripts import colab_repo_bootstrap as bootstrap
+from src.colab import repo_bootstrap as bootstrap
 
 
 def test_resolve_hf_token_prefers_existing_env(monkeypatch):

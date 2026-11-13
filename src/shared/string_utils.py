@@ -41,21 +41,3 @@ def slug_label_component(value: str, *, default: str = "unspecified") -> str:
     normalized = re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower())
     normalized = re.sub(r"_+", "_", normalized).strip("_")
     return normalized or default
-
-
-def normalize_notebook_identifier(name: str) -> str:
-    """Normalize a notebook or experiment identifier.
-
-    Converts to lowercase, replaces non-alphanumeric with underscores,
-    collapses runs, strips boundaries.
-
-    Args:
-        name: Raw identifier (e.g., 'Notebook 2 - Training').
-
-    Returns:
-        Normalized identifier (e.g., 'notebook_2_training').
-    """
-    normalized = "".join(ch.lower() if ch.isalnum() else "_" for ch in str(name or "").strip())
-    while "__" in normalized:
-        normalized = normalized.replace("__", "_")
-    return normalized.strip("_")

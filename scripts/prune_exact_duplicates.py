@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
-from scripts.colab_dataset_layout import IMAGE_EXTENSIONS
+from src.colab.dataset_layout import IMAGE_EXTENSIONS
 from src.data.grouped_runtime_dataset_preparation import (
     ImageRecord,
     ReviewPair,

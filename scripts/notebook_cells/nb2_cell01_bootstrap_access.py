@@ -3,9 +3,9 @@
 
 # Bootstrap notebook via helper. Model access is checked in the visible
 # Notebook 2 access-check cell, so the first cell stays setup-only.
-from scripts.colab_repo_bootstrap import probe_repo_update_status
+from src.colab.repo_bootstrap import probe_repo_update_status
 try:
-    from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
+    from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
     repo_root_for_update_check = _ensure_repo_root_for_update_check()
 except Exception:
     repo_root_for_update_check = None
