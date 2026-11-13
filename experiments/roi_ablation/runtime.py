@@ -53,9 +53,9 @@ from experiments.roi_ablation.roi_router import resolve_target_router_handoff as
 from experiments.roi_ablation.roi_router import (
     run_grounding_dino_target_detection as run_grounding_dino_target_detection,
 )
+from src.colab.router_adapter_inference import run_inference as run_router_inference
 from src.core.config_manager import get_config
 from src.data.dataset_release_runtime import DEFAULT_MATERIALIZED_DATASET_ROOT
-from src.pipeline.colab_router_adapter_inference import run_inference as run_router_inference
 from src.router.roi_helpers import bbox_area_ratio, extract_roi, sanitize_bbox
 from src.shared.json_utils import deep_merge
 from src.workflows.inference import InferenceWorkflow

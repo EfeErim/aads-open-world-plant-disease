@@ -92,7 +92,7 @@ def test_roi_ablation_notebook_contract() -> None:
         )
         _assert_contains(
             sources.full_source,
-            "from scripts.colab_notebook_helpers import maybe_auto_disconnect_colab_runtime",
+            "from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime",
             f"{notebook_name} should use the maintained Colab auto-disconnect helper: {{snippet}}",
         )
         _assert_contains(
@@ -108,7 +108,7 @@ def test_roi_ablation_notebook_contract() -> None:
 
 
 def test_adapter_smoke_notebook_surface() -> None:
-    from scripts.colab_adapter_smoke_test import (
+    from src.colab.adapter_smoke_test import (
         discover_adapter_candidates,
         load_adapter_summary,
         predict_image_folder,
@@ -141,7 +141,7 @@ def test_simple_adapter_smoke_notebook_bootstrap_contract() -> None:
     assert "collect_notebook_access_report" in sources.full_source
     assert "install_colab_requirements(ROOT / 'colab_notebooks' / 'requirements_colab.txt', running_in_colab())" in sources.full_source
     assert "print_notebook_access_report" in sources.full_source
-    assert "from scripts import colab_simple_adapter_smoke_ui" in sources.full_source
+    assert "from src.colab import simple_adapter_smoke_ui as colab_simple_adapter_smoke_ui" in sources.full_source
     assert "importlib.reload(colab_simple_adapter_smoke_ui)" in sources.full_source
     assert "['reset', '--hard', f'origin/{REPO_REF}']" in sources.full_source
     assert "['pull', '--ff-only', 'origin', REPO_REF]" not in sources.full_source
@@ -175,7 +175,7 @@ def test_batch_training_notebook_contract() -> None:
         '"NUM_WORKERS": 2',
         '"PREFETCH": 2',
         '"USE_CACHE": False',
-        "from scripts.colab_notebook_helpers import cleanup_notebook_training_state",
+        "from src.colab.training_helpers import cleanup_notebook_training_state",
         "from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker",
         "from src.pipeline.adapter_release import resolve_token",
         'if not str(resolve_token(write=False) or "").strip():',
@@ -191,7 +191,7 @@ def test_batch_training_notebook_contract() -> None:
         "cleanup_notebook_training_state(globals(), label=adapter_key)",
         'adapter_rec["allow_under_min"] = True',
         '"research_under_min_bypass": bool(research_under_min_bypass)',
-        "from scripts.colab_notebook_helpers import maybe_auto_disconnect_colab_runtime",
+        "from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime",
         '"batch_loop_completed": True',
         '"all_adapters_attempted": NB6_ALL_ADAPTERS_ATTEMPTED',
         '"all_adapters_succeeded": NB6_ALL_ADAPTERS_SUCCEEDED',

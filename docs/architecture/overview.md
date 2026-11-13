@@ -204,11 +204,11 @@ If `trust_crop_hint=True` is provided with a crop hint, the router step is skipp
 These are intentionally separate surfaces:
 
 - router-driven inference uses the router first, then the crop adapter
-- Notebook 1 and `scripts/colab_router_adapter_inference.py` are router-only diagnostic surfaces that stop after crop/part identification and may return `part=unknown` when organ evidence is ambiguous
+- Notebook 1 and `src/colab/router_adapter_inference.py` are router-only diagnostic surfaces that stop after crop/part identification and may return `part=unknown` when organ evidence is ambiguous
 - Notebook 5 is the router calibration notebook surface over `scripts/evaluate_router_surface.py` and `scripts/calibrate_router_surface.py`
 - direct adapter smoke testing loads one adapter directly and bypasses the router
 
-Notebook 3, Notebook 4, and `scripts/colab_adapter_smoke_test.py` are for the second case. Notebook 4 is a smaller widget wrapper over the same direct-adapter helper path.
+Notebook 3, Notebook 4, and `src/colab/adapter_smoke_test.py` are for the second case. Notebook 4 is a smaller widget wrapper over the same direct-adapter helper path.
 
 ### Router evidence policy
 
@@ -409,13 +409,13 @@ The notebook support layer is intentionally thin. The notebooks should wrap the 
 
 Maintained Colab helper scripts:
 
-- `scripts/colab_repo_bootstrap.py`
-- `scripts/colab_live_telemetry.py`
-- `scripts/colab_checkpointing.py`
-- `scripts/colab_notebook_helpers.py`
-- `scripts/colab_dataset_layout.py`
-- `scripts/colab_router_adapter_inference.py`
-- `scripts/colab_adapter_smoke_test.py`
+- `src/colab/repo_bootstrap.py`
+- `src/colab/live_telemetry.py`
+- `src/colab/checkpointing.py`
+- `src/colab/training_helpers.py`
+- `src/colab/dataset_layout.py`
+- `src/colab/router_adapter_inference.py`
+- `src/colab/adapter_smoke_test.py`
 
 These helpers handle:
 

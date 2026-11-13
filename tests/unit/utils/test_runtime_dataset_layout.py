@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from scripts.colab_dataset_layout import (
+from src.colab.dataset_layout import (
     build_runtime_split_manifest,
     list_dataset_directories_from_parent,
     list_repo_dataset_directories,
@@ -382,7 +382,7 @@ def test_prepare_runtime_dataset_layout_refuses_to_delete_existing_runtime_tree_
     def _fail_read_json(*args, **kwargs):
         raise ValueError("bad manifest")
 
-    monkeypatch.setattr("scripts.colab_dataset_layout.read_json", _fail_read_json)
+    monkeypatch.setattr("src.colab.dataset_layout.read_json", _fail_read_json)
 
     try:
         prepare_runtime_dataset_layout(

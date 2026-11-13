@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Sequence
 from urllib.parse import urlsplit
 
-from src.notebook.git_utils import (
+from src.colab.git_utils import (
     _chunked,
     _git_current_branch,
     _git_remote_url,
@@ -27,16 +27,16 @@ from src.notebook.git_utils import (
     _sanitize_run_text_artifacts,
     _should_exclude_run_file_from_push,
 )
-from src.notebook.git_utils import (
+from src.colab.git_utils import (
     _read_json_dict as _read_json_dict,
 )
-from src.notebook.git_utils import (
+from src.colab.git_utils import (
     _redact_secret as _redact_secret,
 )
-from src.notebook.git_utils import (
+from src.colab.git_utils import (
     mirror_checkpoint_state_to_repo as mirror_checkpoint_state_to_repo,
 )
-from src.notebook.git_utils import (
+from src.colab.git_utils import (
     mirror_path_to_repo as mirror_path_to_repo,
 )
 
@@ -44,6 +44,9 @@ HF_TOKEN_NAMES = ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN")
 GITHUB_TOKEN_NAMES = ("GH_TOKEN", "GITHUB_TOKEN")
 GITHUB_READ_TOKEN_NAMES = ("AADS_GITHUB_RELEASE_READ_TOKEN",)
 TORCH_REQUIREMENT_PREFIXES = ("torch", "torchvision", "torchaudio")
+# Every notebook's first cell clones the repository here before any `src` import (the path is part of the
+# notebook bootstrap contract in scripts/notebook_contracts/support.py), so all discovery code looks here too.
+COLAB_CLONE_TARGET = Path("/content/bitirmeprojesi")
 
 
 def is_repo_root(path: Path) -> bool:
@@ -55,7 +58,7 @@ def maybe_clone_repo() -> Optional[Path]:
         return None
 
     repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
-    clone_target = Path(os.environ.get("AADS_REPO_CLONE_TARGET", "/content/bitirmeprojesi")).expanduser()
+    clone_target = Path(os.environ.get("AADS_REPO_CLONE_TARGET", str(COLAB_CLONE_TARGET))).expanduser()
 
     if is_repo_root(clone_target):
         return clone_target
@@ -176,30 +179,30 @@ def _flatten_colab_safe_requirements(req_path: Path, _seen: Optional[set[Path]] 
     return filtered
 
 
-def resolve_repo_root() -> Path:
-    env_candidates = [os.environ.get("AADS_REPO_ROOT"), os.environ.get("REPO_ROOT")]
-    for raw in env_candidates:
-        if not raw:
-            continue
-        candidate = Path(raw).expanduser().resolve()
-        if is_repo_root(candidate):
-            return candidate
+def find_repo_root() -> Optional[Path]:
+    """Find an existing checkout via AADS_REPO_ROOT/REPO_ROOT, the working directory or the Colab clone target."""
+    for raw in (os.environ.get("AADS_REPO_ROOT"), os.environ.get("REPO_ROOT")):
+        if raw and is_repo_root(Path(raw).expanduser().resolve()):
+            return Path(raw).expanduser().resolve()
 
     cwd = Path.cwd().resolve()
     for candidate in [cwd, *cwd.parents]:
         if is_repo_root(candidate):
             return candidate
 
-    common_candidates = [
-        Path("/content/bitirme projesi"),
-        Path("/content/bitirmeprojesi"),
-        Path("/content/aads_ulora"),
-        Path("/content/drive/MyDrive/bitirme projesi"),
-        Path("/content/drive/MyDrive/bitirmeprojesi"),
-    ]
-    for candidate in common_candidates:
-        if is_repo_root(candidate):
-            return candidate
+    if is_repo_root(COLAB_CLONE_TARGET):
+        return COLAB_CLONE_TARGET
+    if COLAB_CLONE_TARGET.is_dir():
+        for child in COLAB_CLONE_TARGET.iterdir():
+            if child.is_dir() and is_repo_root(child):
+                return child
+    return None
+
+
+def resolve_repo_root() -> Path:
+    repo_root = find_repo_root()
+    if repo_root is not None:
+        return repo_root
 
     auto_cloned = maybe_clone_repo()
     if auto_cloned is not None:

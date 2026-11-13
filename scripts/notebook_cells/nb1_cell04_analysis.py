@@ -3,8 +3,8 @@
 
 import json
 
-from scripts.colab_repo_bootstrap import running_in_colab
-from scripts.colab_router_adapter_inference import run_inference
+from src.colab.repo_bootstrap import running_in_colab
+from src.colab.router_adapter_inference import run_inference
 
 UPLOAD_NEW_IMAGE = ANALYSIS_IMAGE_PATH is None and FORCE_UPLOAD_IF_NO_IMAGE
 

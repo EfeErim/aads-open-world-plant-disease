@@ -10,23 +10,24 @@ from typing import Any, Optional
 from IPython.display import HTML, clear_output, display
 from PIL import Image
 
-from scripts.simple_adapter_smoke_ui_view import (
+from src.colab.repo_bootstrap import running_in_colab
+from src.colab.simple_adapter_smoke_ui_view import (
     _apply_dropdown_options as _apply_dropdown_options,
 )
-from scripts.simple_adapter_smoke_ui_view import (
+from src.colab.simple_adapter_smoke_ui_view import (
     _build_adapter_details_html as _build_adapter_details_html,
 )
-from scripts.simple_adapter_smoke_ui_view import _build_help_text_html as _build_help_text_html
-from scripts.simple_adapter_smoke_ui_view import _build_result_html as _build_result_html
-from scripts.simple_adapter_smoke_ui_view import _display_error_box as _display_error_box
-from scripts.simple_adapter_smoke_ui_view import _display_html as _display_html
-from scripts.simple_adapter_smoke_ui_view import _error_box_html as _error_box_html
-from scripts.simple_adapter_smoke_ui_view import _extract_upload_record as _extract_upload_record
-from scripts.simple_adapter_smoke_ui_view import _hf_access_error_html as _hf_access_error_html
-from scripts.simple_adapter_smoke_ui_view import _persist_upload_value as _persist_upload_value
-from scripts.simple_adapter_smoke_ui_view import _raw_json_details_html as _raw_json_details_html
-from scripts.simple_adapter_smoke_ui_view import _section_header_html as _section_header_html
-from scripts.simple_adapter_smoke_ui_view import _show_status_message as _show_status_message
+from src.colab.simple_adapter_smoke_ui_view import _build_help_text_html as _build_help_text_html
+from src.colab.simple_adapter_smoke_ui_view import _build_result_html as _build_result_html
+from src.colab.simple_adapter_smoke_ui_view import _display_error_box as _display_error_box
+from src.colab.simple_adapter_smoke_ui_view import _display_html as _display_html
+from src.colab.simple_adapter_smoke_ui_view import _error_box_html as _error_box_html
+from src.colab.simple_adapter_smoke_ui_view import _extract_upload_record as _extract_upload_record
+from src.colab.simple_adapter_smoke_ui_view import _hf_access_error_html as _hf_access_error_html
+from src.colab.simple_adapter_smoke_ui_view import _persist_upload_value as _persist_upload_value
+from src.colab.simple_adapter_smoke_ui_view import _raw_json_details_html as _raw_json_details_html
+from src.colab.simple_adapter_smoke_ui_view import _section_header_html as _section_header_html
+from src.colab.simple_adapter_smoke_ui_view import _show_status_message as _show_status_message
 
 # Defer heavy imports until actually needed (when UI is launched and user interacts)
 try:
@@ -101,16 +102,16 @@ def _ensure_adapter_smoke_imports():
         load_adapter_summary, \
         predict_single_image
     if _build_prediction_visualization_images is None:
-        from src.pipeline.adapter_smoke import (
+        from src.colab.adapter_smoke import (
             build_prediction_visualization_images as _bpvi,
         )
-        from src.pipeline.adapter_smoke import (
+        from src.colab.adapter_smoke import (
             discover_adapter_candidates as _dac,
         )
-        from src.pipeline.adapter_smoke import (
+        from src.colab.adapter_smoke import (
             load_adapter_summary as _las,
         )
-        from src.pipeline.adapter_smoke import (
+        from src.colab.adapter_smoke import (
             predict_single_image as _psi,
         )
 
@@ -191,14 +192,6 @@ def _load_adapter_summary_for_candidate(
         config_env=config_env,
         device=device,
     )
-
-
-def _running_in_colab() -> bool:
-    try:
-        import google.colab  # noqa: F401
-    except Exception:
-        return False
-    return True
 
 
 def _ensure_colab_widget_manager() -> bool:
@@ -298,7 +291,7 @@ def launch_simple_adapter_smoke_ui(
     dropdown_options = _adapter_dropdown_options(adapter_candidates)
 
     title = widgets.HTML('<h3 style="margin:0 0 8px 0;">Basit Adapter Testi</h3>')
-    help_text = widgets.HTML(_build_help_text_html(_running_in_colab()))
+    help_text = widgets.HTML(_build_help_text_html(running_in_colab()))
     adapter_dropdown = widgets.Dropdown(
         options=[],
         description="Adapter:",
@@ -363,7 +356,7 @@ def launch_simple_adapter_smoke_ui(
         raw_path = image_path_text.value.strip()
         if raw_path:
             return Path(raw_path).expanduser()
-        if _running_in_colab():
+        if running_in_colab():
             uploaded_path = _upload_via_colab_files(upload_dir)
             if uploaded_path is not None:
                 image_path_text.value = str(uploaded_path)
@@ -490,7 +483,6 @@ def launch_simple_adapter_smoke_ui(
 
 __all__ = [
     "launch_simple_adapter_smoke_ui",
-    "_running_in_colab",
     "_ensure_colab_widget_manager",
     "_resolve_notebook_device",
     "_build_result_html",

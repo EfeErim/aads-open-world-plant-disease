@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
 
-from scripts.colab_router_adapter_inference import ensure_router_ready
+from src.colab.router_adapter_inference import ensure_router_ready
 from src.router.prototype_reconciler import reconcile_router_handoff
 from src.workflows.inference import InferenceWorkflow
 

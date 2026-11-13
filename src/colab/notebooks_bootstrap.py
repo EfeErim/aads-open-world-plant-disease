@@ -13,7 +13,16 @@ from pathlib import Path
 from typing import Optional, Sequence
 from urllib.parse import urlsplit, urlunsplit
 
-NOTEBOOK2_SPARSE_PATHS = (
+from src.colab.repo_bootstrap import (
+    COLAB_CLONE_TARGET,
+    find_repo_root,
+    is_repo_root,
+    resolve_hf_token,
+    running_in_colab,
+)
+from src.colab.repo_bootstrap import resolve_github_token as resolve_repo_github_token
+
+SOURCE_CHECKOUT_PATHS = (
     "README.md",
     "docs",
     "src",
@@ -26,127 +35,14 @@ NOTEBOOK2_SPARSE_PATHS = (
 )
 
 
-# ============================================================================
-# ENVIRONMENT & TOKEN RESOLUTION
-# ============================================================================
-
 def resolve_github_token() -> str:
-    """Resolve GitHub token from environment or Colab secrets."""
-    token_names = ("GH_TOKEN", "GITHUB_TOKEN")
-
-    # Check environment variables first
-    for env_name in token_names:
-        token = str(os.environ.get(env_name, "")).strip()
-        if token:
-            os.environ.setdefault("GH_TOKEN", token)
-            return token
-
-    # Check Colab secrets
-    if _running_in_colab():
-        for secret_name in token_names:
-            token = _resolve_colab_secret(secret_name)
-            if token:
-                os.environ["GH_TOKEN"] = token
-                return token
-
-    return ""
+    """Resolve a GitHub token from env vars first, then Colab secrets ("" when absent)."""
+    return resolve_repo_github_token() or ""
 
 
 def resolve_huggingface_token() -> Optional[str]:
-    """Resolve HuggingFace token from environment or Colab secrets."""
-    token_names = ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN")
-
-    # Check environment variables
-    for env_name in token_names:
-        token = str(os.environ.get(env_name, "")).strip()
-        if token:
-            os.environ.setdefault("HF_TOKEN", token)
-            return token
-
-    # Check Colab secrets
-    if _running_in_colab():
-        for secret_name in token_names:
-            token = _resolve_colab_secret(secret_name)
-            if token:
-                os.environ["HF_TOKEN"] = token
-                return token
-
-    return None
-
-
-def _running_in_colab() -> bool:
-    """Check if running in Google Colab."""
-    try:
-        import google.colab  # noqa: F401
-        return True
-    except Exception:
-        return False
-
-
-def _resolve_colab_secret(secret_name: str) -> str:
-    """Resolve a secret from Google Colab's userdata."""
-    if not _running_in_colab():
-        return ""
-    try:
-        from google.colab import userdata
-        return str(userdata.get(secret_name) or "").strip()
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
-        return ""
-
-
-# ============================================================================
-# REPO DISCOVERY & CLONING
-# ============================================================================
-
-def _is_repo_root(path: Path) -> bool:
-    """Check if path is a valid repo root (has src/, config/, scripts/)."""
-    return (
-        (path / "src").is_dir()
-        and (path / "config").is_dir()
-        and (path / "scripts").is_dir()
-    )
-
-
-def _find_repo_root() -> Optional[Path]:
-    """Find repo root from environment, current directory, or common locations."""
-    # Check environment variables
-    for env_var in ("AADS_REPO_ROOT", "REPO_ROOT"):
-        raw = os.environ.get(env_var)
-        if raw:
-            candidate = Path(raw).expanduser().resolve()
-            if _is_repo_root(candidate):
-                return candidate
-
-    # Check current directory and parents
-    cwd = Path.cwd().resolve()
-    for candidate in [cwd, *cwd.parents]:
-        if _is_repo_root(candidate):
-            return candidate
-
-    # Check common Colab locations
-    common_candidates = (
-        Path("/content/bitirme projesi"),
-        Path("/content/bitirmeprojesi"),
-        Path("/content/aads_ulora"),
-        Path("/content/workspace"),
-        Path("/content/project"),
-    )
-
-    for candidate in common_candidates:
-        if _is_repo_root(candidate):
-            return candidate
-
-    # Check for nested repo in Colab clone target
-    clone_target = Path("/content/bitirmeprojesi")
-    if clone_target.exists() and any(clone_target.iterdir()):
-        for child in clone_target.iterdir():
-            if child.is_dir() and _is_repo_root(child):
-                return child
-
-    return None
+    """Resolve a Hugging Face token from env vars first, then Colab secrets."""
+    return resolve_hf_token()
 
 
 def _ensure_sparse_checkout_paths(repo_root: Path, paths: tuple[str, ...]) -> None:
@@ -191,7 +87,7 @@ def ensure_repo_root(
 
     Args:
         auto_clone: If True and repo not found, attempt to clone
-        clone_target: Target path for cloning (default: /content/bitirmeprojesi)
+        clone_target: Target path for cloning (default: COLAB_CLONE_TARGET)
         repo_url: Repository URL (default: GitHub URL)
         github_token: GitHub token for private repos
         sparse_paths: Optional sparse checkout paths to select after clone
@@ -203,7 +99,7 @@ def ensure_repo_root(
         RuntimeError: If repo cannot be found or cloned
     """
     # Try to find existing repo
-    repo_root = _find_repo_root()
+    repo_root = find_repo_root()
     if repo_root is not None:
         _ensure_sparse_checkout_paths(repo_root, ("requirements_colab.txt",))
         return repo_root
@@ -216,7 +112,7 @@ def ensure_repo_root(
 
     # Setup cloning parameters
     if clone_target is None:
-        clone_target = Path("/content/bitirmeprojesi")
+        clone_target = COLAB_CLONE_TARGET
     if repo_url is None:
         repo_url = os.environ.get(
             "AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git"
@@ -224,7 +120,7 @@ def ensure_repo_root(
     if github_token is None:
         github_token = os.environ.get("GH_TOKEN", "")
 
-    if clone_target.exists() and not _is_repo_root(clone_target):
+    if clone_target.exists() and not is_repo_root(clone_target):
         shutil.rmtree(clone_target)
 
     clone_url = _build_repo_access_url(repo_url, github_token)
@@ -237,17 +133,7 @@ def ensure_repo_root(
     )
 
     if completed.returncode == 0:
-        selected_paths = tuple(sparse_paths or (
-            "README.md",
-            "docs",
-            "src",
-            "scripts",
-            "config",
-            "colab_notebooks",
-            "requirements.txt",
-            "requirements_colab.txt",
-            "pyproject.toml",
-        ))
+        selected_paths = tuple(sparse_paths or SOURCE_CHECKOUT_PATHS)
         print("[BOOTSTRAP] Selecting source checkout paths...")
         completed = subprocess.run(
             ["git", "sparse-checkout", "set", *selected_paths],
@@ -257,19 +143,8 @@ def ensure_repo_root(
 
     if completed.returncode != 0 and clone_target.exists():
         print("[BOOTSTRAP] Sparse checkout failed; falling back to source-only checkout.")
-        fallback_paths = [
-            "README.md",
-            "docs",
-            "src",
-            "scripts",
-            "config",
-            "colab_notebooks",
-            "requirements.txt",
-            "requirements_colab.txt",
-            "pyproject.toml",
-        ]
         subprocess.run(
-            ["git", "sparse-checkout", "set", *fallback_paths],
+            ["git", "sparse-checkout", "set", *SOURCE_CHECKOUT_PATHS],
             cwd=str(clone_target),
             check=False,
         )
@@ -280,7 +155,7 @@ def ensure_repo_root(
         )
 
     # Verify clone
-    repo_root = _find_repo_root()
+    repo_root = find_repo_root()
     if repo_root is None:
         raise RuntimeError(
             f"Clone succeeded but repo root not found at {clone_target}. "
@@ -325,7 +200,7 @@ def bootstrap_notebook(
     """
     result = {
         "ROOT": None,
-        "IN_COLAB": _running_in_colab(),
+        "IN_COLAB": running_in_colab(),
         "GH_TOKEN": "",
         "HF_TOKEN": "",
         "bootstrap_status": "initializing",
@@ -346,16 +221,7 @@ def bootstrap_notebook(
             print("[BOOTSTRAP] HuggingFace token not found (public models only).")
 
         # Ensure repo root
-        notebook2_sparse_paths = (
-            NOTEBOOK2_SPARSE_PATHS
-            if "Notebook 2" in notebook_name or "Continual Adapter Training" in notebook_name
-            else None
-        )
-        ROOT = ensure_repo_root(
-            auto_clone=auto_clone_repo,
-            github_token=result["GH_TOKEN"],
-            sparse_paths=notebook2_sparse_paths,
-        )
+        ROOT = ensure_repo_root(auto_clone=auto_clone_repo, github_token=result["GH_TOKEN"])
         result["ROOT"] = ROOT
         os.chdir(ROOT)
         print(f"[BOOTSTRAP] Repo root: {ROOT}")

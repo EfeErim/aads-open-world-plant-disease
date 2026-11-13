@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.colab_live_telemetry import ColabLiveTelemetry
+from src.colab.live_telemetry import ColabLiveTelemetry
 
 
 def test_live_telemetry_writes_events_logs_and_artifacts(tmp_path):
@@ -97,7 +97,7 @@ def test_live_telemetry_throttles_batch_latest_status_writes(tmp_path, monkeypat
     )
 
     clock = {"value": 1.0}
-    monkeypatch.setattr("scripts.colab_live_telemetry.time.monotonic", lambda: clock["value"])
+    monkeypatch.setattr("src.colab.live_telemetry.time.monotonic", lambda: clock["value"])
 
     telemetry.update_latest({"event_type": "batch_end", "epoch": 1, "batch": 1})
     latest_path = drive_root / "telemetry" / "run_002b" / "latest_status.json"
@@ -127,7 +127,7 @@ def test_live_telemetry_retries_latest_status_after_transient_drive_write_failur
         latest_status_min_interval_sec=15.0,
     )
 
-    import scripts.colab_live_telemetry as telemetry_module
+    import src.colab.live_telemetry as telemetry_module
 
     original_write_json = telemetry_module.write_json
     state = {"drive_latest_failures": 0}
@@ -213,8 +213,8 @@ def test_capture_cell_output_persists_output_on_exception(tmp_path):
 def test_live_telemetry_spools_locally_when_drive_mount_is_missing(tmp_path, monkeypatch):
     drive_root = tmp_path / "drive"
     local_root = tmp_path / "local"
-    monkeypatch.setattr("scripts.colab_live_telemetry._requires_google_drive_mount", lambda path: True)
-    monkeypatch.setattr("scripts.colab_live_telemetry._google_drive_is_mounted", lambda: False)
+    monkeypatch.setattr("src.colab.live_telemetry._requires_google_drive_mount", lambda path: True)
+    monkeypatch.setattr("src.colab.live_telemetry._google_drive_is_mounted", lambda: False)
 
     telemetry = ColabLiveTelemetry(
         notebook_name="nb2",
@@ -254,8 +254,8 @@ def test_live_telemetry_auto_run_ids_do_not_collide_within_same_second(tmp_path,
                 return value.replace(tzinfo=tz)
             return value
 
-    monkeypatch.setattr("scripts.colab_live_telemetry.datetime", _FakeDateTime)
-    monkeypatch.setattr("scripts.colab_live_telemetry._utc_now_iso", lambda: "2026-03-11T12:00:00Z")
+    monkeypatch.setattr("src.colab.live_telemetry.datetime", _FakeDateTime)
+    monkeypatch.setattr("src.colab.live_telemetry._utc_now_iso", lambda: "2026-03-11T12:00:00Z")
 
     first = ColabLiveTelemetry(notebook_name="nb2", drive_root=drive_root, local_root=local_root)
     second = ColabLiveTelemetry(notebook_name="nb2", drive_root=drive_root, local_root=local_root)

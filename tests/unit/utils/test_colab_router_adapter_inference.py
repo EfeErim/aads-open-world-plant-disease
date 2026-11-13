@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts import colab_router_adapter_inference as router_script
+from src.colab import router_adapter_inference as router_script
 from src.shared.contracts import RouterAnalysisResult, RouterDetection
 
 

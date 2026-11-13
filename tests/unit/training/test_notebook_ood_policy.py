@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from src.training.notebook_runtime_helpers import calibrate_notebook_ood_policy, select_notebook_ood_policy
+from src.colab.training_helpers import calibrate_notebook_ood_policy, select_notebook_ood_policy
 from src.training.types import EvaluationArtifactsPayload, ValidationReport
 
 

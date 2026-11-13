@@ -2,7 +2,7 @@
 # Runs Notebook 2 dataset validation in the notebook namespace.
 
 with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
-    from scripts.colab_training_recommendations import inspect_runtime_dataset
+    from src.colab.training_recommendations import inspect_runtime_dataset
     from src.data.dataset_lineage import resolve_dataset_lineage
     from src.data.dataset_release_runtime import fetch_materialize_dataset_release
     from src.data.public_sample_dataset import materialize_public_sample_dataset

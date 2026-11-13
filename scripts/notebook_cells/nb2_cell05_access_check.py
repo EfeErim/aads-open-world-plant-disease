@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 with TELEMETRY.capture_cell_output("Cell 3b: Guncelleme ve Erisim Kontrolu"):
-    from scripts.colab_repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
+    from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
     from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker
     from src.pipeline.adapter_release import resolve_token
 

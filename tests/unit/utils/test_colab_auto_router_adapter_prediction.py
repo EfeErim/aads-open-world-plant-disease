@@ -2,8 +2,8 @@ from pathlib import Path
 
 from PIL import Image
 
-import scripts.colab_auto_router_adapter_prediction as auto_prediction
-from scripts.colab_auto_router_adapter_prediction import (
+import src.colab.auto_router_adapter_prediction as auto_prediction
+from src.colab.auto_router_adapter_prediction import (
     clear_auto_prediction_workflow_cache,
     run_auto_router_adapter_prediction,
 )

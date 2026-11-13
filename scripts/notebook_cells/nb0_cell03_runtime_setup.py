@@ -8,14 +8,14 @@ import torch
 
 matplotlib.use("Agg")
 
-from scripts.colab_repo_bootstrap import (
+from src.colab.repo_bootstrap import (
     export_current_colab_notebook,
     install_colab_requirements,
     mirror_checkpoint_state_to_repo,
     mirror_path_to_repo,
     running_in_colab,
 )
-from scripts.colab_live_telemetry import ColabLiveTelemetry
+from src.colab.live_telemetry import ColabLiveTelemetry
 from src.data.grouped_runtime_dataset_preparation import resolve_safe_embedding_batch_size
 from src.core.config_manager import ConfigurationManager
 

@@ -18,7 +18,7 @@ from scripts.notebook_contracts.support import (
 def test_auto_router_adapter_notebook_contract() -> None:
     import inspect
 
-    from scripts.colab_auto_router_adapter_prediction import run_auto_router_adapter_prediction
+    from src.colab.auto_router_adapter_prediction import run_auto_router_adapter_prediction
 
     sources = _load_notebook_sources("8_auto_router_adapter_prediction.ipynb")
     helper_source = inspect.getsource(run_auto_router_adapter_prediction)
@@ -94,7 +94,7 @@ def test_auto_router_adapter_notebook_contract() -> None:
         )
     _assert_contains(
         sources.full_source,
-        "from scripts.colab_auto_router_adapter_prediction import run_auto_router_adapter_prediction",
+        "from src.colab.auto_router_adapter_prediction import run_auto_router_adapter_prediction",
         "Notebook 8 should use the maintained auto router-adapter helper: {snippet}",
     )
     full_prediction_cell = _find_code_cell_source(
@@ -257,18 +257,18 @@ def test_auto_router_adapter_notebook_contract() -> None:
     )
 
 def test_colab_helpers() -> None:
-    from scripts.colab_checkpointing import TrainingCheckpointManager
-    from scripts.colab_live_telemetry import ColabLiveTelemetry
-    from scripts.colab_repo_bootstrap import (
+    from scripts.evaluate_dataset_layout import evaluate_layout
+    from scripts.prepare_materialization_dataset import prepare_class_root_for_materialization
+    from src.colab.checkpointing import TrainingCheckpointManager
+    from src.colab.live_telemetry import ColabLiveTelemetry
+    from src.colab.repo_bootstrap import (
         export_current_colab_notebook,
         mirror_checkpoint_state_to_repo,
         mirror_path_to_repo,
         push_repo_paths_to_github,
         push_repo_run_to_github,
     )
-    from scripts.colab_simple_adapter_smoke_ui import launch_simple_adapter_smoke_ui
-    from scripts.evaluate_dataset_layout import evaluate_layout
-    from scripts.prepare_materialization_dataset import prepare_class_root_for_materialization
+    from src.colab.simple_adapter_smoke_ui import launch_simple_adapter_smoke_ui
     from src.data.grouped_runtime_dataset_preparation import (
         build_grouped_dataset_plan,
         materialize_grouped_runtime_dataset,
@@ -301,7 +301,7 @@ def test_data_prep_notebook_contract() -> None:
     data_prep_contract_source = sources.full_source + "\n" + grouped_prep_helper_source
     bootstrap_source = _find_code_cell_source(
         sources,
-        "from scripts.colab_live_telemetry import ColabLiveTelemetry",
+        "from src.colab.live_telemetry import ColabLiveTelemetry",
         "Notebook 0 bootstrap cell was not found",
     )
     parameter_source = _find_code_cell_source(
@@ -414,7 +414,7 @@ def test_training_notebook_dataset_contract_detection() -> None:
         ROOT / "src" / "data" / "public_sample_dataset.py"
     ).read_text(encoding="utf-8")
     assert "fetch_materialize_dataset_release(" in sources.full_source
-    assert "from scripts.colab_training_recommendations import inspect_runtime_dataset" in sources.full_source
+    assert "from src.colab.training_recommendations import inspect_runtime_dataset" in sources.full_source
     assert "inspect_runtime_dataset" in sources.full_source
     assert "resolve_notebook_params" in sources.full_source
     assert 'selected_release_root = Path(release_report["selected_dataset_root"])' in sources.full_source
@@ -444,7 +444,7 @@ def test_training_notebook_bootstrap_contract() -> None:
     sources = _load_notebook_sources("2_train_continual_sd_lora_adapter.ipynb")
     bootstrap_source = _find_code_cell_source(
         sources,
-        "from scripts.colab_live_telemetry import ColabLiveTelemetry",
+        "from src.colab.live_telemetry import ColabLiveTelemetry",
         "Notebook 2 bootstrap cell was not found",
     )
     parameter_source = _find_code_cell_source(

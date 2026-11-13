@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import torch
 from PIL import Image
 
-from scripts import colab_adapter_smoke_test as smoke
+from src.colab import adapter_smoke_test as smoke
 from tests.utils.test_helpers import make_image
 
 

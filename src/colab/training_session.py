@@ -79,7 +79,7 @@ def merge_training_summary_fields(
         telemetry=telemetry,
         overview_updates=merged,
         extra_entries=list(extra_entries or []),
-        generated_by="scripts.colab_notebook_helpers",
+        generated_by="src.colab.training_helpers",
     )
     return merged
 
@@ -162,7 +162,7 @@ def ensure_notebook_checkpoint_manager(
     if checkpoint_manager is not None:
         return checkpoint_manager
 
-    from src.training.colab_checkpointing import TrainingCheckpointManager
+    from src.colab.checkpointing import TrainingCheckpointManager
 
     resolved_run_id = str(run_id or (now_fn or datetime.now)().strftime("%Y%m%d_%H%M%S_%f"))
     resolved_drive_root = Path(drive_root or os.environ.get("AADS_DRIVE_LOG_ROOT", "/content/drive/MyDrive/aads_ulora"))

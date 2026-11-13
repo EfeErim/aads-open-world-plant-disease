@@ -4,8 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
-from scripts.colab_checkpointing import TrainingCheckpointManager
-from scripts.colab_notebook_helpers import (
+from src.colab.checkpointing import TrainingCheckpointManager
+from src.colab.training_helpers import (
     NotebookTrainingStatusPrinter,
     apply_notebook_optimization_proposal,
     build_notebook_completion_report,
@@ -191,7 +191,7 @@ def test_ensure_notebook_checkpoint_manager_generates_microsecond_run_ids(tmp_pa
         def now(cls):
             return cls.values.pop(0)
 
-    monkeypatch.setattr("scripts.colab_notebook_helpers.datetime", _FakeDateTime)
+    monkeypatch.setattr("src.colab.training_helpers.datetime", _FakeDateTime)
 
     first = ensure_notebook_checkpoint_manager(None, drive_root=tmp_path)
     second = ensure_notebook_checkpoint_manager(None, drive_root=tmp_path)
@@ -425,7 +425,7 @@ def test_maybe_auto_disconnect_colab_runtime_calls_unassign_when_ready(tmp_path:
             calls.append("unassign")
 
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers._resolve_colab_runtime_api",
+        "src.colab.training_helpers._resolve_colab_runtime_api",
         lambda: _FakeRuntime(),
     )
 
@@ -451,7 +451,7 @@ def test_maybe_auto_disconnect_colab_runtime_skips_when_checks_are_incomplete(tm
 
     telemetry = _FakeTelemetry(summary_path)
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers._resolve_colab_runtime_api",
+        "src.colab.training_helpers._resolve_colab_runtime_api",
         lambda: None,
     )
 
@@ -516,7 +516,7 @@ def test_maybe_auto_disconnect_colab_runtime_proceeds_when_only_notebook_export_
             calls.append("unassign")
 
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers._resolve_colab_runtime_api",
+        "src.colab.training_helpers._resolve_colab_runtime_api",
         lambda: _FakeRuntime(),
     )
 
@@ -1049,11 +1049,11 @@ def test_prepare_notebook_access_and_dataset_collects_access_and_runtime_dataset
         "huggingface": {"access_mode": "token"},
     }
     monkeypatch.setattr(
-        "scripts.colab_repo_bootstrap.collect_notebook_access_report",
+        "src.colab.repo_bootstrap.collect_notebook_access_report",
         lambda repo_root, hf_model_ids: access_report,
     )
     monkeypatch.setattr(
-        "scripts.colab_repo_bootstrap.print_notebook_access_report",
+        "src.colab.repo_bootstrap.print_notebook_access_report",
         lambda report, print_fn=None: (print_fn or print)(f"[ACCESS] {report['github']['read_access_mode']}"),
     )
 
@@ -1104,7 +1104,7 @@ def test_initialize_notebook_training_engine_applies_campaign_proposal_and_build
             return [_FakeParam(10, True), _FakeParam(5, False)]
 
     monkeypatch.setattr(
-        "scripts.colab_dataset_layout.resolve_notebook_training_classes",
+        "src.colab.dataset_layout.resolve_notebook_training_classes",
         lambda available_classes, crop_name, taxonomy_path: {
             "selected_classes": ["healthy_leaf"],
             "used_taxonomy_filter": True,
@@ -1137,7 +1137,7 @@ def test_initialize_notebook_training_engine_applies_campaign_proposal_and_build
 
     monkeypatch.setattr("src.data.loaders.create_training_loaders", _fake_create_training_loaders)
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.resolve_notebook_optimization_campaign",
+        "src.colab.training_helpers.resolve_notebook_optimization_campaign",
         lambda **kwargs: {
             "status": "active",
             "next_proposal": {"rank": 1, "signature": "sig_1"},
@@ -1146,7 +1146,7 @@ def test_initialize_notebook_training_engine_applies_campaign_proposal_and_build
         },
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.apply_notebook_optimization_proposal",
+        "src.colab.training_helpers.apply_notebook_optimization_proposal",
         lambda **kwargs: {
             "applied": True,
             "notebook_parameters": dict(kwargs["notebook_parameters"], BATCH_SIZE=16, EPOCHS=14, RANDAUGMENT_NUM_OPS=4),
@@ -1379,24 +1379,24 @@ def test_complete_notebook_training_run_finalizes_outputs_with_helper_callbacks(
         _evaluate,
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.persist_validation_artifacts",
+        "src.colab.training_helpers.persist_validation_artifacts",
         lambda **kwargs: {
             "metric_gate": {"metrics": {"ood_auroc": 0.91, "sure_ds_f1": 0.8, "conformal_empirical_coverage": 0.9}},
             "report_dict": {"accuracy": 0.95},
         },
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.persist_production_readiness_artifact",
+        "src.colab.training_helpers.persist_production_readiness_artifact",
         lambda **kwargs: {
             "payload": {"status": "ready", "passed": True, "ood_evidence_source": kwargs["ood_evidence_source"]}
         },
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.merge_training_summary_fields",
+        "src.colab.training_helpers.merge_training_summary_fields",
         lambda **kwargs: dict(kwargs["payload"]),
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.finalize_notebook_optimization_campaign",
+        "src.colab.training_helpers.finalize_notebook_optimization_campaign",
         lambda **kwargs: {
             "status": "active",
             "mode": "continue",
@@ -1408,12 +1408,12 @@ def test_complete_notebook_training_run_finalizes_outputs_with_helper_callbacks(
         },
     )
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.build_notebook_completion_report",
+        "src.colab.training_helpers.build_notebook_completion_report",
         lambda **kwargs: {"checks": {"repo_exports": True}, "ready": True, "soft_missing": [], "missing": []},
     )
     disconnect_calls = []
     monkeypatch.setattr(
-        "scripts.colab_notebook_helpers.maybe_auto_disconnect_colab_runtime",
+        "src.colab.training_helpers.maybe_auto_disconnect_colab_runtime",
         lambda **kwargs: disconnect_calls.append(dict(kwargs)),
     )
 

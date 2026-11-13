@@ -11,8 +11,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from scripts.colab_repo_bootstrap import push_repo_paths_to_github
 from scripts.notebook_helpers.nb8_m2_reporting import write_m2_failure_summary
+from src.colab.repo_bootstrap import push_repo_paths_to_github
 
 
 def m2_subprocess_env(settings: dict[str, Any]) -> dict[str, str]:

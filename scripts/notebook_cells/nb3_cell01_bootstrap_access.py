@@ -46,7 +46,7 @@ if not CLONE_TARGET.exists():
     subprocess.run(['git', 'clone', '--depth', '1', clone_url, str(CLONE_TARGET)], check=True)
 
 try:
-    from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
+    from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
     repo_root_for_update_check = _ensure_repo_root_for_update_check()
 except Exception:
     repo_root_for_update_check = None

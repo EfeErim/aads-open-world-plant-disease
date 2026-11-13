@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from scripts.colab_training_recommendations import (
+from scripts.notebook_helpers.adapter_recommendations import get_adapter_recs
+from src.colab.training_recommendations import (
     inspect_runtime_dataset,
     resolve_notebook_params,
 )
-from scripts.notebook_helpers.adapter_recommendations import get_adapter_recs
 
 
 def _write_images(root: Path, split_name: str, class_name: str, count: int) -> None:

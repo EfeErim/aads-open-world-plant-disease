@@ -3,8 +3,8 @@
 
 import json
 
-from scripts.colab_repo_bootstrap import login_and_check_hf_token
-from scripts.colab_router_adapter_inference import clear_router_cache, ensure_router_ready, run_inference
+from src.colab.repo_bootstrap import login_and_check_hf_token
+from src.colab.router_adapter_inference import clear_router_cache, ensure_router_ready, run_inference
 
 # Notebook 1 user-facing profile controls
 INFERENCE_PROFILES = {

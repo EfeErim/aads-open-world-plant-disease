@@ -16,11 +16,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import src.pipeline.adapter_smoke as _impl  # noqa: E402
+import src.colab.adapter_smoke as _impl  # noqa: E402
 
 IMAGE_SUFFIXES = _impl.IMAGE_SUFFIXES
 DEFAULT_ROBUST_VIEWS = _impl.DEFAULT_ROBUST_VIEWS

@@ -596,6 +596,6 @@ def _handoff_cache_key(
         expected_class_label=expected_class_label,
         repo_root=REPO_ROOT,
         runner_path=Path(__file__).resolve(),
-        auto_handoff_path=REPO_ROOT / "scripts" / "colab_auto_router_adapter_prediction.py",
+        auto_handoff_path=REPO_ROOT / "src" / "colab" / "auto_router_adapter_prediction.py",
         prototype_reconciler_path=REPO_ROOT / "src" / "router" / "prototype_reconciler.py",
     )

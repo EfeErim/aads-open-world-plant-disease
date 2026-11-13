@@ -2,7 +2,7 @@ import sys
 import types
 from pathlib import Path
 
-from scripts import colab_simple_adapter_smoke_ui as ui
+from src.colab import simple_adapter_smoke_ui as ui
 
 
 def test_ensure_colab_widget_manager_returns_false_outside_colab(monkeypatch):
@@ -110,7 +110,7 @@ def test_launch_simple_adapter_smoke_ui_builds_minimal_layout(monkeypatch, tmp_p
     )
 
     monkeypatch.setattr(ui, "widgets", fake_widgets)
-    monkeypatch.setattr(ui, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(ui, "running_in_colab", lambda: True)
     monkeypatch.setattr(ui, "discover_adapter_candidates", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(ui, "display", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(ui, "clear_output", lambda *_args, **_kwargs: None)
@@ -158,7 +158,7 @@ def test_launch_simple_adapter_smoke_ui_uses_resolved_cpu_device(monkeypatch, tm
 
     monkeypatch.setitem(sys.modules, "torch", fake_torch)
     monkeypatch.setattr(ui, "widgets", fake_widgets)
-    monkeypatch.setattr(ui, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(ui, "running_in_colab", lambda: True)
     monkeypatch.setattr(ui, "_ensure_adapter_smoke_imports", lambda: None)
     monkeypatch.setattr(
         ui,
@@ -228,7 +228,7 @@ def test_launch_simple_adapter_smoke_ui_collapses_run_mirrors_by_default(monkeyp
         return []
 
     monkeypatch.setattr(ui, "widgets", fake_widgets)
-    monkeypatch.setattr(ui, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(ui, "running_in_colab", lambda: True)
     monkeypatch.setattr(ui, "discover_adapter_candidates", _fake_discover)
     monkeypatch.setattr(ui, "display", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(ui, "clear_output", lambda *_args, **_kwargs: None)
@@ -275,7 +275,7 @@ def test_launch_simple_adapter_smoke_ui_keeps_legacy_show_all_collapsed(monkeypa
         return []
 
     monkeypatch.setattr(ui, "widgets", fake_widgets)
-    monkeypatch.setattr(ui, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(ui, "running_in_colab", lambda: True)
     monkeypatch.setattr(ui, "discover_adapter_candidates", _fake_discover)
     monkeypatch.setattr(ui, "display", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(ui, "clear_output", lambda *_args, **_kwargs: None)
@@ -323,7 +323,7 @@ def test_launch_simple_adapter_smoke_ui_can_show_mirrors_for_debug(monkeypatch, 
         return []
 
     monkeypatch.setattr(ui, "widgets", fake_widgets)
-    monkeypatch.setattr(ui, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(ui, "running_in_colab", lambda: True)
     monkeypatch.setattr(ui, "discover_adapter_candidates", _fake_discover)
     monkeypatch.setattr(ui, "display", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(ui, "clear_output", lambda *_args, **_kwargs: None)

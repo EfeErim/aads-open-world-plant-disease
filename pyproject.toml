@@ -48,9 +48,7 @@ ignore = ["E501"]
 # excepts are allowed here during the transition. Everything else must catch specific exception types.
 "scripts/notebook_cells/*.py" = ["E402", "F401", "F821", "I001", "BLE001"]
 "scripts/notebook_helpers/*.py" = ["BLE001"]
-"scripts/colab_*.py" = ["BLE001"]
-"src/notebook/repo_bootstrap.py" = ["BLE001"]
-"src/training/notebook_runtime_session.py" = ["BLE001"]
+"src/colab/*.py" = ["BLE001"]
 "scripts/evaluate_router_surface.py" = ["E402"]
 
 [tool.mypy]

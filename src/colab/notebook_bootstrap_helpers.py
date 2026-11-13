@@ -1,9 +1,4 @@
-"""
-Consolidated bootstrap helpers for all Colab notebooks.
-
-This module extracts common repo detection, token resolution, and setup logic
-from individual notebook cells, making notebooks cleaner and reducing duplication.
-"""
+"""One-call environment setup for Notebooks 0, 1 and 16: find or clone the repo, then install requirements."""
 
 import os
 import subprocess
@@ -12,86 +7,13 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit, urlunsplit
 
-# =============================================================================
-# Token Resolution
-# =============================================================================
-
-
-def _running_in_colab() -> bool:
-    """Check if running in Google Colab."""
-    try:
-        import google.colab  # noqa: F401
-        return True
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
-        return False
-
-
-def _resolve_colab_secret(secret_name: str) -> str:
-    """Resolve a secret from Google Colab secrets."""
-    if not _running_in_colab():
-        return ""
-    try:
-        from google.colab import userdata
-        return str(userdata.get(secret_name) or "").strip()
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
-        return ""
-
-
-def resolve_github_token() -> Optional[str]:
-    """Resolve GitHub token from environment or Colab secrets."""
-    github_token_names = ("GH_TOKEN", "GITHUB_TOKEN")
-
-    # Check environment first
-    for env_name in github_token_names:
-        token = str(os.environ.get(env_name, "")).strip()
-        if token:
-            os.environ.setdefault("GH_TOKEN", token)
-            return token
-
-    # Check Colab secrets
-    for secret_name in github_token_names:
-        token = _resolve_colab_secret(secret_name)
-        if token:
-            os.environ["GH_TOKEN"] = token
-            return token
-
-    return None
-
-
-def resolve_huggingface_token() -> Optional[str]:
-    """Resolve Hugging Face token from environment or Colab secrets."""
-    hf_token_names = ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN")
-
-    # Check environment first
-    for env_name in hf_token_names:
-        token = str(os.environ.get(env_name, "")).strip()
-        if token:
-            os.environ.setdefault("HF_TOKEN", token)
-            return token
-
-    # Check Colab secrets
-    for secret_name in hf_token_names:
-        token = _resolve_colab_secret(secret_name)
-        if token:
-            os.environ["HF_TOKEN"] = token
-            return token
-
-    return None
-
-
-# =============================================================================
-# Repo Detection and Bootstrap
-# =============================================================================
-
-def _is_repo_root(path: Path) -> bool:
-    """Check if a path is a repo root (has src, config, scripts dirs)."""
-    return (path / "src").is_dir() and (path / "config").is_dir() and (path / "scripts").is_dir()
+from src.colab.repo_bootstrap import (
+    COLAB_CLONE_TARGET,
+    find_repo_root,
+    resolve_github_token,
+    running_in_colab,
+)
+from src.colab.repo_bootstrap import resolve_hf_token as resolve_huggingface_token
 
 
 def _build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
@@ -107,44 +29,6 @@ def _build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
     return urlunsplit((parsed.scheme, f"x-access-token:{token}@{netloc}", parsed.path, parsed.query, parsed.fragment))
 
 
-def find_repo_root() -> Optional[Path]:
-    """Find repo root by checking env vars, cwd, and common locations."""
-    # Check explicit env vars
-    for raw in (os.environ.get("AADS_REPO_ROOT"), os.environ.get("REPO_ROOT")):
-        if not raw:
-            continue
-        candidate = Path(raw).expanduser().resolve()
-        if _is_repo_root(candidate):
-            return candidate
-
-    # Check cwd and parents
-    cwd = Path.cwd().resolve()
-    for candidate in [cwd, *cwd.parents]:
-        if _is_repo_root(candidate):
-            return candidate
-
-    # Check common Colab locations
-    common_candidates = (
-        Path("/content/bitirme projesi"),
-        Path("/content/bitirmeprojesi"),
-        Path("/content/aads_ulora"),
-        Path("/content/workspace"),
-        Path("/content/project"),
-    )
-    for candidate in common_candidates:
-        if _is_repo_root(candidate):
-            return candidate
-
-    # Check if any subdirs of common locations are repo roots
-    clone_target = Path("/content/bitirmeprojesi")
-    if clone_target.exists() and any(clone_target.iterdir()):
-        for child in clone_target.iterdir():
-            if child.is_dir() and _is_repo_root(child):
-                return child
-
-    return None
-
-
 def bootstrap_repo_root(
     repo_url: Optional[str] = None,
     clone_target: Optional[Path] = None,
@@ -155,7 +39,7 @@ def bootstrap_repo_root(
 
     Args:
         repo_url: GitHub repo URL (default from env or hardcoded)
-        clone_target: Where to clone if not found (default /content/bitirmeprojesi)
+        clone_target: Where to clone if not found (default COLAB_CLONE_TARGET)
         use_github_token: Whether to use GitHub token for authentication
 
     Returns:
@@ -168,7 +52,7 @@ def bootstrap_repo_root(
         repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
 
     if clone_target is None:
-        clone_target = Path("/content/bitirmeprojesi")
+        clone_target = COLAB_CLONE_TARGET
 
     # Try to find existing repo
     print("[SETUP] Checking repository checkout...", flush=True)
@@ -253,8 +137,8 @@ def setup_notebook_environment(
         sys.path.insert(0, str(repo_root))
 
     # Install requirements in Colab if needed
-    if install_requirements and _running_in_colab():
-        from scripts.colab_repo_bootstrap import install_colab_requirements
+    if install_requirements and running_in_colab():
+        from src.colab.repo_bootstrap import install_colab_requirements
         relative_requirements = Path(
             requirements_file or os.environ.get("AADS_COLAB_REQUIREMENTS_FILE", "requirements_colab.txt")
         )

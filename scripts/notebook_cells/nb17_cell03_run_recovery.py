@@ -11,10 +11,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from scripts.colab_notebook_helpers import maybe_auto_disconnect_colab_runtime
+from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime
 from scripts.notebook_helpers.adapter_recommendations import get_adapter_recs
 from scripts.notebook_helpers.cell_script_runner import run_cell_script
-from src.notebook.repo_bootstrap import push_repo_paths_to_github
+from src.colab.repo_bootstrap import push_repo_paths_to_github
 from experiments.ood_oe_recovery import notebook_campaign as _ood_notebook_campaign
 from src.ood.behavioral_acceptance import behavioral_acceptance_pass, behavioral_dev_report_pass
 from experiments.ood_oe_recovery.notebook_campaign import experiment_gate, read_behavioral_acceptance, read_behavioral_dev_report

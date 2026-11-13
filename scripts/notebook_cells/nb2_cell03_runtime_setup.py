@@ -48,7 +48,7 @@ def _infer_part_name_from_dataset_name(dataset_name: str) -> str:
     return "_".join(tokens[1:]) or "unspecified"
 
 # Imports for training notebook setup
-from scripts.colab_repo_bootstrap import (
+from src.colab.repo_bootstrap import (
     export_current_colab_notebook,
     install_colab_requirements,
     login_and_check_hf_token,
@@ -61,11 +61,11 @@ from scripts.colab_repo_bootstrap import (
     running_in_colab,
 )
 
-from scripts.colab_checkpointing import TrainingCheckpointManager
-from scripts.colab_live_telemetry import ColabLiveTelemetry
+from src.colab.checkpointing import TrainingCheckpointManager
+from src.colab.live_telemetry import ColabLiveTelemetry
 from src.core.config_manager import ConfigurationManager
 from src.shared.adapter_paths import build_adapter_bundle_root
-from scripts.colab_notebook_helpers import build_notebook_run_dir, build_notebook_run_id
+from src.colab.training_helpers import build_notebook_run_dir, build_notebook_run_id
 
 # Install Colab requirements if running in Colab
 IN_COLAB = running_in_colab()

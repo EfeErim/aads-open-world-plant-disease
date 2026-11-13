@@ -175,7 +175,7 @@ def test_adapter_surface() -> None:
 
 
 def test_runtime_surface() -> None:
-    from scripts.colab_auto_router_adapter_prediction import run_auto_router_adapter_prediction
+    from src.colab.auto_router_adapter_prediction import run_auto_router_adapter_prediction
     from src.pipeline.router_adapter_runtime import RouterAdapterRuntime
     from src.workflows.inference import InferenceWorkflow
 

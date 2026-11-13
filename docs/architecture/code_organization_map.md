@@ -41,15 +41,15 @@ release lifecycle, and both reuse the GitHub REST/authentication client in `src/
 
 Large notebook/research surfaces are split by responsibility while their existing imports remain valid:
 
-- `src/training/notebook_runtime_helpers.py` owns Notebook 2 orchestration, while
-  `src/training/notebook_runtime_session.py` owns sessions, checkpoints, artifacts and completion handling;
+- `src/colab/training_helpers.py` owns Notebook 2 orchestration, while
+  `src/colab/training_session.py` owns sessions, checkpoints, artifacts and completion handling;
 - `src/data/grouped_runtime_dataset_preparation.py` owns the grouped split plan, while
   `grouped_dataset_embeddings.py`, `grouped_dataset_reporting.py` and `grouped_dataset_materialization.py` own the
   corresponding focused stages;
 - `experiments/roi_ablation/runtime.py` owns the report-only ablation flow, while
   `experiments/roi_ablation/roi_router.py` owns crop/part handoff and the Grounding DINO fallback;
-- `scripts/colab_simple_adapter_smoke_ui.py` owns Notebook 4 interaction state, while
-  `scripts/simple_adapter_smoke_ui_view.py` owns its HTML rendering.
+- `src/colab/simple_adapter_smoke_ui.py` owns Notebook 4 interaction state, while
+  `src/colab/simple_adapter_smoke_ui_view.py` owns its HTML rendering.
 
 ## Dependency Direction
 

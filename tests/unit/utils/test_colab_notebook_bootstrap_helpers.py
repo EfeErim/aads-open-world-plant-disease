@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts import colab_notebook_bootstrap_helpers as bootstrap_helpers
+from src.colab import notebook_bootstrap_helpers as bootstrap_helpers
 
 
 def test_presentation_colab_profile_does_not_force_incompatible_torchao():
@@ -19,11 +19,11 @@ def test_setup_notebook_environment_uses_repo_relative_requirements_override(tmp
     monkeypatch.setattr(bootstrap_helpers, "resolve_github_token", lambda: "")
     monkeypatch.setattr(bootstrap_helpers, "resolve_huggingface_token", lambda: "")
     monkeypatch.setattr(bootstrap_helpers, "bootstrap_repo_root", lambda repo_url=None: tmp_path)
-    monkeypatch.setattr(bootstrap_helpers, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(bootstrap_helpers, "running_in_colab", lambda: True)
     monkeypatch.setattr(bootstrap_helpers.os, "chdir", lambda _path: None)
     monkeypatch.setenv("AADS_COLAB_REQUIREMENTS_FILE", requirements_path.name)
     monkeypatch.setattr(
-        "scripts.colab_repo_bootstrap.install_colab_requirements",
+        "src.colab.repo_bootstrap.install_colab_requirements",
         lambda path, in_colab: calls.append((path, in_colab)),
     )
 
@@ -38,7 +38,7 @@ def test_setup_notebook_environment_rejects_requirements_outside_repo(tmp_path: 
     monkeypatch.setattr(bootstrap_helpers, "resolve_github_token", lambda: "")
     monkeypatch.setattr(bootstrap_helpers, "resolve_huggingface_token", lambda: "")
     monkeypatch.setattr(bootstrap_helpers, "bootstrap_repo_root", lambda repo_url=None: tmp_path)
-    monkeypatch.setattr(bootstrap_helpers, "_running_in_colab", lambda: True)
+    monkeypatch.setattr(bootstrap_helpers, "running_in_colab", lambda: True)
     monkeypatch.setattr(bootstrap_helpers.os, "chdir", lambda _path: None)
 
     try:

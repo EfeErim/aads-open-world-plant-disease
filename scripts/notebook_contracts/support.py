@@ -38,7 +38,7 @@ REPO_BOOTSTRAP_REQUIRED = (
 UPDATE_CHECK_REQUIRED = (
     "repo_root_for_update_check = _ensure_repo_root_for_update_check()",
     "def _build_repo_access_url(",
-    "from scripts.colab_repo_bootstrap import probe_repo_update_status",
+    "from src.colab.repo_bootstrap import probe_repo_update_status",
     "[KONTROL] Ilk hucre:",
 )
 DRIVE_REPO_BOOTSTRAP_FORBIDDEN = (

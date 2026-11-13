@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts.colab_repo_bootstrap import (
+from src.colab.repo_bootstrap import (
     collect_notebook_access_report,
     login_and_check_hf_token,
     print_notebook_access_report,
 )
-from scripts.colab_router_adapter_inference import clear_router_cache, ensure_router_ready
+from src.colab.router_adapter_inference import clear_router_cache, ensure_router_ready
 from src.core.config_manager import get_config
 
 
 def run_bootstrap_notebook_nb1(notebook_name: str = "Notebook 1: Router Adapter Inference", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
     """Bootstrap Notebook 1 with repo discovery and access checks."""
-    from scripts.colab_notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
+    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
     try:
-        from scripts.colab_repo_bootstrap import _ensure_repo_root_for_update_check
+        from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
         _ensure_repo_root_for_update_check()
     except (ImportError, FileNotFoundError):
         # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
