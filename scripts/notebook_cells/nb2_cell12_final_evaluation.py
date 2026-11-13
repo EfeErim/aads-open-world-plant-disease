@@ -45,7 +45,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     notebook_config.setdefault("training", {})["continual"] = json.loads(json.dumps(STATE["continual_config"]))
     evaluation_cfg = notebook_config.get("training", {}).get("continual", {}).get("evaluation", {})
     artifact_root = notebook_artifact_root(ROOT)
-    from src.workflows.training_utils import collect_dataset_manifest_context
+    from src.workflows.run_metadata import collect_dataset_manifest_context
 
     persist_training_run_context_artifact(
         root=ROOT,

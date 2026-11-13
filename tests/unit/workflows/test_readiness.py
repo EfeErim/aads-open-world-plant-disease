@@ -1,4 +1,4 @@
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     build_production_readiness_context,
     record_adapter_export_metadata,
     select_authoritative_artifacts,

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.workflows.training_support import prepare_training_run
+from src.workflows.run_setup import prepare_training_run
 
 
 class FakeDataset:
@@ -114,7 +114,7 @@ def test_prepare_training_run_generates_microsecond_resolution_run_ids(monkeypat
         def utcnow(cls):
             return cls.values.pop(0)
 
-    monkeypatch.setattr("src.workflows.training_support.datetime", _FakeDateTime)
+    monkeypatch.setattr("src.workflows.run_setup.datetime", _FakeDateTime)
 
     first = prepare_training_run(
         config=_base_config(),

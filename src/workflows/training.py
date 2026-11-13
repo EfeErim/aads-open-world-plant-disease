@@ -43,29 +43,38 @@ from src.training.services.traceability import (
 )
 from src.training.validation import evaluate_model_with_artifact_metrics
 from src.utils.training_helpers import loader_size
-from src.workflows import training_utils
-from src.workflows.training_readiness import (
+from src.workflows import run_metadata
+from src.workflows.readiness import (
     build_production_readiness_context as build_production_readiness_context_payload,
 )
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     build_training_summary_payload as build_training_summary_payload_dict,
 )
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     record_adapter_export_metadata as record_adapter_export_metadata_payload,
 )
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     record_primary_score_selection as record_primary_score_selection_payload,
 )
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     select_authoritative_artifacts as select_authoritative_artifacts_payload,
 )
-from src.workflows.training_readiness import (
+from src.workflows.readiness import (
     select_authoritative_evaluation as select_authoritative_evaluation_payload,
 )
-from src.workflows.training_support import (
+from src.workflows.run_setup import (
     build_artifact_payload,
     prepare_training_run,
     stringify_paths,
+)
+from src.workflows.stages import (
+    apply_primary_score_method_to_trainer,
+    build_evaluation_gate_targets,
+    execute_training_session_logic,
+    persist_split_artifacts,
+    persist_training_artifacts,
+    run_classifier_rebalance_logic,
+    select_and_apply_real_ood_dev_policy,
 )
 
 logger = logging.getLogger(__name__)
@@ -453,8 +462,6 @@ class TrainingWorkflow:
         loaders: JsonDict,
         loader_sizes: Dict[str, int],
     ) -> _TrainingExecutionStage:
-        from src.workflows.training_runtime import execute_training_session_logic as _exec_logic
-
         (
             history_payload,
             best_state_restored,
@@ -462,7 +469,7 @@ class TrainingWorkflow:
             calibration_loader,
             ood_calibration,
             trainer,
-        ) = _exec_logic(session, batch_recorder, adapter, loaders, loader_sizes)
+        ) = execute_training_session_logic(session, batch_recorder, adapter, loaders, loader_sizes)
         return _TrainingExecutionStage(
             history_payload=history_payload,
             best_state_restored=best_state_restored,
@@ -526,8 +533,6 @@ class TrainingWorkflow:
         telemetry: Any,
         run_id: str,
     ) -> tuple[Any, Dict[str, Any], str, Any, Dict[str, Any], bool]:
-        from src.workflows.training_runtime import run_classifier_rebalance_logic as _rebalance_logic
-
         (
             trainer,
             rebalance_history_payload,
@@ -535,7 +540,7 @@ class TrainingWorkflow:
             calibration_loader,
             rebalance_calibration,
             rebalance_best_state_restored,
-        ) = _rebalance_logic(
+        ) = run_classifier_rebalance_logic(
             adapter=adapter,
             trainer=trainer,
             loaders=loaders,
@@ -554,66 +559,6 @@ class TrainingWorkflow:
                 rebalance_best_state_restored,
             )
         return trainer, {}, calibration_split_name, calibration_loader, {}, False
-
-    def _persist_training_artifacts(
-        self,
-        *,
-        artifact_dir: Path,
-        history_payload: Dict[str, Any],
-        batch_metrics_csv: Path,
-        telemetry: Any,
-    ) -> Dict[str, Any]:
-        from src.workflows.training_subroutines import persist_training_artifacts as _persist_training_artifacts_fn
-        return _persist_training_artifacts_fn(
-            artifact_dir=artifact_dir,
-            history_payload=history_payload,
-            batch_metrics_csv=batch_metrics_csv,
-            telemetry=telemetry,
-        )
-
-    def _persist_evaluation_artifacts(
-        self,
-        *,
-        artifact_dir: Path,
-        trainer: Any,
-        loader: Any,
-        ood_loader: Any,
-        detected_classes: List[str],
-        telemetry: Any,
-        run_id: str,
-        crop_name: str,
-        loader_sizes: Dict[str, int],
-        split_name: str,
-        artifact_subdir: str,
-        telemetry_subdir: Optional[str] = None,
-        evaluation_result: Any = None,
-        requested_primary_score_method: str = "auto",
-        selected_primary_score_method: str = "auto",
-        selection_source: str = "",
-        gate_targets: Optional[Dict[str, float]] = None,
-        gate_auxiliary_ood_diagnostics: bool = False,
-    ) -> Dict[str, Any]:
-        from src.workflows.training_subroutines import persist_evaluation_artifacts as _persist_evaluation_artifacts_fn
-        return _persist_evaluation_artifacts_fn(
-            artifact_dir=artifact_dir,
-            trainer=trainer,
-            loader=loader,
-            ood_loader=ood_loader,
-            detected_classes=detected_classes,
-            telemetry=telemetry,
-            run_id=run_id,
-            crop_name=crop_name,
-            loader_sizes=loader_sizes,
-            split_name=split_name,
-            artifact_subdir=artifact_subdir,
-            telemetry_subdir=telemetry_subdir,
-            evaluation_result=evaluation_result,
-            requested_primary_score_method=requested_primary_score_method,
-            selected_primary_score_method=selected_primary_score_method,
-            selection_source=selection_source,
-            gate_targets=gate_targets,
-            gate_auxiliary_ood_diagnostics=gate_auxiliary_ood_diagnostics,
-        )
 
     @staticmethod
     def _evaluate_split(
@@ -638,62 +583,6 @@ class TrainingWorkflow:
             test=cls._evaluate_split(trainer=trainer, loader=loaders.get("test"), ood_loader=loaders.get("ood")),
         )
 
-    def _persist_split_artifacts(
-        self,
-        *,
-        artifact_dir: Path,
-        trainer: Any,
-        loaders: Dict[str, Any],
-        detected_classes: List[str],
-        telemetry: Any,
-        run_id: str,
-        crop_name: str,
-        loader_sizes: Dict[str, int],
-        evaluation_results: Dict[str, Any],
-        requested_primary_score_method: str,
-        selected_primary_score_method: str,
-        selection_source: str,
-        gate_targets: Optional[Dict[str, float]] = None,
-        gate_auxiliary_ood_diagnostics: bool = False,
-    ) -> Dict[str, Dict[str, Any]]:
-        from src.workflows.training_subroutines import persist_split_artifacts as _persist_split_artifacts_fn
-        return _persist_split_artifacts_fn(
-            artifact_dir=artifact_dir,
-            trainer=trainer,
-            loaders=loaders,
-            detected_classes=detected_classes,
-            telemetry=telemetry,
-            run_id=run_id,
-            crop_name=crop_name,
-            loader_sizes=loader_sizes,
-            evaluation_results=evaluation_results,
-            requested_primary_score_method=requested_primary_score_method,
-            selected_primary_score_method=selected_primary_score_method,
-            selection_source=selection_source,
-            gate_targets=gate_targets,
-            gate_auxiliary_ood_diagnostics=gate_auxiliary_ood_diagnostics,
-        )
-
-    @staticmethod
-    def _apply_primary_score_method_to_trainer(trainer: Any, primary_score_method: str) -> str:
-        from src.workflows.training_subroutines import apply_primary_score_method_to_trainer as _apply_primary
-        return _apply_primary(trainer, primary_score_method)
-
-    @staticmethod
-    def _apply_score_threshold_override_to_trainer(
-        trainer: Any,
-        *,
-        primary_score_method: str,
-        selected_threshold: Any,
-    ) -> None:
-        from src.workflows.training_subroutines import apply_score_threshold_override_to_trainer as _apply_threshold
-        return _apply_threshold(trainer, primary_score_method=primary_score_method, selected_threshold=selected_threshold)
-
-    @staticmethod
-    def _build_evaluation_gate_targets(evaluation_cfg: Dict[str, Any]) -> Dict[str, float]:
-        from src.workflows.training_subroutines import build_evaluation_gate_targets as _build_targets
-        return _build_targets(evaluation_cfg)
-
     def _select_from_real_ood_dev(
         self,
         *,
@@ -703,8 +592,6 @@ class TrainingWorkflow:
         fallback_method: str,
         target_fpr: float,
     ) -> Optional[_PrimaryScoreSelectionStage]:
-        from src.workflows.training_subroutines import select_and_apply_real_ood_dev_policy
-
         selection = select_and_apply_real_ood_dev_policy(
             trainer=trainer,
             loaders=loaders,
@@ -821,7 +708,7 @@ class TrainingWorkflow:
             config=self.config,
             device=self.device,
             crop_name=crop_name,
-            part_name=training_utils.normalize_part_name(part_name) if part_name is not None else None,
+            part_name=run_metadata.normalize_part_name(part_name) if part_name is not None else None,
             data_dir=resolved_data_dir,
             class_names=class_names,
             num_workers=num_workers,
@@ -843,9 +730,9 @@ class TrainingWorkflow:
         runtime_dataset_key = str(run_setup.runtime_dataset_key)
         runtime_crop_root = Path(run_setup.runtime_crop_root)
         runtime_dataset_resolution_source = str(run_setup.runtime_dataset_resolution_source)
-        runtime_manifest_payload = training_utils.read_dataset_manifest_payload(runtime_crop_root)
+        runtime_manifest_payload = run_metadata.read_dataset_manifest_payload(runtime_crop_root)
         runtime_manifest_path = runtime_crop_root / "split_manifest.json"
-        runtime_manifest_context = training_utils.collect_dataset_manifest_context(runtime_crop_root)
+        runtime_manifest_context = run_metadata.collect_dataset_manifest_context(runtime_crop_root)
         split_manifest_context = dict(runtime_manifest_context.get("split_manifest.json", {}))
         split_manifest_sha256 = str(split_manifest_context.get("sha256", "") or "")
         if not split_manifest_sha256:
@@ -867,9 +754,9 @@ class TrainingWorkflow:
             raise ValueError(f"dataset_lineage does not match {runtime_manifest_path}")
         adapter = run_setup.adapter
         resolved_part_name = (
-            training_utils.normalize_part_name(part_name)
+            run_metadata.normalize_part_name(part_name)
             if part_name is not None
-            else training_utils.resolve_part_name(
+            else run_metadata.resolve_part_name(
                 runtime_dataset_key=runtime_dataset_key,
                 manifest_payload=runtime_manifest_payload,
             )
@@ -934,7 +821,7 @@ class TrainingWorkflow:
         calibration_loader = execution_stage.calibration_loader
         ood_calibration = execution_stage.ood_calibration
 
-        training_artifacts = self._persist_training_artifacts(
+        training_artifacts = persist_training_artifacts(
             artifact_dir=artifact_dir,
             history_payload=history_payload,
             batch_metrics_csv=batch_recorder.output_path,
@@ -992,7 +879,7 @@ class TrainingWorkflow:
         real_ood_present = loader_size(loaders.get("ood")) > 0
         ood_cfg = dict(training_cfg.get("ood", {}))
         evaluation_cfg = dict(training_cfg.get("evaluation", {}))
-        gate_targets = self._build_evaluation_gate_targets(evaluation_cfg)
+        gate_targets = build_evaluation_gate_targets(evaluation_cfg)
         gate_auxiliary_ood_diagnostics = bool(
             evaluation_cfg.get("gate_auxiliary_ood_diagnostics", False)
         )
@@ -1005,7 +892,7 @@ class TrainingWorkflow:
             ),
             selection_source="configured",
         )
-        selected_primary_score_method = self._apply_primary_score_method_to_trainer(
+        selected_primary_score_method = apply_primary_score_method_to_trainer(
             trainer_for_artifacts,
             primary_score_stage.selected_method,
         )
@@ -1065,7 +952,7 @@ class TrainingWorkflow:
                 if not benchmark_method_comparison:
                     benchmark_method_comparison = dict(ood_stage.benchmark.get("method_comparison_metrics", {}))
                 if benchmark_method_comparison:
-                    selected_primary_score_method = self._apply_primary_score_method_to_trainer(
+                    selected_primary_score_method = apply_primary_score_method_to_trainer(
                         trainer_for_artifacts,
                         select_best_ood_score_method(
                             benchmark_method_comparison,
@@ -1088,7 +975,7 @@ class TrainingWorkflow:
             selection_source=primary_score_stage.selection_source,
             selection_metadata=dict(primary_score_stage.selection_metadata),
         )
-        split_artifacts = self._persist_split_artifacts(
+        split_artifacts = persist_split_artifacts(
             artifact_dir=artifact_dir,
             trainer=trainer_for_artifacts,
             loaders=loaders,
@@ -1295,8 +1182,8 @@ class TrainingWorkflow:
             "artifact_dir": str(artifact_dir),
             "adapter_dir": str(adapter_dir),
             "resolved_config": dict(self.config),
-            "git": training_utils.collect_git_context(repo_root),
-            "package_versions": training_utils.collect_package_versions(),
+            "git": run_metadata.collect_git_context(repo_root),
+            "package_versions": run_metadata.collect_package_versions(),
             "dataset": {
                 "crop_root": str(runtime_crop_root.resolve()),
                 "crop_name": crop_name,

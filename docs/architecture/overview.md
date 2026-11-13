@@ -60,7 +60,7 @@ src/workflows/training.py -> TrainingWorkflow.run(...)
 ### End-to-end training flow
 
 1. `TrainingWorkflow.run(...)` receives the crop name, runtime dataset root, output directory, and optional overrides.
-2. `src/workflows/training_support.py` prepares the run:
+2. `src/workflows/run_setup.py` prepares the run:
    - config selection
    - loader creation
    - class detection
@@ -437,7 +437,7 @@ Use this as the quick code map.
 
 - `src/core/config_manager.py`: config loading, merge, normalization, and alias sync
 - `src/workflows/training.py`: canonical training workflow
-- `src/workflows/training_support.py`: run preparation and artifact payload shaping
+- `src/workflows/run_setup.py`: run preparation and artifact payload shaping
 - `src/workflows/inference.py`: canonical inference workflow
 - `src/adapter/independent_crop_adapter.py`: public adapter lifecycle
 - `src/training/continual_sd_lora.py`: actual adapter training engine

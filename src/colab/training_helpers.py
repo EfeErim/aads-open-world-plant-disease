@@ -1287,7 +1287,7 @@ def select_notebook_ood_policy(
     )
     from src.training.validation import evaluate_model_with_artifact_metrics
     from src.utils.training_helpers import loader_size
-    from src.workflows.training_subroutines import (
+    from src.workflows.stages import (
         apply_primary_score_method_to_trainer,
         select_and_apply_real_ood_dev_policy,
     )
@@ -1343,7 +1343,7 @@ def calibrate_notebook_ood_policy(
 ) -> Dict[str, Any]:
     """Calibrate on ID validation, then select method/threshold on disjoint OOD dev."""
     from src.utils.training_helpers import loader_size
-    from src.workflows.training_readiness import record_primary_score_selection
+    from src.workflows.readiness import record_primary_score_selection
 
     val_loader = loaders.get("val")
     if loader_size(val_loader) <= 0:
