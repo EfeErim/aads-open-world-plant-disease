@@ -57,8 +57,8 @@ from src.colab.training_session import run_notebook_training_session as run_note
 from src.colab.training_session import save_notebook_checkpoint as save_notebook_checkpoint
 from src.shared.adapter_paths import build_adapter_bundle_root
 from src.shared.hash_utils import sha256_file
-from src.shared.json_utils import clone_jsonable, coerce_like_value, read_json, write_json
-from src.shared.string_utils import normalize_notebook_identifier, slug_label_component
+from src.shared.json_utils import read_json, write_json
+from src.shared.string_utils import slug_label_component
 
 matplotlib.use("Agg")
 
@@ -119,6 +119,72 @@ _DEFAULT_PARETO_OBJECTIVES = (
     "ood.ood_auroc",
     "ood.ood_false_positive_rate",
 )
+
+
+def clone_jsonable(payload: Any) -> Any:
+    """Create a deep clone of a JSON-serializable object.
+
+    Uses round-trip serialization to ensure compatibility.
+
+    Args:
+        payload: Any JSON-serializable object.
+
+    Returns:
+        A cloned copy of the object.
+    """
+    return json.loads(json.dumps(payload))
+
+
+def coerce_like_value(reference: Any, value: Any) -> Any:
+    """Coerce a value to match the type of a reference value.
+
+    Attempts type-aware conversion for bool, int, float, and other types.
+    Handles string representations like "true", "1", "false", etc.
+
+    Args:
+        reference: The reference value whose type to match.
+        value: The value to coerce.
+
+    Returns:
+        The coerced value, or the original reference if coercion fails.
+    """
+    if isinstance(reference, bool):
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in {"1", "true", "yes", "on"}:
+                return True
+            if lowered in {"0", "false", "no", "off"}:
+                return False
+        return bool(value)
+    if isinstance(reference, int) and not isinstance(reference, bool):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return reference
+    if isinstance(reference, float):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return reference
+    return value
+
+
+def normalize_notebook_identifier(name: str) -> str:
+    """Normalize a notebook or experiment identifier.
+
+    Converts to lowercase, replaces non-alphanumeric with underscores,
+    collapses runs, strips boundaries.
+
+    Args:
+        name: Raw identifier (e.g., 'Notebook 2 - Training').
+
+    Returns:
+        Normalized identifier (e.g., 'notebook_2_training').
+    """
+    normalized = "".join(ch.lower() if ch.isalnum() else "_" for ch in str(name or "").strip())
+    while "__" in normalized:
+        normalized = normalized.replace("__", "_")
+    return normalized.strip("_")
 
 
 def ensure_notebook_checkpoint_manager(
