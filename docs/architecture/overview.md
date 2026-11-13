@@ -407,7 +407,7 @@ Current notebook naming/detail:
 
 The notebook support layer is intentionally thin. The notebooks should wrap the maintained workflows, not replace them.
 
-Maintained Colab helper scripts:
+All Colab glue lives in the `src/colab/` package, most notably:
 
 - `src/colab/repo_bootstrap.py`
 - `src/colab/live_telemetry.py`

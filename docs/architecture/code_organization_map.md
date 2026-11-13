@@ -7,6 +7,8 @@ developer and maintenance surfaces.
 ## Operating Model
 
 - `src/` is the maintained application platform. Durable business logic, typed contracts, workflows, runtimes, model services, dataset services, and shared utilities live here.
+- `src/colab/` is the Google Colab layer: notebook bootstrap, widgets, telemetry, checkpoint mirroring and Notebook 2 run helpers. Core `src/` code must not import it.
+- `experiments/` holds report-only research (the Notebook 16 ROI ablation and the Notebook 17 OOD/OE recovery campaign). Nothing under `src/` imports it.
 - `scripts/` is the operational surface. Scripts may parse arguments, assemble inputs, call `src/`, and write reports, but reusable logic should move into `src/` once more than one surface needs it.
 - `scripts/notebook_cells/` contains notebook cell orchestration. Cells should stay small and delegate real work to `scripts/notebook_helpers/` or `src/`.
 - `scripts/notebook_helpers/` contains notebook-specific helpers that are still testable Python modules. Helpers can adapt notebook state, format display output, and call canonical workflows.
@@ -15,7 +17,7 @@ developer and maintenance surfaces.
   maintained helpers/workflows, and render results; they should not become independent implementations.
 - `tests/` mirrors the maintained surfaces. Unit tests cover helpers and services; integration tests cover canonical workflow and runtime contracts.
 - `config/` owns behavior knobs. Policy should be configured here rather than hard-coded into notebooks or one-off scripts.
-- `docs/` owns user and maintainer explanations. Durable architectural decisions should be documented here and summarized in `PROJECT_STATE.md` when they affect future work.
+- `docs/` owns user and maintainer explanations. Durable architectural decisions should be documented here.
 
 ## Module Categories
 
@@ -28,18 +30,20 @@ Every Python file should fit one primary category:
 | `service` | `src/training/services/` and similar packages | Coordinate domain logic without becoming public entrypoints |
 | `workflow` | `src/workflows/` | Stable app-facing facade for training and inference |
 | `runtime` | `src/pipeline/`, router runtime modules | Stateful resource loading, adapter discovery, payload assembly |
+| `colab` | `src/colab/` | Colab bootstrap, widgets, telemetry and notebook run helpers |
 | `shared` | `src/shared/` | Cross-cutting contracts, path helpers, JSON/CSV/hash/telemetry utilities |
 | `cli` | `src/app/`, top-level `scripts/*.py` | Developer/maintenance argument parsing and command orchestration |
 | `notebook_cell` | `scripts/notebook_cells/` | Thin cell-level orchestration |
 | `notebook_helper` | `scripts/notebook_helpers/` | Testable notebook adapters around canonical logic |
-| `validation` | `scripts/validate_*.py`, `scripts/check_*.py`, `scripts/monitor_*.py` | Repo, artifact, dataset, and config guardrails |
+| `validation` | `scripts/validate_*.py` | Repo, artifact, dataset, and config guardrails |
+| `experiment` | `experiments/` | Report-only research code kept for inspection |
 | `test` | `tests/` | Behavioral evidence for the categories above |
 
 Dataset release ownership is split by lifecycle without duplicating transport code: `src/data/dataset_release.py`
 owns local snapshot/audit/quarantine/shard-plan contracts, `src/data/dataset_release_github.py` owns the remote immutable
 release lifecycle, and both reuse the GitHub REST/authentication client in `src/pipeline/adapter_release.py`.
 
-Large notebook/research surfaces are split by responsibility while their existing imports remain valid:
+Large notebook/research surfaces are split by responsibility:
 
 - `src/colab/training_helpers.py` owns Notebook 2 orchestration, while
   `src/colab/training_session.py` owns sessions, checkpoints, artifacts and completion handling;
@@ -56,7 +60,8 @@ Large notebook/research surfaces are split by responsibility while their existin
 Allowed direction:
 
 ```text
-notebooks -> notebook_cells -> notebook_helpers -> scripts/src
+notebooks -> notebook_cells -> notebook_helpers -> scripts/src/experiments
+experiments -> src
 scripts -> src
 src/app -> src/workflows
 src/workflows -> src services/runtimes/domain/shared
@@ -66,7 +71,8 @@ tests -> any maintained surface under test
 
 Forbidden direction:
 
-- `src/` must not import `scripts`, `tests`, or `colab_notebooks`.
+- `src/` must not import `scripts`, `tests`, `colab_notebooks` or `experiments`.
+- Core `src/` packages must not import `src.colab`.
 - `src/shared/` must not depend on domain-specific runtime modules.
 - Notebook cell files must not become canonical sources of training, routing, OOD, or inference behavior.
 - Generated surfaces such as `runs/`, `models/adapters/`, `outputs/`, and `.runtime_tmp/` must not be treated as maintained source.
@@ -86,7 +92,7 @@ When a notebook needs new behavior, first decide whether it is:
 - user interface glue: keep it in a notebook cell/helper
 - reusable workflow behavior: move it into `src/workflows/` or a service
 - artifact validation: put it under `scripts/validate_*.py`
-- experiment-only evaluation: keep it in a script/helper with docs that mark it as research-only
+- experiment-only evaluation: put it under `experiments/`
 
 ## Refactor Rules
 
