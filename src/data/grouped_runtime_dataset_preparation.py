@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import gc
-import hashlib
 import itertools
 import json
 import math
@@ -71,6 +70,7 @@ from src.data.grouped_dataset_reporting import build_label_review_summary as bui
 from src.data.grouped_dataset_reporting import format_human_review_packet as format_human_review_packet
 from src.guided_artifacts import refresh_prep_guided_artifacts
 from src.shared.csv_utils import write_csv_rows
+from src.shared.hash_utils import sha256_file
 from src.shared.json_utils import read_json, write_json
 
 DEFAULT_DINOV3_MODEL_ID = "facebook/dinov3-vitl16-pretrain-lvd1689m"
@@ -416,14 +416,6 @@ def _has_eval_quality_risk(record: ImageRecord) -> bool:
     return False
 
 
-def _compute_exact_hash(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _compute_phash_hex(image: Image.Image) -> str:
     img = ImageOps.grayscale(image).resize((32, 32))
     pixels = np.asarray(img, dtype=np.float32)
@@ -704,7 +696,7 @@ def scan_class_root_dataset(
                 logging.exception("Unhandled exception")
                 raise
             try:
-                exact_hash = _compute_exact_hash(image_path)
+                exact_hash = sha256_file(image_path)
             except Exception:
                 import logging
 

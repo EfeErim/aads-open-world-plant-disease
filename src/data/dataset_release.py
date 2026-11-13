@@ -24,6 +24,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from src.shared.hash_utils import sha256_file as _sha256_file
+
 DATASET_MANIFEST_SCHEMA = "v1_dataset_staging_snapshot"
 QUARANTINE_MANIFEST_SCHEMA = "v1_dataset_quarantine_manifest"
 RELEASE_MANIFEST_SCHEMA = "v1_dataset_github_release_candidate"
@@ -112,11 +114,8 @@ def _io_path(path: Path) -> Path:
 
 
 def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with _io_path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    """SHA-256 of a file, reachable through Windows long (>260 char) paths."""
+    return _sha256_file(_io_path(path))
 
 
 def canonical_sha256(payload: Any) -> str:
