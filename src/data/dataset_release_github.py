@@ -454,7 +454,7 @@ def upload_dataset_draft(
             manifest["release_tag"],
             manifest["tag_commit_sha"],
             name=manifest["release_tag"],
-            body="AADS v6 versioned dataset shards.",
+            body="AADS versioned dataset shards.",
         )
         manifest["release_id"] = int(remote["id"])
     remote_asset_rows = list(remote.get("assets") or [])

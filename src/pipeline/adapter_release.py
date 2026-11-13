@@ -360,7 +360,7 @@ def create_adapter_draft(
         release["tag"],
         release["tag_commit_sha"],
         name=str(release.get("name") or release["tag"]),
-        body=str(release.get("body") or "AADS v6 controlled-demo deployment adapters."),
+        body=str(release.get("body") or "AADS controlled-demo deployment adapters."),
     )
     if created.get("draft") is not True or created.get("immutable") is not False:
         raise RuntimeError("GitHub did not create a mutable draft release.")

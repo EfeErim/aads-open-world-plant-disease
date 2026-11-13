@@ -438,7 +438,7 @@ CHECKS = (
 
 def main() -> int:
     print("=" * 60)
-    print("AADS v6 Minimal Surface Validation")
+    print("AADS Minimal Surface Validation")
     print("=" * 60)
 
     results: list[tuple[str, str, bool]] = []

@@ -202,7 +202,7 @@ def render_presentation_demo(
 
     summary = build_presentation_summary(image_path, router_result=router_result, auto_result=auto_result)
     header = (
-        f"{PRESENTATION_STYLES}<div class='aads-demo'><h2>AADS v6 - Detailed Router-to-Adapter Demo</h2>"
+        f"{PRESENTATION_STYLES}<div class='aads-demo'><h2>AADS - Detailed Router-to-Adapter Demo</h2>"
         + build_presentation_flow_html(summary)
         + "<p class='note'><strong>Important:</strong> SAM3 boxes are not disease predictions. "
         "They mark candidate plant regions for BioCLIP-2.5 inspection.</p>"

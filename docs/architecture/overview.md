@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document explains the current AADS v6 architecture in plain language.
+This document explains the current AADS architecture in plain language.
 
 The project is intentionally narrow:
 
@@ -16,7 +16,7 @@ If you are new to the repo, read [../../README.md](../../README.md) before this 
 
 ## The Big Picture
 
-At a high level, AADS v6 has four layers:
+At a high level, AADS has four layers:
 
 1. Configuration: load JSON config, merge environment overrides, normalize the public training surface.
 2. Training: build one crop adapter, train it, calibrate OOD, and write artifacts.

@@ -11,7 +11,7 @@ from PIL import Image
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AADS v6 workflow CLI")
+    parser = argparse.ArgumentParser(description="AADS workflow CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     inference = subparsers.add_parser("inference", help="Run router -> adapter inference for a single image")

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aads-v6"
+name = "aads-open-world-plant-disease"
 version = "0.1.0"
 description = "Open-world plant disease routing, continual SD-LoRA training and adapter inference"
 readme = "README.md"
@@ -13,8 +13,9 @@ authors = [{name = "Efe Erim"}]
 keywords = ["computer-vision", "continual-learning", "lora", "open-set-recognition", "ood"]
 
 [project.urls]
+Homepage = "https://github.com/EfeErim/aads-open-world-plant-disease"
 Repository = "https://github.com/EfeErim/aads-open-world-plant-disease"
-Release = "https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2"
+Releases = "https://github.com/EfeErim/aads-open-world-plant-disease/releases"
 
 [project.scripts]
 aads = "src.app.cli:main"
