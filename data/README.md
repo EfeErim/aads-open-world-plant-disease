@@ -1,6 +1,7 @@
 # Data layout
 
-The original research datasets are not distributed with this repository. The intended path is to provide your own
+The original research datasets are not distributed with this repository, and no further data collection is planned
+for the project. The intended path for anyone extending it is to provide your own
 images through [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb)
 and train with [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb).
 

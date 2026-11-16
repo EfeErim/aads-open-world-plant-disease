@@ -16,8 +16,11 @@ unsupported inputs to review instead of bluffing.
 
 ![AADS input, router and adapter flow](docs/assets/aads-pipeline.svg)
 
-> **Current status:** the fixed end-to-end demo passes; the production safety gate does not. The released weights are
-> research/demo artifacts, not a plant-health diagnostic product.
+> **Status: frozen.** The project is complete as a graduation project and is no longer under active model
+> development: no further adapter training or data collection is planned. The released `aads-public-demo-v1.1.2`
+> weights are the final artifacts. The fixed end-to-end regression replay passes; the production safety gate does not
+> (0/8), and that result is final for this release. The weights are research/demo artifacts, not a plant-health
+> diagnostic product.
 
 ## Start in Colab
 
@@ -37,17 +40,20 @@ pipeline and cannot support accuracy or readiness claims.
 
 ## What I built
 
-This was my individual graduation project. I designed and implemented the data preparation, continual training,
+This was my individual graduation project. I designed and implemented the data preparation, adapter training,
 crop/part router, OOD and review logic, artifact release, Colab interfaces, and CI evidence pipeline end to end.
 
 AADS is a PyTorch pipeline for apricot, grape, strawberry, and tomato images. It first identifies the crop and plant
-part, then loads one of eight target-specific SD-LoRA adapters built on
+part, then loads one of eight target-specific LoRA adapters built on a frozen
 [DINOv3 ViT-L/16](https://github.com/facebookresearch/dinov3). The final decision is either a supported disease class
 or `review`.
 
+The code and artifact names still say `continual_sd_lora` for compatibility with the released bundles. The adapters
+are standard per-target LoRA adapters; see the [terminology note](docs/methodology_and_results.md#terminology-note).
+
 The project includes:
 
-- continual adapter training and export;
+- per-target LoRA adapter training and export;
 - crop/part routing and open-set checks;
 - OOD scoring with energy, feature-distance, and k-nearest-neighbor signals;
 - typed inference payloads and checksum-verified adapter loading;
@@ -55,7 +61,12 @@ The project includes:
 
 ## Results
 
-### Fixed router-to-adapter demo
+### Fixed router-to-adapter regression replay
+
+The 48 images were selected from rows that had already **passed** an earlier, larger internal stress run; rows that
+failed there, including two known regressions, were excluded. The replay therefore shows that the frozen pipeline
+reproduces known-good decisions end to end. It is not a measure of accuracy, and the 100% pass rate follows from the
+selection rule.
 
 | 48-image manifest | Result |
 |---|---:|
@@ -72,8 +83,9 @@ The project includes:
   <a href="evidence/controlled_demo_summary.json">inspect the machine-readable evidence</a></sub>
 </p>
 
-All 48 recorded decisions matched the frozen manifest. This is a controlled pipeline check, not a field-accuracy
-estimate.
+All 48 recorded decisions matched the frozen manifest. The supported rows cover 12 disease classes, and all 12 review
+rows are router-level rejections; adapter-level unknown-disease rejection is measured by the gate below, not by this
+replay.
 
 ### Adapter evaluation
 
@@ -85,7 +97,8 @@ estimate.
 
 The stricter behavioral-acceptance gate is currently **0/8 passed**. It checks classification quality, minimum sample
 counts, false rejections, and same-crop unknown-disease rejection together. No released adapter clears every
-requirement yet, so the system should not be used for autonomous diagnosis.
+requirement, and because no further training or data collection is planned, this is the final gate result for the
+released adapters. The system should not be used for autonomous diagnosis.
 
 The [methodology and results](docs/methodology_and_results.md) page explains the evaluation design, per-adapter
 failures, literature, and evidence limits.
@@ -109,7 +122,7 @@ The Colab notebooks are thin interfaces over maintained workflows:
 | Area | Maintained implementation |
 |---|---|
 | End-to-end inference | [`src/workflows/inference.py`](src/workflows/inference.py) |
-| Continual training | [`src/workflows/training.py`](src/workflows/training.py) |
+| Adapter training | [`src/workflows/training.py`](src/workflows/training.py) |
 | Crop/part routing | [`src/router/`](src/router/) |
 | Adapter inference | [`src/pipeline/`](src/pipeline/) |
 | OOD and acceptance | [`src/ood/`](src/ood/) |

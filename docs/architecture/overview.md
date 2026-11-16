@@ -87,7 +87,9 @@ src/workflows/training.py -> TrainingWorkflow.run(...)
 
 ### What the training stack is optimizing
 
-The supported adapter path is continual SD-LoRA only:
+The supported adapter path is the trainer named "continual SD-LoRA". Despite the name, it trains a standard
+per-target PEFT LoRA adapter; see the
+[terminology note](../methodology_and_results.md#terminology-note). Its parts are:
 
 - frozen pretrained DINOv3 backbone
 - LoRA adapters on selected transformer linear layers

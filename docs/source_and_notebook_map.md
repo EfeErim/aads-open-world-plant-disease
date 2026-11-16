@@ -16,7 +16,7 @@ The 132 files under [`src/`](../src/) are grouped as follows.
 
 | Package | Files | Responsibility |
 |---|---:|---|
-| [`src/training/`](../src/training/) | 26 | continual SD-LoRA training, validation, persistence and reporting |
+| [`src/training/`](../src/training/) | 26 | per-target LoRA adapter training (named `continual_sd_lora` for compatibility), validation, persistence and reporting |
 | [`src/router/`](../src/router/) | 26 | crop/part routing, taxonomy, prototypes, calibration and abstention |
 | [`src/data/`](../src/data/) | 18 | dataset contracts, lineage, releases, public smoke data, OOD splits and integrity |
 | [`src/colab/`](../src/colab/) | 17 | Colab bootstrap, widgets, telemetry, checkpoint mirroring and notebook run helpers |

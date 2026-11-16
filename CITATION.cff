@@ -4,8 +4,9 @@ type: software
 title: "AADS: Open-World Plant Disease Recognition"
 abstract: >-
   Undergraduate graduation project. A PyTorch pipeline that routes apricot, grape, strawberry and tomato images
-  to one of eight crop/part-specific SD-LoRA adapters on a DINOv3 backbone, and sends unsupported or
-  out-of-distribution inputs to review instead of forcing a disease label.
+  to one of eight crop/part-specific LoRA adapters on a frozen DINOv3 backbone, and sends unsupported or
+  out-of-distribution inputs to review instead of forcing a disease label. The project is frozen: the released
+  adapters are final research/demo artifacts.
 authors:
   - family-names: Erim
     given-names: Efe
@@ -17,5 +18,4 @@ keywords:
   - plant disease recognition
   - open-set recognition
   - out-of-distribution detection
-  - continual learning
   - LoRA

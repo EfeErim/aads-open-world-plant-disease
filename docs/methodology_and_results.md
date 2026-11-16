@@ -9,8 +9,17 @@ The short version is:
 - a router first decides whether a supported crop/part adapter should receive the image;
 - a frozen DINOv3 backbone is adapted with LoRA for each crop/part target;
 - the adapter can classify a supported disease or reject the input through calibrated OOD logic;
-- the strongest current evidence is a fully passing fixed 48-row controlled demo;
-- the stricter per-adapter behavioral gate is still 0/8, so this is not presented as production-ready diagnosis.
+- a fixed 48-row regression replay, built only from rows that had already passed an earlier stress run, reproduces
+  its recorded decisions end to end;
+- the stricter per-adapter behavioral gate is 0/8, so this is not presented as production-ready diagnosis.
+
+## Project status
+
+The project is frozen. It is complete as a graduation project and is no longer under active model development: no
+further adapter training or data collection is planned, and the `aads-public-demo-v1.1.2` adapters are the final
+artifacts. The results on this page are therefore final for this release, not interim numbers awaiting another
+training round. The gaps listed under [Known limitations](#known-limitations) are documented as properties of the
+final system, not as scheduled work.
 
 ## Research question
 
@@ -103,6 +112,20 @@ The checked-in configuration uses:
 The result is one compact adapter per crop/part surface, plus its classifier, fusion state and OOD calibration. LoRA
 reduces trainable and distributable task-specific state; it does not make the frozen DINOv3 backbone unnecessary at
 inference time.
+
+### Terminology note
+
+Module, class, notebook and artifact names use `continual_sd_lora` (for example `ContinualSDLoRATrainer` and the
+`continual_sd_lora_adapter/` bundle directory). These names are kept because the released bundles and their loaders
+depend on them. They overstate the method:
+
+- the adapter is a standard PEFT `LoraConfig` (`r`, `alpha`, dropout, target modules); it does not implement SD-LoRA's
+  magnitude/direction decomposition;
+- "continual" refers to the training split name and to the trainer's ability to grow the classifier head with new
+  classes; there is no replay, regularization against forgetting, or forgetting evaluation;
+- each crop/part adapter is trained independently on its own data.
+
+The accurate description is **independent per-target LoRA adapters on a frozen DINOv3 backbone**.
 
 ## Crop and plant-part routing
 
@@ -257,9 +280,27 @@ The pipeline is an engineering synthesis. It is not claimed as a paper-faithful 
 
 ## Current results
 
-### 1. Fixed controlled demo
+### 1. Fixed regression replay ("controlled demo")
 
 The accepted controlled run is `20260706T153334Z` on a checksum-pinned 48-row manifest.
+
+**How the rows were chosen.** The manifest was built by
+[`scripts/build_controlled_demo_manifest.py`](../scripts/build_controlled_demo_manifest.py) from an earlier internal
+stress run (`20260706T140135Z`). Only rows whose result was `pass` in that run were eligible, and two known
+regressions (`demo_236`, `demo_432`) were excluded explicitly. Per-target quotas then fixed the row count. The stress
+run's full results and images are in the private workspace and are not published here.
+
+Consequences:
+
+- the 48/48 pass rate follows from the selection rule and is not an accuracy estimate;
+- the replay is a regression check: it shows that the frozen code, adapters and router reproduce known-good
+  decisions end to end;
+- the 36 supported rows cover 12 disease classes; some targets contribute a single class;
+- all 12 non-answer rows are router-level rejections (`router_uncertain`), so the replay does not exercise
+  adapter-level unknown-disease rejection, which the gate in section 2 measures;
+- in Notebook 8's default (non-problem-only) path, the prototype-reconciler calibration manifest is the same manifest
+  that is graded (`scripts/notebook_cells/nb8_cell06_m2_full_demo_run.py`). The public record does not show which
+  calibration manifest the frozen run used, so calibration on the graded rows cannot be ruled out.
 
 | Metric | Result |
 |---|---:|
@@ -281,8 +322,8 @@ Source:
 - [`evidence/controlled_demo_summary.json`](../evidence/controlled_demo_summary.json)
 - [`evidence/controlled_demo_rows.json`](../evidence/controlled_demo_rows.json)
 
-This is strong evidence that the frozen pipeline reproduced the intended decisions on that one manifest. It is not an
-estimate of field accuracy.
+This is strong evidence that the frozen pipeline reproduced the recorded decisions on that one pre-selected manifest.
+It is not an estimate of accuracy, field or otherwise.
 
 ### 2. Latest tracked per-adapter behavioral acceptance
 
@@ -333,7 +374,26 @@ The table explains why a single “accuracy” number is not enough:
 - `tomato__leaf` is close on ID metrics but rejects only 11 of 18 same-crop unsupported-disease cases;
 - three targets have no eligible same-crop OOD rows in their latest tracked artifact, so no rejection rate is reported.
 
-The aggregate production-oriented result is therefore **0/8 passed**, not “nearly production-ready.”
+The aggregate production-oriented result is therefore **0/8 passed**, not “nearly production-ready.” Because the
+project is frozen, this is the final gate result for the released adapters.
+
+### 2b. Pooled OOD detection metrics (three re-evaluated targets)
+
+Three targets have a corrected readiness record with threshold-free OOD metrics on their locked OOD test pool. The
+pool mixes every OOD type (off-crop, non-plant, same-crop unsupported disease and others), so it is easier than the
+same-crop slice in the gate table above. FPR@95 is the fraction of in-distribution test images scored as OOD when
+95% of OOD images are caught.
+
+| Target | OOD n | ID n | AUROC | FPR@95 | Conformal coverage (target 0.95) | Avg. set size |
+|---|---:|---:|---:|---:|---:|---:|
+| `grape__leaf` | 274 | 324 | 0.855 | 0.543 | 0.978 | 2.01 |
+| `strawberry__leaf` | 81 | 491 | 0.986 | 0.057 | 0.994 | 1.00 |
+| `tomato__leaf` | 103 | 1204 | 0.920 | 0.264 | 0.934 | 1.17 |
+
+The maintained readiness targets are AUROC ≥ 0.92 and FPR@95 ≤ 0.05. Only `strawberry__leaf` comes close, and its pool
+contains no same-crop unsupported-disease images. `tomato__leaf` misses the conformal coverage target. The other five
+targets have no comparable record in the public evidence. Source:
+[`evidence/release_inputs/corrected_readiness/`](../evidence/release_inputs/corrected_readiness/).
 
 ### 3. Public adapter release
 
@@ -358,7 +418,8 @@ The release is for code review and controlled experiments. Its manifest explicit
 | Claim | Evidence strength | Why |
 |---|---|---|
 | the repository contains the real implementation | strong | complete `src/`, notebook, script and test surfaces are present and exercised by CI |
-| the fixed 48-row demo reproduces the recorded decisions | strong for that manifest | row-level decisions, manifest hash and summary are checked in |
+| the fixed 48-row replay reproduces the recorded decisions | strong for that manifest | row-level decisions, manifest hash and summary are checked in; rows were pre-selected from passing stress-run rows |
+| the pipeline is accurate on the replay rows | not established | 100% follows from the selection rule |
 | the system generalizes to arbitrary field images | not established | no representative external field trial or confidence interval is published |
 | adapters are production-ready | false under the maintained gate | 0/8 latest tracked acceptance artifacts pass |
 | the system is suitable for autonomous diagnosis | not supported | same-crop unknown-disease rejection remains inadequate or under-sampled |
@@ -366,6 +427,26 @@ The release is for code review and controlled experiments. Its manifest explicit
 The main achievement is the system design and evidence discipline: typed failure states, reproducible adapter
 packages, explicit unknown handling, disjoint evidence roles and a testable end-to-end pipeline. The main research gap
 is robust semantic near-OOD rejection under representative field conditions.
+
+## Known limitations
+
+The project is frozen, so these are recorded as limitations of the final system rather than as planned work.
+
+- **Near-OOD rejection is weak.** Same-crop unsupported-disease rejection ranges from 0.20 to 0.61 where it is
+  measured; `apricot__leaf` forces a supported answer on 47 of 59 such images.
+- **Under-sampled OOD evidence.** Three targets have no same-crop OOD test rows, and `grape__leaf` (16) and
+  `tomato__leaf` (18) are below the gate's own minimum of 30.
+- **Thresholds do not transfer exactly.** OOD thresholds are set for a 5% false-rejection target on validation data;
+  test ID false-rejection ranges from 3.4% to 14.4%.
+- **Validation data has several roles.** The same `val` split is used for early stopping, OOD statistics, threshold
+  selection and conformal calibration, and the code falls back to training data if `val` is empty.
+- **OOD dev/test split is not family-grouped.** ID splits group near-duplicate families, but the OOD dev/test split is
+  per-image random within each slice (`src/data/ood_splits.py`), so near-duplicates can sit on both sides.
+- **Single seed, no ablations.** Results come from seed 42 with no confidence intervals. LogitNorm, Outlier Exposure,
+  multi-scale fusion and LoRA rank were not ablated, and no frozen-backbone linear-probe baseline is reported.
+- **Not reproducible from public data.** Training images are private, and DINOv3 is a gated model. The public
+  evidence can be inspected and cross-checked, but the numbers cannot be regenerated from this repository alone.
+- **Replay selection.** The 48-row replay was drawn from passing rows only (see section 1).
 
 ## References used in the project
 

@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aads-open-world-plant-disease"
 version = "0.1.0"
-description = "Open-world plant disease routing, continual SD-LoRA training and adapter inference"
+description = "Open-world plant disease routing, per-target LoRA adapter training and adapter inference"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license = {text = "MIT"}
 authors = [{name = "Efe Erim"}]
-keywords = ["computer-vision", "continual-learning", "lora", "open-set-recognition", "ood"]
+keywords = ["computer-vision", "lora", "open-set-recognition", "ood", "plant-disease"]
 
 [project.urls]
 Homepage = "https://github.com/EfeErim/aads-open-world-plant-disease"
