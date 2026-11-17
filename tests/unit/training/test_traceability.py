@@ -281,7 +281,7 @@ def test_build_optimization_record_backfills_notebook_parameters_without_run_con
     assert record["parameters"]["training.data.randaugment_magnitude"] == 9
 
 
-def test_persist_traceability_artifacts_writes_files_and_refreshes_guided_catalog(tmp_path: Path):
+def test_persist_traceability_artifacts_writes_files(tmp_path: Path):
     artifact_root = tmp_path / "training_metrics"
     (artifact_root / "training").mkdir(parents=True, exist_ok=True)
     (artifact_root / "training" / "summary.json").write_text(
@@ -325,10 +325,6 @@ def test_persist_traceability_artifacts_writes_files_and_refreshes_guided_catalo
 
     assert (artifact_root / "training" / "experiment_manifest.json").exists()
     assert (artifact_root / "training" / "optimization_record.json").exists()
-    catalog = json.loads((artifact_root / "guided" / "02_file_catalog.json").read_text(encoding="utf-8"))
-    entry_paths = {entry["relative_path"] for entry in catalog["entries"]}
-    assert "training/experiment_manifest.json" in entry_paths
-    assert "training/optimization_record.json" in entry_paths
 
 
 def test_persist_traceability_artifacts_refreshes_run_registry_when_under_runs_root(tmp_path: Path):

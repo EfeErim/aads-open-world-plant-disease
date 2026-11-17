@@ -5,14 +5,11 @@ from src.router.prompt_clip_utils import (
     TURKEY_PRIORITY_CROP_PARTS,
     TURKEY_PRIORITY_TOP_10_CROPS,
     aggregate_prompt_logits,
-    build_prompt_batch,
     build_prompt_ensemble,
     canonicalize_crop_prompt_label,
     crop_prompt_aliases,
     get_clip_logit_scale,
-    get_prompt_templates_for_type,
     open_set_unknown_prompts,
-    part_prompt_aliases,
 )
 
 
@@ -107,32 +104,6 @@ def test_build_prompt_ensemble_includes_apple_part_prompts():
     assert 'a photo of a apple leaf' in prompts
     assert 'a photo of a apple fruit' in prompts
     assert 'a photo of a apple flower' in prompts
-
-
-def test_part_prompt_aliases_cover_whole_plant_and_common_organs():
-    aliases = part_prompt_aliases()
-
-    assert 'whole plant' in aliases['whole plant']
-    assert 'entire plant' in aliases['plant']
-    assert 'plant leaf' in aliases['leaf']
-    assert 'crop fruit' in aliases['fruit']
-
-
-def test_build_prompt_batch_falls_back_to_label_when_ensemble_empty():
-    prompt_texts, prompt_to_class = build_prompt_batch(
-        labels=[''],
-        label_type='crop',
-        vlm_config={},
-    )
-    assert prompt_texts == ['']
-    assert prompt_to_class == [0]
-
-
-def test_get_prompt_templates_for_type_uses_default_and_fallback():
-    cfg = {'prompt_templates': {'default': ['x {term}']}}
-    assert get_prompt_templates_for_type(cfg, 'crop') == ['x {term}']
-
-    assert 'a photo of {term}' in get_prompt_templates_for_type({'prompt_templates': {'crop': []}}, 'crop')
 
 
 def test_open_set_unknown_prompts_differs_by_label_type():

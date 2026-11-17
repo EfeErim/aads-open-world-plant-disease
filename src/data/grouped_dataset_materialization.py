@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.data.dataset_layout import IMAGE_EXTENSIONS, fingerprint_paths, normalize_class_name
-from src.guided_artifacts import refresh_prep_guided_artifacts
 from src.shared.json_utils import read_json, write_json
 
 DEFAULT_RUNTIME_ROOT = Path("data") / "prepared_runtime_datasets"
@@ -117,7 +116,7 @@ def materialize_grouped_runtime_dataset(
             destination_path = oe_dir / source_path.relative_to(resolved_oe_root)
             destination_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(str(source_path), str(destination_path))
-    split_manifest_path = write_json(
+    write_json(
         crop_root / "split_manifest.json",
         {
             "schema_version": "v1_grouped_runtime_layout",
@@ -149,27 +148,4 @@ def materialize_grouped_runtime_dataset(
         if isinstance(prep_summary, dict):
             prep_summary["ood_handoff_checklist"] = dict(ood_handoff_checklist)
             write_json(artifact_root / "prep_summary.json", prep_summary, ensure_ascii=False)
-    refresh_prep_guided_artifacts(
-        artifact_root,
-        overview_updates={
-            "crop_name": str(crop_name),
-            "part_name": str(part_name),
-            "materialized_runtime_root": str(crop_root.resolve()),
-            "split_manifest_path": str(split_manifest_path.resolve()),
-            "ood_image_count": int((ood_manifest or {}).get("image_count", 0)),
-        },
-        extra_entries=[
-            {
-                "path": split_manifest_path,
-                "category": "manifests",
-                "priority": "high",
-                "title_tr": "Materyalize edilmis runtime split manifesti",
-                "description_tr": "Gercekten uretilen runtime dataset icindeki split manifest dosyasi.",
-                "reader_goal": "Notebook 2'nin tuketecegi final runtime split yapisini gormek",
-                "generated_by": "src.data.grouped_runtime_dataset_preparation",
-                "decision_importance": "prep_gate",
-                "read_order": 22,
-            }
-        ],
-    )
     return Path(runtime_root)

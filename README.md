@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/EfeErim/aads-open-world-plant-disease/actions/workflows/ci.yml/badge.svg)](https://github.com/EfeErim/aads-open-world-plant-disease/actions/workflows/ci.yml)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](pyproject.toml)
-[![Coverage gate: 78%](https://img.shields.io/badge/coverage%20gate-78%25-2ea44f.svg)](.github/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 A conventional plant-disease classifier has to return a label even when the photo shows the wrong crop, the wrong
@@ -95,7 +94,7 @@ replay.
 | Balanced accuracy | 0.836-0.994 |
 | Macro-F1 | 0.810-0.993 |
 
-The stricter behavioral-acceptance gate is currently **0/8 passed**. It checks classification quality, minimum sample
+The stricter behavioral-acceptance gate is **0/8 passed**. It checks classification quality, minimum sample
 counts, false rejections, and same-crop unknown-disease rejection together. No released adapter clears every
 requirement, and because no further training or data collection is planned, this is the final gate result for the
 released adapters. The system should not be used for autonomous diagnosis.
@@ -112,8 +111,8 @@ to the private training images:
 - [`controlled_demo_rows.json`](evidence/controlled_demo_rows.json)
 - [`latest_behavioral_acceptance_summary.json`](evidence/latest_behavioral_acceptance_summary.json)
 
-GitHub Actions verifies the evidence summary alongside the repository contracts, notebook smoke tests, unit tests,
-integration tests, Ruff, mypy, and the 78% coverage gate.
+GitHub Actions runs unit, notebook smoke and integration tests, checks notebook structure and
+import boundaries, and reports coverage. Ruff checks the maintained Python code.
 
 ## Code map
 

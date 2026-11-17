@@ -206,17 +206,3 @@ def describe_conformal_method(
     return f"RAPS set-valued classification (lambda={float(raps_lambda):.3g}, k_reg={int(raps_k_reg)})"
 
 
-def compute_empirical_coverage(
-    true_labels: torch.Tensor,
-    prediction_sets: List[List[int]],
-) -> float:
-    """Compute empirical coverage: fraction of samples where true label is in the prediction set."""
-    if len(prediction_sets) == 0:
-        return 0.0
-
-    covered = 0
-    for label, pred_set in zip(true_labels.tolist(), prediction_sets):
-        if int(label) in pred_set:
-            covered += 1
-
-    return float(covered) / float(len(prediction_sets))

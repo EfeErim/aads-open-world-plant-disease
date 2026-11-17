@@ -1,8 +1,8 @@
-"""Dataset primitives for training and evaluation layouts."""
-
 from __future__ import annotations
 
 import logging
+import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -11,9 +11,60 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from .cache import LRUCache
 from .ood_splits import infer_ood_slice
 from .transforms import build_image_transform
+
+
+class LRUCache:
+    """Tiny TTL-capable cache for preprocessed validation images."""
+
+    def __init__(self, capacity: int = 1000) -> None:
+        self.capacity = int(max(1, capacity))
+        self.cache: OrderedDict[str, Any] = OrderedDict()
+        self.timestamps: Dict[str, float] = {}
+        self.ttl_seconds: Optional[float] = None
+
+    def get(self, key: str) -> Optional[Any]:
+        if key not in self.cache:
+            return None
+        if self._is_expired(key):
+            self.__delitem__(key)
+            return None
+        self.cache.move_to_end(key)
+        return self.cache[key]
+
+    def _is_expired(self, key: str) -> bool:
+        """Return True if the given key has expired under the current TTL."""
+        if self.ttl_seconds is None:
+            return False
+        age = time.time() - self.timestamps.get(key, 0.0)
+        return age > self.ttl_seconds
+
+    def put(self, key: str, value: Any) -> None:
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        self.cache[key] = value
+        self.timestamps[key] = time.time()
+        while len(self.cache) > self.capacity:
+            oldest, _ = self.cache.popitem(last=False)
+            self.timestamps.pop(oldest, None)
+
+    def clear(self) -> None:
+        self.cache.clear()
+        self.timestamps.clear()
+
+    def __len__(self) -> int:
+        return len(self.cache)
+
+    def __getitem__(self, key: str) -> Optional[Any]:
+        return self.get(key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.put(key, value)
+
+    def __delitem__(self, key: str) -> None:
+        self.cache.pop(key, None)
+        self.timestamps.pop(key, None)
 
 logger = logging.getLogger(__name__)
 
@@ -254,18 +305,3 @@ class CropDataset(Dataset):
 
         raise RuntimeError("Unable to load any valid images from dataset.")
 
-    def get_cache_stats(self) -> Dict[str, Any]:
-        return {
-            "cache_size": len(self.cache) if self.cache is not None else 0,
-            "cache_capacity": self.cache.capacity if self.cache is not None else 0,
-            "cache_train_split": bool(self.cache_train_split),
-            "augmentation_policy": self.augmentation_policy,
-            "randaugment_num_ops": int(self.randaugment_num_ops),
-            "randaugment_magnitude": int(self.randaugment_magnitude),
-            "augmix_severity": int(self.augmix_severity),
-            "augmix_width": int(self.augmix_width),
-            "augmix_depth": int(self.augmix_depth),
-            "augmix_alpha": float(self.augmix_alpha),
-            "load_error_count": len(self.load_errors),
-            "skipped_files": list(self.skipped_files),
-        }

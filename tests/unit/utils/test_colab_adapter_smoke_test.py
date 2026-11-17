@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import torch
 from PIL import Image
 
+from src.colab import adapter_smoke as smoke_impl
 from src.colab import adapter_smoke_test as smoke
 from tests.utils.test_helpers import make_image
 
@@ -282,7 +283,7 @@ def _make_payload(
 def test_load_adapter_summary_accepts_parent_export_dir(monkeypatch, tmp_path: Path):
     export_root = tmp_path / "adapter_export"
     asset_dir = _write_adapter_export(export_root)
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary("tomato", adapter_dir=export_root, device="cpu")
 
@@ -295,7 +296,7 @@ def test_load_adapter_summary_accepts_parent_export_dir(monkeypatch, tmp_path: P
 
 def test_load_adapter_summary_accepts_asset_dir(monkeypatch, tmp_path: Path):
     asset_dir = _write_adapter_export(tmp_path / "adapter_export")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary("tomato", adapter_dir=asset_dir, device="cpu")
 
@@ -307,7 +308,7 @@ def test_load_adapter_summary_accepts_asset_dir(monkeypatch, tmp_path: Path):
 def test_load_adapter_summary_accepts_adapter_meta_file(monkeypatch, tmp_path: Path):
     asset_dir = _write_adapter_export(tmp_path / "adapter_export")
     meta_path = asset_dir / "adapter_meta.json"
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary("tomato", adapter_dir=meta_path, device="cpu")
 
@@ -318,7 +319,7 @@ def test_load_adapter_summary_accepts_adapter_meta_file(monkeypatch, tmp_path: P
 def test_load_adapter_summary_accepts_current_drive_export_dir_and_infers_crop(monkeypatch, tmp_path: Path):
     run_dir = tmp_path / "telemetry" / "run_789"
     asset_dir = _write_current_drive_adapter_export(run_dir, crop_name="tomato")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=run_dir / "artifacts" / "adapter_export", device="cpu")
 
@@ -333,7 +334,7 @@ def test_load_adapter_summary_accepts_telemetry_run_dir_and_infers_crop_from_rea
     run_dir = tmp_path / "telemetry" / "run_456"
     asset_dir = _write_adapter_export(run_dir / "artifacts" / "adapter_export")
     _write_production_readiness(run_dir / "artifacts", crop_name="tomato")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=run_dir, device="cpu")
 
@@ -348,7 +349,7 @@ def test_load_adapter_summary_accepts_telemetry_artifacts_dir_and_infers_crop_fr
     artifacts_dir = tmp_path / "telemetry" / "run_654" / "artifacts"
     asset_dir = _write_adapter_export(artifacts_dir / "adapter_export")
     _write_training_summary(artifacts_dir, crop_name="tomato")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=artifacts_dir, device="cpu")
 
@@ -362,7 +363,7 @@ def test_load_adapter_summary_infers_crop_from_local_export_crop_info(monkeypatc
         tmp_path / "outputs" / "colab_notebook_training",
         crop_name="tomato",
     )
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=asset_dir, device="cpu")
 
@@ -375,7 +376,7 @@ def test_load_adapter_summary_infers_crop_from_local_export_artifacts(monkeypatc
     export_root = tmp_path / "outputs" / "colab_notebook_training"
     asset_dir = _write_adapter_export(export_root)
     _write_production_readiness(export_root / "artifacts", crop_name="tomato")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=export_root, device="cpu")
 
@@ -386,7 +387,7 @@ def test_load_adapter_summary_infers_crop_from_local_export_artifacts(monkeypatc
 def test_load_adapter_summary_resolves_crop_part_local_export_root(monkeypatch, tmp_path: Path):
     export_root = tmp_path / "outputs" / "colab_notebook_training"
     asset_dir = _write_adapter_export(export_root / "tomato" / "leaf")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(
         "tomato",
@@ -403,7 +404,7 @@ def test_load_adapter_summary_resolves_crop_part_local_export_root(monkeypatch, 
 def test_load_adapter_summary_infers_crop_from_adapter_meta_classes(monkeypatch, tmp_path: Path):
     export_root = tmp_path / "outputs" / "adapter_export"
     asset_dir = _write_adapter_export_with_prefixed_classes(export_root)
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_dir=asset_dir, device="cpu")
 
@@ -420,9 +421,9 @@ def test_predict_single_image_returns_notebook_payload(monkeypatch, tmp_path: Pa
     def zero_preprocess(_image, target_size=224):
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "preprocess_image", zero_preprocess)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 224)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 224)
 
     result = smoke.predict_single_image(image_path, "tomato", adapter_dir=asset_dir, device="cpu")
 
@@ -442,9 +443,9 @@ def test_predict_single_image_can_attach_occlusion_visualization(monkeypatch, tm
     def zero_preprocess(_image, target_size=224):
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "preprocess_image", zero_preprocess)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -476,9 +477,9 @@ def test_predict_single_image_can_attach_attention_visualization(monkeypatch, tm
     def zero_preprocess(_image, target_size=224):
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAttentionAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "preprocess_image", zero_preprocess)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAttentionAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -511,9 +512,9 @@ def test_predict_single_image_infers_crop_from_drive_export(monkeypatch, tmp_pat
     def zero_preprocess(_image, target_size=224):
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "preprocess_image", zero_preprocess)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 224)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 224)
 
     result = smoke.predict_single_image(image_path, None, adapter_dir=asset_dir, device="cpu")
 
@@ -527,9 +528,9 @@ def test_prepare_view_tensor_resize_pad_and_center_crop_return_target_sized_tens
     make_image(image_path, size=(40, 20), color="green")
 
     with Image.open(image_path) as image:
-        resize_pad_tensor = smoke._prepare_view_tensor(image, target_size=32, view_name="resize_pad")
+        resize_pad_tensor = smoke_impl._prepare_view_tensor(image, target_size=32, view_name="resize_pad")
     with Image.open(image_path) as image:
-        center_crop_tensor = smoke._prepare_view_tensor(image, target_size=32, view_name="center_crop")
+        center_crop_tensor = smoke_impl._prepare_view_tensor(image, target_size=32, view_name="center_crop")
 
     assert tuple(resize_pad_tensor.shape) == (3, 32, 32)
     assert tuple(center_crop_tensor.shape) == (3, 32, 32)
@@ -558,12 +559,12 @@ def test_predict_single_image_robust_mode_returns_ordered_views_and_full_resize_
     }
 
     monkeypatch.setattr(
-        smoke,
+        smoke_impl,
         "_build_adapter",
         lambda crop_name, device: _ScriptedViewAdapter(crop_name, payloads, device),
     )
-    monkeypatch.setattr(smoke, "_prepare_view_tensor", _scripted_view_tensor)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _scripted_view_tensor)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -607,12 +608,12 @@ def test_predict_single_image_robust_mode_flags_view_class_disagreement_and_keep
     }
 
     monkeypatch.setattr(
-        smoke,
+        smoke_impl,
         "_build_adapter",
         lambda crop_name, device: _ScriptedViewAdapter(crop_name, payloads, device),
     )
-    monkeypatch.setattr(smoke, "_prepare_view_tensor", _scripted_view_tensor)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _scripted_view_tensor)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -640,12 +641,12 @@ def test_predict_single_image_robust_mode_flags_view_ood_disagreement(monkeypatc
     }
 
     monkeypatch.setattr(
-        smoke,
+        smoke_impl,
         "_build_adapter",
         lambda crop_name, device: _ScriptedViewAdapter(crop_name, payloads, device),
     )
-    monkeypatch.setattr(smoke, "_prepare_view_tensor", _scripted_view_tensor)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _scripted_view_tensor)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -670,12 +671,12 @@ def test_predict_single_image_robust_mode_flags_large_confidence_spread(monkeypa
     }
 
     monkeypatch.setattr(
-        smoke,
+        smoke_impl,
         "_build_adapter",
         lambda crop_name, device: _ScriptedViewAdapter(crop_name, payloads, device),
     )
-    monkeypatch.setattr(smoke, "_prepare_view_tensor", _scripted_view_tensor)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _scripted_view_tensor)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -700,9 +701,9 @@ def test_predict_single_image_robust_mode_keeps_error_row_when_primary_view_fail
             raise ValueError("forced failure on primary view")
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "_prepare_view_tensor", _prepare_with_primary_failure)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 16)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _prepare_with_primary_failure)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
     result = smoke.predict_single_image(
         image_path,
@@ -732,9 +733,9 @@ def test_predict_image_folder_skips_non_images_and_records_errors(monkeypatch, t
     def zero_preprocess(_image, target_size=224):
         return torch.zeros(3, target_size, target_size)
 
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
-    monkeypatch.setattr(smoke, "preprocess_image", zero_preprocess)
-    monkeypatch.setattr(smoke, "_target_size", lambda _env: 224)
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
+    monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 224)
 
     rows = smoke.predict_image_folder(image_dir, "tomato", adapter_dir=asset_dir, device="cpu")
 
@@ -754,7 +755,7 @@ def test_load_adapter_summary_raises_for_invalid_crop_metadata_json(monkeypatch,
     asset_dir = _write_adapter_export(export_root)
     (export_root / "artifacts").mkdir(parents=True, exist_ok=True)
     (export_root / "artifacts" / "crop_info.json").write_text("{not-valid-json", encoding="utf-8")
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     try:
         smoke.load_adapter_summary(None, adapter_dir=asset_dir, device="cpu")
@@ -969,7 +970,7 @@ def test_discover_adapter_candidates_infers_crop_from_adapter_meta_classes(tmp_p
 def test_load_adapter_summary_accepts_crop_dir_as_adapter_root(monkeypatch, tmp_path: Path):
     crop_dir = tmp_path / "models" / "adapters" / "tomato"
     asset_dir = _write_adapter_export(crop_dir)
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary("tomato", adapter_root=crop_dir, device="cpu")
 
@@ -982,7 +983,7 @@ def test_load_adapter_summary_accepts_crop_dir_as_adapter_root_without_crop_name
 ):
     crop_dir = tmp_path / "models" / "adapters" / "tomato"
     asset_dir = _write_adapter_export(crop_dir)
-    monkeypatch.setattr(smoke, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
+    monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
     summary = smoke.load_adapter_summary(None, adapter_root=crop_dir, device="cpu")
 
@@ -1000,7 +1001,7 @@ def test_discover_adapter_candidates_skips_redundant_descendant_roots(tmp_path: 
         scan_roots.append(root)
         return iter(())
 
-    monkeypatch.setattr(smoke, "_iter_adapter_meta_paths", _recording_iter)
+    monkeypatch.setattr(smoke_impl, "_iter_adapter_meta_paths", _recording_iter)
 
     candidates = smoke.discover_adapter_candidates(
         search_roots=[tmp_path, tmp_path / "outputs", tmp_path / "outputs" / "nested"],
@@ -1022,7 +1023,7 @@ def test_discover_adapter_candidates_skips_redundant_descendant_roots_even_when_
         scan_roots.append(root)
         return iter(())
 
-    monkeypatch.setattr(smoke, "_iter_adapter_meta_paths", _recording_iter)
+    monkeypatch.setattr(smoke_impl, "_iter_adapter_meta_paths", _recording_iter)
 
     candidates = smoke.discover_adapter_candidates(
         search_roots=[child, parent],

@@ -3,15 +3,9 @@
 import pytest
 import torch
 
-from src.ood._scoring_utils import distribution_threshold, ensemble_threshold, select_temperature_from_logits
+from src.ood._scoring_utils import select_temperature_from_logits
 from src.ood.continual_ood import ClassCalibration, ContinualOODDetector
 from src.training.services.persistence import restore_ood_state
-
-
-def test_distribution_threshold_alias_matches_ensemble_threshold():
-    values = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
-
-    assert distribution_threshold(values, 2.0) == ensemble_threshold(values, 2.0)
 
 
 def test_select_temperature_from_logits_requires_matching_shapes():

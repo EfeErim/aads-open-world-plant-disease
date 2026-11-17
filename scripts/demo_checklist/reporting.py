@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
-from scripts.demo_checklist.grading import (
+from scripts.demo_checklist.rows import (
     ABSTAIN_STATUSES,
     CLASSLESS_SUPPORTED_PROBE_MARKERS,
     opposite_part_label,

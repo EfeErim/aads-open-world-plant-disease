@@ -1,11 +1,33 @@
 import json
+import types
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
+from src.workflows import run_setup as th
 from src.workflows.run_setup import prepare_training_run
 
+
+def test_loader_size_with_sequence():
+    seq = [1, 2, 3]
+    assert th.loader_size(seq) == 3
+
+
+def test_loader_size_with_none():
+    assert th.loader_size(None) == 0
+
+
+def test_stringify_paths_converts_path():
+    p = Path("/tmp/example")
+    assert th.stringify_paths(p) == str(p)
+
+
+def test_build_loader_sizes_with_mapping():
+    fake_loader = types.SimpleNamespace(dataset=[1, 2, 3])
+    sizes = th.build_loader_sizes({"train": fake_loader, "val": None})
+    assert sizes["train"] == 3
+    assert sizes["val"] == 0
 
 class FakeDataset:
     def __init__(self, classes, labels):

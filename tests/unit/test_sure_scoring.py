@@ -5,7 +5,6 @@ from __future__ import annotations
 import torch
 
 from src.ood.sure_scoring import (
-    apply_sure_decision,
     calibrate_sure_thresholds,
     compute_confidence_score,
     compute_ds_f1,
@@ -58,37 +57,6 @@ class TestCalibrateSureThresholds:
         sem_t, conf_t = calibrate_sure_thresholds(torch.tensor([]), torch.tensor([]))
         assert sem_t == 0.0
         assert conf_t == 0.0
-
-
-class TestApplySureDecision:
-    def test_below_both_thresholds(self):
-        result = apply_sure_decision(0.5, 0.3, 1.0, 0.5)
-        assert not result["semantic_ood"]
-        assert not result["confidence_reject"]
-        assert not result["combined_reject"]
-
-    def test_above_semantic_only(self):
-        result = apply_sure_decision(1.5, 0.3, 1.0, 0.5)
-        assert result["semantic_ood"]
-        assert not result["confidence_reject"]
-        assert result["combined_reject"]
-
-    def test_above_confidence_only(self):
-        result = apply_sure_decision(0.5, 0.8, 1.0, 0.5)
-        assert not result["semantic_ood"]
-        assert result["confidence_reject"]
-        assert result["combined_reject"]
-
-    def test_above_both(self):
-        result = apply_sure_decision(1.5, 0.8, 1.0, 0.5)
-        assert result["semantic_ood"]
-        assert result["confidence_reject"]
-        assert result["combined_reject"]
-
-    def test_at_threshold_not_ood(self):
-        result = apply_sure_decision(1.0, 0.5, 1.0, 0.5)
-        assert not result["semantic_ood"]
-        assert not result["confidence_reject"]
 
 
 class TestDSF1:

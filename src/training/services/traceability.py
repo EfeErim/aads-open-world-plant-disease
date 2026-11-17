@@ -7,9 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from src.guided_artifacts import refresh_training_guided_artifacts
 from src.shared.artifacts import ArtifactStore
-from src.shared.dict_utils import nested_dict as _nested_dict
+from src.shared.json_utils import nested_dict as _nested_dict
 from src.shared.json_utils import read_json
 
 JsonDict = Dict[str, Any]
@@ -369,15 +368,6 @@ def build_experiment_manifest(
     return payload
 
 
-def _config_value(config: Mapping[str, Any], *keys: str) -> Any:
-    current: Any = dict(config)
-    for key in keys:
-        if not isinstance(current, Mapping):
-            return None
-        current = current.get(key)
-    return current
-
-
 _NOTEBOOK_PARAMETER_MAP: dict[str, tuple[str, Any]] = {
     "learning_rate": ("training.learning_rate", _coerce_float),
     "weight_decay": ("training.weight_decay", _coerce_float),
@@ -696,7 +686,6 @@ def persist_traceability_artifacts(
     optimization_json = store.write_json("optimization_record.json", dict(optimization_record))
     _copy_to_telemetry(telemetry, manifest_json, "training/experiment_manifest.json")
     _copy_to_telemetry(telemetry, optimization_json, "training/optimization_record.json")
-    refresh_training_guided_artifacts(root, telemetry=telemetry)
     result: Dict[str, Any] = {
         "experiment_manifest_json": manifest_json,
         "optimization_record_json": optimization_json,

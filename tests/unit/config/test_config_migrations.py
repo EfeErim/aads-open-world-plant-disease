@@ -2,9 +2,55 @@ import json
 
 import pytest
 
-from src.core.config_manager import ConfigurationManager
-from src.core.config_migrations import CURRENT_CONFIG_SCHEMA_VERSION, is_versioned_config_surface_payload
+from src.core.config_manager import (
+    CURRENT_CONFIG_SCHEMA_VERSION,
+    ConfigurationManager,
+    is_versioned_config_surface_payload,
+)
 
+
+def _write_base_config(path, *, training_ood=None, top_level_ood=None):
+    payload = {
+        "config_schema_version": CURRENT_CONFIG_SCHEMA_VERSION,
+        "router": {"enabled": True, "type": "enhanced"},
+        "training": {
+            "continual": {
+                "backbone": {"model_name": "facebook/dinov3-vitl16-pretrain-lvd1689m"},
+                "adapter": {"target_modules_strategy": "all_linear_transformer"},
+                "fusion": {"layers": [2, 5, 8, 11]},
+            }
+        },
+    }
+    if training_ood is not None:
+        payload["training"]["continual"]["ood"] = training_ood
+    if top_level_ood is not None:
+        payload["ood"] = dict(top_level_ood)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_config_manager_rejects_training_ood_threshold_from_top_level(tmp_path):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    _write_base_config(config_dir / "base.json", top_level_ood={"threshold_factor": 2.5})
+
+    manager = ConfigurationManager(config_dir=str(config_dir))
+    with pytest.raises(ValueError, match="Unsupported top-level config sections: ood"):
+        manager.load_all_configs()
+
+
+def test_config_manager_keeps_canonical_training_ood_threshold(tmp_path):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    _write_base_config(
+        config_dir / "base.json",
+        training_ood={"threshold_factor": 1.8},
+    )
+
+    manager = ConfigurationManager(config_dir=str(config_dir))
+    merged = manager.load_all_configs()
+
+    assert merged["training"]["continual"]["ood"]["threshold_factor"] == 1.8
+    assert "ood" not in merged
 
 def _write_json(path, payload):
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -63,15 +109,6 @@ def test_manager_rejects_checkpoint_interval_alias(tmp_path):
         ConfigurationManager(config_dir=str(config_dir), environment="env_alias").load_all_configs()
 
 
-def test_validate_merged_config_requires_current_schema_version(tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    _write_json(config_dir / "base.json", _canonical_base_payload())
-
-    manager = ConfigurationManager(config_dir=str(config_dir))
-    assert manager.validate_merged_config() is True
-
-
 def test_manager_rejects_future_config_schema_version(tmp_path):
     config_dir = tmp_path / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -97,27 +134,6 @@ def test_manager_rejects_missing_environment_config(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="Available environments: env_alias"):
         ConfigurationManager(config_dir=str(config_dir), environment="missing_env").load_all_configs()
-
-
-def test_load_config_file_requires_versioned_surface(tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    payload = _canonical_base_payload()
-    payload.pop("config_schema_version", None)
-    _write_json(config_dir / "env_alias.json", payload)
-
-    with pytest.raises(ValueError, match=f"must declare config_schema_version={CURRENT_CONFIG_SCHEMA_VERSION}"):
-        ConfigurationManager(config_dir=str(config_dir)).load_config_file("env_alias.json")
-
-
-def test_load_config_file_leaves_non_surface_payload_untouched(tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    _write_json(config_dir / "plant_taxonomy.json", {"crops": {"tomato": ["leaf"]}})
-
-    payload = ConfigurationManager(config_dir=str(config_dir)).load_config_file("plant_taxonomy.json")
-
-    assert payload == {"crops": {"tomato": ["leaf"]}}
 
 
 def test_load_all_configs_reuses_cached_merged_payload(tmp_path, monkeypatch):

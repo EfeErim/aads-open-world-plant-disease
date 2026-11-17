@@ -6,11 +6,9 @@ import pytest
 from PIL import Image
 
 from src.colab.dataset_layout import (
-    build_runtime_split_manifest,
     list_dataset_directories_from_parent,
     list_repo_dataset_directories,
     looks_like_class_root_dataset,
-    prepare_runtime_dataset_layout,
     resolve_dataset_directory_from_parent,
     resolve_direct_repo_dataset_root,
     resolve_notebook_training_classes,
@@ -20,7 +18,6 @@ from src.colab.dataset_layout import (
 # test helpers constants
 IMAGE_SIZE = (8, 8)
 IMAGE_COLOR = (255, 0, 0)
-IMAGE_EXTS = (".jpg", ".jpeg", ".png")
 
 
 def _write_images(root: Path, class_name: str, count: int) -> None:
@@ -40,86 +37,6 @@ def _write_zip_dataset(archive_path: Path, dataset_name: str, class_name: str, c
                 archive.write(file_path, file_path.relative_to(source_root).as_posix())
     # remove transient source tree to avoid leaving test artifacts on disk
     shutil.rmtree(source_root, ignore_errors=True)
-
-
-def test_build_runtime_split_manifest_contains_counts(tmp_path: Path):
-    _write_images(tmp_path, "Tomato Healthy", 4)
-    _write_images(tmp_path, "Tomato Blight", 2)
-
-    manifest = build_runtime_split_manifest(class_root=tmp_path, crop_name="tomato", seed=123)
-
-    assert manifest["crop"] == "tomato"
-    assert manifest["seed"] == 123
-    assert manifest["split_policy"] == "80/10/10"
-    assert manifest["summary"]["num_classes"] == 2
-    assert any(item["class_name"] == "tomato_healthy" for item in manifest["classes"])
-
-
-def test_prepare_runtime_dataset_layout_writes_split_manifest(tmp_path: Path):
-    source_root = tmp_path / "source"
-    runtime_root = tmp_path / "runtime"
-    _write_images(source_root, "Healthy", 5)
-    _write_images(source_root, "Disease A", 4)
-
-    result_root = prepare_runtime_dataset_layout(
-        source_root,
-        "tomato",
-        seed=42,
-        runtime_root=runtime_root,
-    )
-
-    crop_root = result_root / "tomato"
-    assert (crop_root / "split_manifest.json").is_file()
-    assert (crop_root / "continual").is_dir()
-    assert (crop_root / "val").is_dir()
-    assert (crop_root / "test").is_dir()
-
-
-def test_prepare_runtime_dataset_layout_preserves_nested_relative_paths(tmp_path: Path):
-    source_root = tmp_path / "source"
-    runtime_root = tmp_path / "runtime"
-    nested_dir = source_root / "Healthy" / "camera_a"
-    nested_dir.mkdir(parents=True, exist_ok=True)
-    Image.new("RGB", IMAGE_SIZE, color=IMAGE_COLOR).save(nested_dir / "image_nested.jpg")
-
-    result_root = prepare_runtime_dataset_layout(
-        source_root,
-        "tomato",
-        seed=42,
-        runtime_root=runtime_root,
-    )
-
-    crop_root = result_root / "tomato"
-    nested_targets = list(crop_root.rglob("image_nested.jpg"))
-    assert len(nested_targets) == 1
-    assert "camera_a" in nested_targets[0].parts
-
-
-def test_prepare_runtime_dataset_layout_rebuilds_when_manifest_matches_but_split_tree_is_incomplete(tmp_path: Path):
-    source_root = tmp_path / "source"
-    runtime_root = tmp_path / "runtime"
-    _write_images(source_root, "Healthy", 5)
-
-    result_root = prepare_runtime_dataset_layout(
-        source_root,
-        "tomato",
-        seed=42,
-        runtime_root=runtime_root,
-    )
-
-    crop_root = result_root / "tomato"
-    shutil.rmtree(crop_root / "continual")
-
-    prepare_runtime_dataset_layout(
-        source_root,
-        "tomato",
-        seed=42,
-        runtime_root=runtime_root,
-    )
-
-    assert (crop_root / "continual").is_dir()
-    files = [p for p in (crop_root / "continual").rglob("*") if p.is_file() and p.suffix.lower() in IMAGE_EXTS]
-    assert len(files) > 0
 
 
 def test_resolve_notebook_training_classes_uses_taxonomy_when_aliases_cover_dataset():
@@ -358,41 +275,3 @@ def test_resolve_repo_dataset_directory_prompts_for_index_when_name_missing(tmp_
     assert dataset_names == ["grape_fruit", "grape_leaf"]
     assert prompts
     assert any("grape_fruit" in line for line in printed)
-
-
-def test_prepare_runtime_dataset_layout_refuses_to_delete_existing_runtime_tree_when_manifest_validation_fails(
-    tmp_path: Path,
-    monkeypatch,
-):
-    source_root = tmp_path / "source"
-    runtime_root = tmp_path / "runtime"
-    _write_images(source_root, "Healthy", 5)
-
-    result_root = prepare_runtime_dataset_layout(
-        source_root,
-        "tomato",
-        seed=42,
-        runtime_root=runtime_root,
-    )
-
-    crop_root = result_root / "tomato"
-    marker_path = crop_root / "keep_me.txt"
-    marker_path.write_text("preserve", encoding="utf-8")
-
-    def _fail_read_json(*args, **kwargs):
-        raise ValueError("bad manifest")
-
-    monkeypatch.setattr("src.colab.dataset_layout.read_json", _fail_read_json)
-
-    try:
-        prepare_runtime_dataset_layout(
-            source_root,
-            "tomato",
-            seed=42,
-            runtime_root=runtime_root,
-        )
-        raise AssertionError("prepare_runtime_dataset_layout was expected to fail when manifest validation breaks.")
-    except RuntimeError as exc:
-        assert "refusing to delete" in str(exc)
-
-    assert marker_path.exists()

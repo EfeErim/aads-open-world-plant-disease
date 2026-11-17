@@ -11,7 +11,6 @@ from typing import Any, Dict, Iterable, List, Protocol, Sequence, cast
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 
-from src.guided_artifacts import refresh_training_guided_artifacts
 from src.ood.behavioral_acceptance import build_behavioral_acceptance, build_behavioral_dev_report
 from src.shared.artifacts import ArtifactStore
 from src.shared.csv_utils import write_csv, write_csv_rows_with_order
@@ -115,17 +114,6 @@ def _copy_artifacts_to_telemetry(
         _copy_to_telemetry(telemetry, source_path, relative_path)
 
 
-def _refresh_guided_outputs(
-    artifact_root: Path,
-    *,
-    telemetry: Any = None,
-    overview_updates: Dict[str, Any] | None = None,
-) -> None:
-    refresh_training_guided_artifacts(
-        artifact_root,
-        telemetry=telemetry,
-        overview_updates=overview_updates,
-    )
 
 
 def _epoch_rows(history_snapshot: Dict[str, Any]) -> List[List[Any]]:
@@ -317,14 +305,6 @@ class BatchMetricsRecorder:
 
     def close(self) -> None:
         self.flush()
-
-
-def _resolve_output_subdirs(artifact_subdir: str, telemetry_subdir: str | None) -> tuple[str, str]:
-    resolved_artifact_subdir = str(artifact_subdir or "validation").strip().strip("/\\") or "validation"
-    resolved_telemetry_subdir = (
-        str(telemetry_subdir).strip().strip("/\\") if telemetry_subdir is not None else resolved_artifact_subdir
-    ) or resolved_artifact_subdir
-    return resolved_artifact_subdir, resolved_telemetry_subdir
 
 
 def _resolve_context_metric(value: Any, context: Dict[str, Any], key: str) -> Any:
@@ -541,7 +521,6 @@ def persist_training_history_artifacts(
             (history_csv, "training/history.csv"),
         ],
     )
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry)
     return {
         "history_json": history_json,
         "results_csv": results_csv,
@@ -568,7 +547,6 @@ def persist_batch_metrics_artifacts(
             rows.append([row.get(key, "") for key in headers])
         batch_csv = write_csv(training_dir / "batch_metrics.csv", headers, rows)
     _copy_artifacts_to_telemetry(telemetry, [(batch_csv, "training/batch_metrics.csv")])
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry)
     return {"batch_metrics_csv": batch_csv}
 
 
@@ -651,7 +629,6 @@ def persist_training_results_figure(
     plt.close(fig)
 
     _copy_artifacts_to_telemetry(telemetry, [(results_png, "training/results.png")])
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry)
     return {"results_png": results_png}
 
 
@@ -664,7 +641,6 @@ def persist_training_summary_artifact(
     training_dir = _artifact_dir(artifact_root, "training")
     summary_json = ArtifactStore(training_dir).write_json("summary.json", summary_payload)
     _copy_artifacts_to_telemetry(telemetry, [(summary_json, "training/summary.json")])
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry, overview_updates=dict(summary_payload))
     return {"summary_json": summary_json}
 
 
@@ -677,7 +653,6 @@ def persist_training_run_context_artifact(
     training_dir = _artifact_dir(artifact_root, "training")
     run_context_json = ArtifactStore(training_dir).write_json("run_context.json", context_payload)
     _copy_artifacts_to_telemetry(telemetry, [(run_context_json, "training/run_context.json")])
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry)
     return {"run_context_json": run_context_json}
 
 
@@ -752,7 +727,6 @@ def persist_ood_benchmark_artifacts(
             (per_fold_csv, "ood_benchmark/per_fold.csv"),
         ],
     )
-    _refresh_guided_outputs(artifact_root, telemetry=telemetry)
     return {"summary_json": summary_json, "per_fold_csv": per_fold_csv}
 
 def persist_production_readiness_artifact(
@@ -780,15 +754,6 @@ def persist_production_readiness_artifact(
     )
     readiness_json = ArtifactStore(artifact_root).write_json("production_readiness.json", payload)
     _copy_artifacts_to_telemetry(telemetry, [(readiness_json, "production_readiness.json")])
-    _refresh_guided_outputs(
-        artifact_root,
-        telemetry=telemetry,
-        overview_updates={
-            "classification_split": classification_split,
-            "readiness_status": payload.get("status", ""),
-            "ood_evidence_source": ood_evidence_source,
-        },
-    )
     return {"payload": payload, "readiness_json": readiness_json}
 
 
@@ -814,15 +779,6 @@ def persist_behavioral_acceptance_artifact(
         telemetry,
         [(acceptance_json, "adapter_behavioral_acceptance.json")],
     )
-    _refresh_guided_outputs(
-        artifact_root,
-        telemetry=telemetry,
-        overview_updates={
-            "behavioral_acceptance_status": payload.get("status", "fail"),
-            "behavioral_acceptance_passed": bool(payload.get("pass", False)),
-            "decision_authority": payload.get("decision_authority", "adapter_behavioral_acceptance"),
-        },
-    )
     return {"payload": payload, "acceptance_json": acceptance_json}
 
 
@@ -845,15 +801,6 @@ def persist_behavioral_dev_report_artifact(
     )
     report_json = ArtifactStore(artifact_root).write_json("adapter_behavioral_dev_report.json", payload)
     _copy_artifacts_to_telemetry(telemetry, [(report_json, "adapter_behavioral_dev_report.json")])
-    _refresh_guided_outputs(
-        artifact_root,
-        telemetry=telemetry,
-        overview_updates={
-            "behavioral_dev_status": payload.get("status", "fail"),
-            "behavioral_dev_passed": bool(payload.get("pass", False)),
-            "behavioral_dev_authoritative": False,
-        },
-    )
     return {"payload": payload, "report_json": report_json}
 
 
@@ -990,7 +937,6 @@ def persist_validation_artifacts(
     classes: Sequence[str],
     telemetry: Any = None,
     artifact_subdir: str = "validation",
-    telemetry_subdir: str | None = None,
     gate_targets: Dict[str, float] | None = None,
     require_ood: bool = False,
     gate_auxiliary_ood_diagnostics: bool = False,
@@ -1006,10 +952,7 @@ def persist_validation_artifacts(
     prediction_rows: Sequence[Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     resolved_classes = [str(name) for name in classes]
-    resolved_artifact_subdir, resolved_telemetry_subdir = _resolve_output_subdirs(
-        artifact_subdir,
-        telemetry_subdir,
-    )
+    resolved_artifact_subdir = str(artifact_subdir or "validation").strip().strip("/\\") or "validation"
     computation = _build_validation_computation(
         y_true=y_true,
         y_pred=y_pred,
@@ -1021,7 +964,7 @@ def persist_validation_artifacts(
         validation_dir=validation_dir,
         computation=computation,
         resolved_classes=resolved_classes,
-        resolved_telemetry_subdir=resolved_telemetry_subdir,
+        resolved_telemetry_subdir=resolved_artifact_subdir,
         telemetry=telemetry,
     )
     prediction_rows_list = [dict(row) for row in list(prediction_rows or []) if isinstance(row, dict)]
@@ -1029,7 +972,7 @@ def persist_validation_artifacts(
         _persist_prediction_outputs(
             validation_dir=validation_dir,
             prediction_rows=prediction_rows_list,
-            resolved_telemetry_subdir=resolved_telemetry_subdir,
+            resolved_telemetry_subdir=resolved_artifact_subdir,
             telemetry=telemetry,
         )
     )
@@ -1040,7 +983,7 @@ def persist_validation_artifacts(
         paths["ood_type_breakdown_json"] = breakdown_json
         _copy_artifacts_to_telemetry(
             telemetry,
-            [(breakdown_json, f"{resolved_telemetry_subdir}/ood_type_breakdown.json")],
+            [(breakdown_json, f"{resolved_artifact_subdir}/ood_type_breakdown.json")],
         )
 
     metric_context = dict(context or {"num_classes": len(resolved_classes)})
@@ -1073,7 +1016,7 @@ def persist_validation_artifacts(
         paths["ood_method_comparison_json"] = comparison_json
         _copy_artifacts_to_telemetry(
             telemetry,
-            [(comparison_json, f"{resolved_telemetry_subdir}/ood_method_comparison.json")],
+            [(comparison_json, f"{resolved_artifact_subdir}/ood_method_comparison.json")],
         )
 
     metrics = compute_plan_metrics(
@@ -1105,7 +1048,7 @@ def persist_validation_artifacts(
         paths["ood_evidence_summary_json"] = summary_json
         _copy_artifacts_to_telemetry(
             telemetry,
-            [(summary_json, f"{resolved_telemetry_subdir}/ood_evidence_summary.json")],
+            [(summary_json, f"{resolved_artifact_subdir}/ood_evidence_summary.json")],
         )
 
     metric_gate = write_plan_metric_artifact(
@@ -1121,16 +1064,11 @@ def persist_validation_artifacts(
         paths["metric_gate_json"] = metric_gate_json
         _copy_artifacts_to_telemetry(
             telemetry,
-            [(metric_gate_json, f"{resolved_telemetry_subdir}/metric_gate.json")],
+            [(metric_gate_json, f"{resolved_artifact_subdir}/metric_gate.json")],
         )
     else:
         metric_gate_json.unlink(missing_ok=True)
 
-    _refresh_guided_outputs(
-        artifact_root,
-        telemetry=telemetry,
-        overview_updates={"last_written_split": resolved_artifact_subdir},
-    )
     return {
         "report_text": computation.report_text,
         "report_dict": computation.report_dict,

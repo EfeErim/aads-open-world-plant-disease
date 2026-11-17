@@ -1,12 +1,23 @@
+import sys
+import types
+
 import pytest
 import torch
 import torch.nn as nn
 
+from src.training import continual_sd_lora
 from src.training.ber_loss import BERLoss
 from src.training.config import ContinualSDLoRAConfig
 from src.training.continual_sd_lora import ContinualSDLoRATrainer
 from src.training.session import ContinualTrainingSession
 
+
+def test_resolve_auto_model_factory_imports_transformers_late(monkeypatch):
+    fake_transformers = types.ModuleType("transformers")
+    fake_transformers.AutoModel = object()
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+    assert continual_sd_lora._resolve_auto_model_factory(None) is fake_transformers.AutoModel
 
 class DummyBackbone(nn.Module):
     def __init__(self):

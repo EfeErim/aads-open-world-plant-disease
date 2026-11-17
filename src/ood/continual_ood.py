@@ -59,17 +59,6 @@ def normalize_knn_backend(value: Any) -> str:
     return resolved
 
 
-_BASE_SCORE_FIELDS = (
-    "mahalanobis_z",
-    "energy_z",
-    "energy_score",
-    "energy_threshold",
-    "knn_distance",
-    "knn_threshold",
-    "primary_score",
-    "decision_threshold",
-    "is_ood",
-)
 _SURE_SCORE_FIELDS = (
     "sure_semantic_score",
     "sure_confidence_score",
@@ -787,37 +776,6 @@ class ContinualOODDetector:
             react_percentile=self.react_percentile,
             react_threshold=self.react_threshold,
         )
-
-    def _score_class(self, class_id: int, feature: torch.Tensor, logit: torch.Tensor) -> Dict[str, Any]:
-        score_feature = feature.unsqueeze(0) if feature.ndim == 1 else feature
-        score_logit = logit.unsqueeze(0) if logit.ndim == 1 else logit
-        batch_result = self._score_class_batch(class_id, score_feature, score_logit)
-
-        result: Dict[str, Any] = {
-            "score_method": batch_result["score_method"],
-            "candidate_scores": {
-                name: float(values[0].item())
-                for name, values in batch_result["candidate_scores"].items()
-            },
-            "candidate_thresholds": {
-                name: float(values[0].item())
-                for name, values in batch_result["candidate_thresholds"].items()
-            },
-        }
-        for field in _BASE_SCORE_FIELDS:
-            values = batch_result[field]
-            result[field] = bool(values[0].item()) if field == "is_ood" else float(values[0].item())
-        if self.sure_enabled:
-            result["sure_semantic_score"] = float(batch_result["sure_semantic_score"][0].item())
-            result["sure_confidence_score"] = float(batch_result["sure_confidence_score"][0].item())
-            result["sure_semantic_ood"] = bool(batch_result["sure_semantic_ood"][0].item())
-            result["sure_confidence_reject"] = bool(batch_result["sure_confidence_reject"][0].item())
-        else:
-            result["sure_semantic_score"] = None
-            result["sure_confidence_score"] = None
-            result["sure_semantic_ood"] = None
-            result["sure_confidence_reject"] = None
-        return result
 
     def build_conformal_set(
         self,

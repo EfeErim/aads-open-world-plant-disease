@@ -1,4 +1,4 @@
-"""Compatibility wrapper and CLI for direct adapter smoke-test helpers.
+"""CLI for direct adapter smoke tests; re-exports the helpers Notebook 3 imports.
 
 The command-line path is contract-first: it discovers exported adapter bundles,
 validates the metadata shape Notebook 3/4 and inference need, and optionally
@@ -20,53 +20,12 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import src.colab.adapter_smoke as _impl  # noqa: E402
-
-IMAGE_SUFFIXES = _impl.IMAGE_SUFFIXES
-DEFAULT_ROBUST_VIEWS = _impl.DEFAULT_ROBUST_VIEWS
-DEFAULT_EXPLANATION_METHOD = _impl.DEFAULT_EXPLANATION_METHOD
-SUPPORTED_EXPLANATION_METHODS = _impl.SUPPORTED_EXPLANATION_METHODS
-IMAGE_MEAN_PAD_RGB = _impl.IMAGE_MEAN_PAD_RGB
-DEFAULT_DISCOVERY_ROOTS = _impl.DEFAULT_DISCOVERY_ROOTS
-SKIP_DISCOVERY_DIR_NAMES = _impl.SKIP_DISCOVERY_DIR_NAMES
-preprocess_image = _impl.preprocess_image
-_build_adapter = _impl._build_adapter
-_target_size = _impl._target_size
-_prepare_view_tensor = _impl._prepare_view_tensor
-_iter_adapter_meta_paths = _impl._iter_adapter_meta_paths
-
-
-def _sync_impl() -> None:
-    _impl.preprocess_image = preprocess_image
-    _impl._build_adapter = _build_adapter
-    _impl._target_size = _target_size
-    _impl._prepare_view_tensor = _prepare_view_tensor
-    _impl._iter_adapter_meta_paths = _iter_adapter_meta_paths
-
-
-def discover_adapter_candidates(*args, **kwargs):
-    _sync_impl()
-    return _impl.discover_adapter_candidates(*args, **kwargs)
-
-
-def load_adapter_summary(*args, **kwargs):
-    _sync_impl()
-    return _impl.load_adapter_summary(*args, **kwargs)
-
-
-def predict_single_image(*args, **kwargs):
-    _sync_impl()
-    return _impl.predict_single_image(*args, **kwargs)
-
-
-def predict_image_folder(*args, **kwargs):
-    _sync_impl()
-    return _impl.predict_image_folder(*args, **kwargs)
-
-
-def build_prediction_visualization_images(*args, **kwargs):
-    _sync_impl()
-    return _impl.build_prediction_visualization_images(*args, **kwargs)
+from src.colab.adapter_smoke import (  # noqa: E402
+    build_prediction_visualization_images as build_prediction_visualization_images,
+)
+from src.colab.adapter_smoke import discover_adapter_candidates, predict_image_folder  # noqa: E402
+from src.colab.adapter_smoke import load_adapter_summary as load_adapter_summary  # noqa: E402
+from src.colab.adapter_smoke import predict_single_image as predict_single_image  # noqa: E402
 
 
 def _read_adapter_meta_for_cli(adapter_dir: Path) -> dict[str, Any]:
@@ -184,7 +143,6 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run a metadata-first smoke check suitable for CI and scheduled automation."""
     args = _build_parser().parse_args(argv)
-    _sync_impl()
 
     roots = [Path(root) for root in (args.adapter_root or ["models/adapters"])]
     candidates = discover_adapter_candidates(
@@ -259,27 +217,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     return 0
 
-
-__all__ = [
-    "DEFAULT_DISCOVERY_ROOTS",
-    "DEFAULT_EXPLANATION_METHOD",
-    "DEFAULT_ROBUST_VIEWS",
-    "IMAGE_MEAN_PAD_RGB",
-    "IMAGE_SUFFIXES",
-    "SKIP_DISCOVERY_DIR_NAMES",
-    "SUPPORTED_EXPLANATION_METHODS",
-    "_build_adapter",
-    "_iter_adapter_meta_paths",
-    "_prepare_view_tensor",
-    "_target_size",
-    "build_prediction_visualization_images",
-    "discover_adapter_candidates",
-    "load_adapter_summary",
-    "main",
-    "predict_image_folder",
-    "predict_single_image",
-    "preprocess_image",
-]
 
 
 if __name__ == "__main__":

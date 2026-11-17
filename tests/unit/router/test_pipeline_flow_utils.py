@@ -1,6 +1,5 @@
 from src.router.pipeline_flow_utils import (
     build_process_image_response,
-    empty_analysis_result,
     resolve_active_analyzer,
     resolve_effective_max_detections,
 )
@@ -22,15 +21,6 @@ def test_build_process_image_response_uses_single_detection_when_disabled():
     payload = build_process_image_response(analysis, enabled=False)
 
     assert payload['scenario'] == 'single_detection'
-
-
-def test_empty_analysis_result_contract():
-    payload = empty_analysis_result((3, 224, 224))
-    assert payload == {
-        'detections': [],
-        'image_size': (3, 224, 224),
-        'processing_time_ms': 0.0,
-    }
 
 
 def test_resolve_active_analyzer_normalizes_pipeline_name():

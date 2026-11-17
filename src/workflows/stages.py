@@ -18,8 +18,7 @@ from src.training.services.reporting import (
     persist_validation_artifacts,
 )
 from src.training.validation import evaluate_model_with_artifact_metrics
-from src.utils.training_helpers import loader_size
-from src.workflows.run_setup import select_calibration_source
+from src.workflows.run_setup import loader_size, select_calibration_source
 
 
 def persist_training_artifacts(*, artifact_dir: Path, history_payload: Dict[str, Any], batch_metrics_csv: Path, telemetry: Any) -> Dict[str, Any]:
@@ -57,7 +56,6 @@ def persist_evaluation_artifacts(
     loader_sizes: Dict[str, int],
     split_name: str,
     artifact_subdir: str,
-    telemetry_subdir: Optional[str] = None,
     evaluation_result: Any = None,
     requested_primary_score_method: str = "auto",
     selected_primary_score_method: str = "auto",
@@ -98,7 +96,6 @@ def persist_evaluation_artifacts(
         classes=detected_classes,
         telemetry=telemetry,
         artifact_subdir=artifact_subdir,
-        telemetry_subdir=telemetry_subdir,
         gate_targets=gate_targets,
         require_ood=require_ood,
         gate_auxiliary_ood_diagnostics=gate_auxiliary_ood_diagnostics,
@@ -294,7 +291,6 @@ def run_classifier_rebalance_logic(
         return trainer, {}, "", None, {}, False
 
     log_priors = getattr(trainer, "class_balance_runtime", {})
-    # The caller is expected to configure the trainer as needed
     if hasattr(trainer, "configure_classifier_rebalance_stage"):
         trainer.configure_classifier_rebalance_stage(log_priors=log_priors)
     if hasattr(trainer, "set_stage_optimizer_override"):
@@ -305,7 +301,6 @@ def run_classifier_rebalance_logic(
     if hasattr(trainer, "setup_stage_optimizer"):
         trainer.setup_stage_optimizer()
 
-    # run rebalance session
     rebalance_session = adapter.build_training_session(
         train_loader=train_loader,
         num_epochs=int(rebalance_cfg.get("epochs", 3)),
@@ -313,7 +308,7 @@ def run_classifier_rebalance_logic(
         run_id=f"{run_id}__classifier_rebalance",
         validation_every_n_epochs=int(colab_cfg.get("validation_every_n_epochs", 1)),
     )
-    rebalance_history = rebalance_session.run()
+    rebalance_history = dict(rebalance_session.run().to_dict())
     restore_best_state = getattr(rebalance_session, "restore_best_model_state", None)
     rebalance_best_state_restored = bool(restore_best_state()) if callable(restore_best_state) else False
     rebalance_loader_sizes = {str(name): loader_size(loader) for name, loader in loaders.items()}
@@ -323,9 +318,12 @@ def run_classifier_rebalance_logic(
         if calibration_loader is not None and loader_size(calibration_loader) > 0
         else {}
     )
+    rebalanced_trainer = getattr(rebalance_session, "trainer", trainer)
+    if not rebalance_history:
+        return rebalanced_trainer, {}, calibration_split_name, calibration_loader, {}, False
     return (
-        getattr(rebalance_session, "trainer", trainer),
-        dict(rebalance_history.to_dict()),
+        rebalanced_trainer,
+        rebalance_history,
         calibration_split_name,
         calibration_loader,
         dict(rebalance_calibration),

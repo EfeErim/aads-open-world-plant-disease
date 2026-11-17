@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import logging
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Protocol, Sequence
-
-import torch
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from src.adapter.independent_crop_adapter import IndependentCropAdapter
 from src.core.config_manager import get_config
@@ -17,7 +15,7 @@ from src.data.dataset_lineage import build_local_legacy_lineage
 from src.data.dataset_release import canonical_sha256
 from src.data.loaders import create_training_loaders
 from src.shared.adapter_paths import build_adapter_bundle_root
-from src.shared.dict_utils import nested_dict as _nested_dict
+from src.shared.json_utils import nested_dict as _nested_dict
 from src.shared.json_utils import read_json
 from src.shared.telemetry import emit_event as _emit_event
 from src.shared.telemetry import update_latest as _update_latest
@@ -42,28 +40,18 @@ from src.training.services.traceability import (
     persist_traceability_artifacts,
 )
 from src.training.validation import evaluate_model_with_artifact_metrics
-from src.utils.training_helpers import loader_size
 from src.workflows import run_metadata
 from src.workflows.readiness import (
-    build_production_readiness_context as build_production_readiness_context_payload,
-)
-from src.workflows.readiness import (
-    build_training_summary_payload as build_training_summary_payload_dict,
-)
-from src.workflows.readiness import (
-    record_adapter_export_metadata as record_adapter_export_metadata_payload,
-)
-from src.workflows.readiness import (
-    record_primary_score_selection as record_primary_score_selection_payload,
-)
-from src.workflows.readiness import (
-    select_authoritative_artifacts as select_authoritative_artifacts_payload,
-)
-from src.workflows.readiness import (
-    select_authoritative_evaluation as select_authoritative_evaluation_payload,
+    build_production_readiness_context,
+    build_training_summary_payload,
+    record_adapter_export_metadata,
+    record_primary_score_selection,
+    select_authoritative_artifacts,
+    select_authoritative_evaluation,
 )
 from src.workflows.run_setup import (
     build_artifact_payload,
+    loader_size,
     prepare_training_run,
     stringify_paths,
 )
@@ -81,44 +69,6 @@ logger = logging.getLogger(__name__)
 
 JsonDict = Dict[str, Any]
 Observer = Callable[[JsonDict], None]
-
-
-class TelemetrySink(Protocol):
-    def emit_event(
-        self,
-        event_type: str,
-        payload: JsonDict,
-        *,
-        phase: str,
-        force_sync: bool = ...,
-    ) -> None: ...
-
-    def update_latest(self, payload: JsonDict) -> None: ...
-
-
-class CheckpointManagerLike(Protocol):
-    def save_checkpoint(
-        self,
-        *,
-        adapter: IndependentCropAdapter,
-        session: "TrainingSessionLike",
-        reason: str,
-        run_id: str,
-        mark_best: bool,
-        val_loss: Any,
-    ) -> JsonDict: ...
-
-
-class HistoryLike(Protocol):
-    def to_dict(self) -> JsonDict: ...
-
-
-class TrainingSessionLike(Protocol):
-    trainer: Any
-
-    def run(self) -> HistoryLike: ...
-
-    def restore_best_model_state(self) -> bool: ...
 
 
 def _last_history_value(history_payload: Dict[str, Any], key: str) -> Optional[float]:
@@ -159,15 +109,6 @@ def _evaluation_metrics_summary(evaluation_payload: Any) -> Dict[str, float]:
         "weighted_f1": float(getattr(report, "weighted_f1", 0.0)),
         "balanced_accuracy": float(getattr(report, "balanced_accuracy", 0.0)),
     }
-
-
-
-
-
-
-
-
-
 
 
 def _resolve_ood_method_comparison_from_artifacts(artifacts: JsonDict) -> JsonDict:
@@ -282,40 +223,11 @@ class TrainingWorkflowResult:
 
 
 @dataclass(frozen=True)
-class _SplitEvaluationStage:
-    val: Any
-    test: Any
-
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "val": self.val,
-            "test": self.test,
-        }
-
-
-@dataclass(frozen=True)
 class _PrimaryScoreSelectionStage:
     requested_method: str
     selected_method: str
     selection_source: str
     selection_metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class _OODEvidenceStage:
-    source: str
-    metrics: Dict[str, Any]
-    benchmark: Dict[str, Any]
-
-
-@dataclass(frozen=True)
-class _TrainingExecutionStage:
-    history_payload: JsonDict
-    best_state_restored: bool
-    calibration_split_name: str
-    calibration_loader: Any
-    ood_calibration: JsonDict
-    trainer: Any
 
 
 class TrainingWorkflow:
@@ -331,24 +243,13 @@ class TrainingWorkflow:
         self.config = dict(config or get_config(environment=environment))
         self.device = str(device)
 
-    @staticmethod
-    def _emit_telemetry(
-        telemetry: Optional[TelemetrySink],
-        event_type: str,
-        payload: Dict[str, Any],
-        *,
-        phase: str,
-        force_sync: Optional[bool] = None,
-    ) -> None:
-        _emit_event(telemetry, event_type, payload, phase=phase, force_sync=force_sync)
-
     def _build_workflow_observer(
         self,
         *,
         adapter: IndependentCropAdapter,
         run_id: str,
         telemetry: Any,
-        checkpoint_manager: Optional[CheckpointManagerLike],
+        checkpoint_manager: Any,
         batch_recorder: Optional[BatchMetricsRecorder],
         checkpoint_records: List[JsonDict],
         session_holder: JsonDict,
@@ -359,7 +260,7 @@ class TrainingWorkflow:
             if event_type == "batch_end" and batch_recorder is not None:
                 batch_recorder.append(payload)
 
-            self._emit_telemetry(
+            _emit_event(
                 telemetry,
                 event_type,
                 payload,
@@ -403,15 +304,15 @@ class TrainingWorkflow:
         num_epochs: Optional[int],
         colab_cfg: JsonDict,
         run_id: str,
-        telemetry: Optional[TelemetrySink],
-        checkpoint_manager: Optional[CheckpointManagerLike],
+        telemetry: Any,
+        checkpoint_manager: Any,
         observers: Optional[Iterable[Observer]],
         stop_policy: Optional[Callable[[], bool]],
         checkpoint_every_n_steps: Optional[int],
         checkpoint_on_exception: Optional[bool],
         validation_every_n_epochs: Optional[int],
         artifact_dir: Path,
-    ) -> tuple[TrainingSessionLike, BatchMetricsRecorder, List[JsonDict]]:
+    ) -> tuple[Any, BatchMetricsRecorder, List[JsonDict]]:
         batch_recorder = BatchMetricsRecorder(artifact_root=artifact_dir)
         checkpoint_records: List[JsonDict] = []
         session_observers: List[Observer] = list(observers or [])
@@ -453,32 +354,6 @@ class TrainingWorkflow:
         session_holder["session"] = session
         return session, batch_recorder, checkpoint_records
 
-    def _execute_training_session(
-        self,
-        *,
-        session: TrainingSessionLike,
-        batch_recorder: BatchMetricsRecorder,
-        adapter: IndependentCropAdapter,
-        loaders: JsonDict,
-        loader_sizes: Dict[str, int],
-    ) -> _TrainingExecutionStage:
-        (
-            history_payload,
-            best_state_restored,
-            calibration_split_name,
-            calibration_loader,
-            ood_calibration,
-            trainer,
-        ) = execute_training_session_logic(session, batch_recorder, adapter, loaders, loader_sizes)
-        return _TrainingExecutionStage(
-            history_payload=history_payload,
-            best_state_restored=best_state_restored,
-            calibration_split_name=calibration_split_name,
-            calibration_loader=calibration_loader,
-            ood_calibration=ood_calibration,
-            trainer=trainer,
-        )
-
     @staticmethod
     def _configure_optional_training_pools(*, trainer: Any, loaders: Dict[str, Any]) -> None:
         if trainer is None:
@@ -506,61 +381,6 @@ class TrainingWorkflow:
         }
 
     @staticmethod
-    def _build_classifier_rebalance_log_priors(trainer: Any) -> Optional[torch.Tensor]:
-        runtime = dict(getattr(trainer, "class_balance_runtime", {}) or {})
-        counts_by_class = dict(runtime.get("resolved_class_counts", {}) or {})
-        class_to_idx = dict(getattr(trainer, "class_to_idx", {}) or {})
-        if not counts_by_class or not class_to_idx:
-            return None
-        ordered_counts: List[float] = []
-        for class_name, _idx in sorted(class_to_idx.items(), key=lambda item: int(item[1])):
-            count = float(counts_by_class.get(class_name, 0) or 0)
-            if count <= 0.0:
-                return None
-            ordered_counts.append(count)
-        priors = torch.tensor(ordered_counts, dtype=torch.float32)
-        priors = priors / priors.sum().clamp_min(1e-6)
-        return torch.log(priors.clamp_min(1e-6))
-
-    def _run_classifier_rebalance(
-        self,
-        *,
-        adapter: IndependentCropAdapter,
-        trainer: Any,
-        loaders: Dict[str, Any],
-        training_cfg: Dict[str, Any],
-        colab_cfg: Dict[str, Any],
-        telemetry: Any,
-        run_id: str,
-    ) -> tuple[Any, Dict[str, Any], str, Any, Dict[str, Any], bool]:
-        (
-            trainer,
-            rebalance_history_payload,
-            calibration_split_name,
-            calibration_loader,
-            rebalance_calibration,
-            rebalance_best_state_restored,
-        ) = run_classifier_rebalance_logic(
-            adapter=adapter,
-            trainer=trainer,
-            loaders=loaders,
-            training_cfg=training_cfg,
-            colab_cfg=colab_cfg,
-            telemetry=telemetry,
-            run_id=run_id,
-        )
-        if rebalance_history_payload:
-            return (
-                trainer,
-                dict(rebalance_history_payload),
-                calibration_split_name,
-                calibration_loader,
-                dict(rebalance_calibration),
-                rebalance_best_state_restored,
-            )
-        return trainer, {}, calibration_split_name, calibration_loader, {}, False
-
-    @staticmethod
     def _evaluate_split(
         *,
         trainer: Any,
@@ -577,11 +397,11 @@ class TrainingWorkflow:
         *,
         trainer: Any,
         loaders: Dict[str, Any],
-    ) -> _SplitEvaluationStage:
-        return _SplitEvaluationStage(
-            val=cls._evaluate_split(trainer=trainer, loader=loaders.get("val"), ood_loader=loaders.get("ood")),
-            test=cls._evaluate_split(trainer=trainer, loader=loaders.get("test"), ood_loader=loaders.get("ood")),
-        )
+    ) -> Dict[str, Any]:
+        return {
+            split_name: cls._evaluate_split(trainer=trainer, loader=loaders.get(split_name), ood_loader=loaders.get("ood"))
+            for split_name in ("val", "test")
+        }
 
     def _select_from_real_ood_dev(
         self,
@@ -611,29 +431,19 @@ class TrainingWorkflow:
             selection_metadata=dict(selection),
         )
 
-    def _resolve_ood_evidence(
+    def _run_ood_benchmark(
         self,
         *,
         crop_name: str,
         detected_classes: List[str],
         loaders: Dict[str, Any],
-        authoritative_artifacts: Dict[str, Any],
         artifact_dir: Path,
         run_id: str,
         num_epochs: Optional[int],
         telemetry: Any,
         min_classes: int,
-    ) -> tuple[str, Dict[str, Any], Dict[str, Any]]:
-        real_ood_present = loader_size(loaders.get("ood")) > 0
-        if real_ood_present:
-            ood_metrics = (
-                dict(authoritative_artifacts.get("metric_gate", {}).get("metrics", {}))
-                if authoritative_artifacts
-                else {}
-            )
-            return "real_ood_split", ood_metrics, {}
-
-        self._emit_telemetry(
+    ) -> Dict[str, Any]:
+        _emit_event(
             telemetry,
             "ood_benchmark_planned",
             {
@@ -663,15 +473,10 @@ class TrainingWorkflow:
             run_id=run_id,
             num_epochs=num_epochs,
             telemetry=telemetry,
-            emit_event=lambda event_type, payload: self._emit_telemetry(
-                telemetry,
-                event_type,
-                payload,
-                phase="evaluation",
-            ),
+            emit_event=lambda event_type, payload: _emit_event(telemetry, event_type, payload, phase="evaluation"),
             min_classes=int(min_classes),
         )
-        return "held_out_benchmark", dict(ood_benchmark.get("metrics", {})), ood_benchmark
+        return dict(ood_benchmark)
 
     def run(
         self,
@@ -796,7 +601,7 @@ class TrainingWorkflow:
                 "runtime_dataset/oe or an explicit training.continual.ood.oe_root."
             )
 
-        self._emit_telemetry(
+        _emit_event(
             telemetry,
             "training_workflow_started",
             {
@@ -808,18 +613,14 @@ class TrainingWorkflow:
             phase="training",
         )
 
-        execution_stage = self._execute_training_session(
-            session=session,
-            batch_recorder=batch_recorder,
-            adapter=adapter,
-            loaders=loaders,
-            loader_sizes=loader_sizes,
-        )
-        history_payload = execution_stage.history_payload
-        best_state_restored = execution_stage.best_state_restored
-        calibration_split_name = execution_stage.calibration_split_name
-        calibration_loader = execution_stage.calibration_loader
-        ood_calibration = execution_stage.ood_calibration
+        (
+            history_payload,
+            best_state_restored,
+            calibration_split_name,
+            calibration_loader,
+            ood_calibration,
+            trainer_for_artifacts,
+        ) = execute_training_session_logic(session, batch_recorder, adapter, loaders, loader_sizes)
 
         training_artifacts = persist_training_artifacts(
             artifact_dir=artifact_dir,
@@ -827,12 +628,7 @@ class TrainingWorkflow:
             batch_metrics_csv=batch_recorder.output_path,
             telemetry=telemetry,
         )
-        trainer_for_artifacts = execution_stage.trainer
-        split_evaluation_stage = self._collect_split_evaluations(
-            trainer=trainer_for_artifacts,
-            loaders=loaders,
-        )
-        split_evaluations = split_evaluation_stage.as_dict()
+        split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
         pre_rebalance_metrics = {
             split_name: _evaluation_metrics_summary(payload)
             for split_name, payload in split_evaluations.items()
@@ -854,7 +650,7 @@ class TrainingWorkflow:
                 calibration_loader,
                 ood_calibration,
                 rebalance_best_state_restored,
-            ) = self._run_classifier_rebalance(
+            ) = run_classifier_rebalance_logic(
                 adapter=adapter,
                 trainer=trainer_for_artifacts,
                 loaders=loaders,
@@ -865,11 +661,7 @@ class TrainingWorkflow:
             )
             if rebalance_history_payload:
                 classifier_rebalance_context["history"] = rebalance_history_payload
-            split_evaluation_stage = self._collect_split_evaluations(
-                trainer=trainer_for_artifacts,
-                loaders=loaders,
-            )
-            split_evaluations = split_evaluation_stage.as_dict()
+            split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
             classifier_rebalance_context["post_rebalance_metrics"] = {
                 split_name: _evaluation_metrics_summary(payload)
                 for split_name, payload in split_evaluations.items()
@@ -896,12 +688,7 @@ class TrainingWorkflow:
             trainer_for_artifacts,
             primary_score_stage.selected_method,
         )
-        primary_score_stage = _PrimaryScoreSelectionStage(
-            requested_method=primary_score_stage.requested_method,
-            selected_method=selected_primary_score_method,
-            selection_source=primary_score_stage.selection_source,
-            selection_metadata=dict(primary_score_stage.selection_metadata),
-        )
+        primary_score_stage = replace(primary_score_stage, selected_method=selected_primary_score_method)
         if real_ood_present and is_auto_primary_score_method(primary_score_stage.requested_method):
             real_dev_stage = None
             if bool(ood_cfg.get("real_dev_selection_enabled", True)):
@@ -914,43 +701,28 @@ class TrainingWorkflow:
                 )
             if real_dev_stage is not None:
                 primary_score_stage = real_dev_stage
-                split_evaluation_stage = self._collect_split_evaluations(
-                    trainer=trainer_for_artifacts,
-                    loaders=loaders,
-                )
-                split_evaluations = split_evaluation_stage.as_dict()
+                split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
             else:
-                primary_score_stage = _PrimaryScoreSelectionStage(
-                    requested_method=primary_score_stage.requested_method,
-                    selected_method=primary_score_stage.selected_method,
-                    selection_source="real_ood_guardrail_no_dev",
-                    selection_metadata=dict(primary_score_stage.selection_metadata),
-                )
+                primary_score_stage = replace(primary_score_stage, selection_source="real_ood_guardrail_no_dev")
 
-        ood_stage = _OODEvidenceStage(source="", metrics={}, benchmark={})
+        ood_benchmark: Dict[str, Any] = {}
         if not real_ood_present:
-            ood_evidence_source, ood_evidence_metrics, ood_benchmark = self._resolve_ood_evidence(
+            ood_benchmark = self._run_ood_benchmark(
                 crop_name=crop_name,
                 detected_classes=detected_classes,
                 loaders=loaders,
-                authoritative_artifacts={},
                 artifact_dir=artifact_dir,
                 run_id=run_id,
                 num_epochs=num_epochs,
                 telemetry=telemetry,
                 min_classes=int(evaluation_cfg.get("ood_benchmark_min_classes", 3)),
             )
-            ood_stage = _OODEvidenceStage(
-                source=ood_evidence_source,
-                metrics=dict(ood_evidence_metrics),
-                benchmark=dict(ood_benchmark),
-            )
-            if ood_stage.source == "held_out_benchmark" and is_auto_primary_score_method(
-                primary_score_stage.requested_method
-            ):
-                benchmark_method_comparison = dict(ood_stage.benchmark.get("method_comparison", {}))
+            ood_evidence_source = "held_out_benchmark"
+            ood_evidence_metrics = dict(ood_benchmark.get("metrics", {}))
+            if is_auto_primary_score_method(primary_score_stage.requested_method):
+                benchmark_method_comparison = dict(ood_benchmark.get("method_comparison", {}))
                 if not benchmark_method_comparison:
-                    benchmark_method_comparison = dict(ood_stage.benchmark.get("method_comparison_metrics", {}))
+                    benchmark_method_comparison = dict(ood_benchmark.get("method_comparison_metrics", {}))
                 if benchmark_method_comparison:
                     selected_primary_score_method = apply_primary_score_method_to_trainer(
                         trainer_for_artifacts,
@@ -959,16 +731,15 @@ class TrainingWorkflow:
                             fallback=primary_score_stage.selected_method,
                         ),
                     )
-                    primary_score_stage = _PrimaryScoreSelectionStage(
-                        requested_method=primary_score_stage.requested_method,
+                    primary_score_stage = replace(
+                        primary_score_stage,
                         selected_method=selected_primary_score_method,
                         selection_source="held_out_benchmark",
-                        selection_metadata=dict(primary_score_stage.selection_metadata),
                     )
 
         requested_primary_score_method = primary_score_stage.requested_method
         selection_source = primary_score_stage.selection_source
-        record_primary_score_selection_payload(
+        record_primary_score_selection(
             ood_calibration,
             requested_primary_score_method=primary_score_stage.requested_method,
             selected_primary_score_method=primary_score_stage.selected_method,
@@ -993,42 +764,29 @@ class TrainingWorkflow:
         )
         validation_artifacts = split_artifacts["val"]
         test_artifacts = split_artifacts["test"]
-        authoritative_split, authoritative_artifacts = select_authoritative_artifacts_payload(
+        authoritative_split, authoritative_artifacts = select_authoritative_artifacts(
             validation_artifacts,
             test_artifacts,
             calibration_split_name=calibration_split_name,
         )
-        authoritative_evaluation_split, authoritative_evaluation = select_authoritative_evaluation_payload(
+        authoritative_evaluation_split, authoritative_evaluation = select_authoritative_evaluation(
             split_evaluations.get("val"),
             split_evaluations.get("test"),
             calibration_split_name=calibration_split_name,
         )
         if real_ood_present:
-            ood_evidence_source, ood_evidence_metrics, ood_benchmark = self._resolve_ood_evidence(
-                crop_name=crop_name,
-                detected_classes=detected_classes,
-                loaders=loaders,
-                authoritative_artifacts=authoritative_artifacts,
-                artifact_dir=artifact_dir,
-                run_id=run_id,
-                num_epochs=num_epochs,
-                telemetry=telemetry,
-                min_classes=int(evaluation_cfg.get("ood_benchmark_min_classes", 3)),
+            ood_evidence_source = "real_ood_split"
+            ood_evidence_metrics = (
+                dict(authoritative_artifacts.get("metric_gate", {}).get("metrics", {}))
+                if authoritative_artifacts
+                else {}
             )
-            ood_stage = _OODEvidenceStage(
-                source=ood_evidence_source,
-                metrics=dict(ood_evidence_metrics),
-                benchmark=dict(ood_benchmark),
-            )
-        ood_evidence_source = ood_stage.source
-        ood_evidence_metrics = dict(ood_stage.metrics)
-        ood_benchmark = dict(ood_stage.benchmark)
         ood_method_comparison_context = _build_ood_method_comparison_context(
             authoritative_artifacts=authoritative_artifacts,
             ood_evidence_source=ood_evidence_source,
             ood_benchmark=ood_benchmark,
         )
-        readiness_context = build_production_readiness_context_payload(
+        readiness_context = build_production_readiness_context(
             run_id=run_id,
             crop_name=crop_name,
             loader_sizes=loader_sizes,
@@ -1049,7 +807,7 @@ class TrainingWorkflow:
         readiness_context["gate_auxiliary_ood_diagnostics"] = gate_auxiliary_ood_diagnostics
         readiness_context["dataset_lineage"] = dict(resolved_dataset_lineage)
         readiness_context["require_immutable_dataset_lineage"] = bool(require_immutable_dataset_lineage)
-        record_adapter_export_metadata_payload(
+        record_adapter_export_metadata(
             adapter,
             ood_calibration=ood_calibration,
             calibration_split_name=calibration_split_name,
@@ -1082,7 +840,7 @@ class TrainingWorkflow:
             telemetry=telemetry,
         )
         production_readiness = dict(readiness_artifacts.get("payload", {}))
-        self._emit_telemetry(
+        _emit_event(
             telemetry,
             "production_readiness_ready",
             {
@@ -1116,7 +874,7 @@ class TrainingWorkflow:
             telemetry=telemetry,
         )
         behavioral_acceptance = dict(behavioral_artifacts.get("payload", {}))
-        self._emit_telemetry(
+        _emit_event(
             telemetry,
             "adapter_behavioral_acceptance_ready",
             {
@@ -1129,7 +887,7 @@ class TrainingWorkflow:
             phase="artifact",
         )
 
-        summary_payload = build_training_summary_payload_dict(
+        summary_payload = build_training_summary_payload(
             run_id=run_id,
             crop_name=crop_name,
             part_name=resolved_part_name,
@@ -1271,13 +1029,13 @@ class TrainingWorkflow:
             production_readiness=production_readiness,
         )
 
-        self._emit_telemetry(
+        _emit_event(
             telemetry,
             "training_artifacts_ready",
             {"artifact_dir": str(artifact_dir), "artifacts": artifact_payload},
             phase="artifact",
         )
-        self._emit_telemetry(
+        _emit_event(
             telemetry,
             "training_workflow_completed",
             result.to_dict(),

@@ -159,7 +159,7 @@ Implementation:
 
 ## Training objective and data policy
 
-The maintained training defaults are:
+The defaults in [`config/base.json`](../config/base.json) are:
 
 - 16 epochs;
 - batch size 8 with gradient accumulation 4;
@@ -170,6 +170,9 @@ The maintained training defaults are:
 - LogitNorm loss;
 - RandAugment with two operations at magnitude 7;
 - early stopping on validation loss.
+
+The Colab environment ([`config/colab.json`](../config/colab.json)) overrides these to 12 epochs, batch size 96
+without gradient accumulation, learning rate `2e-4`, bf16 mixed precision and non-deterministic kernels.
 
 LogitNorm was chosen because overconfident logits are harmful when the product needs an abstain/review path. It is not
 treated as universally superior: cross-entropy and other controlled ablations remain possible.

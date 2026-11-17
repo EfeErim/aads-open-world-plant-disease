@@ -82,23 +82,7 @@ def ensure_repo_root(
     github_token: Optional[str] = None,
     sparse_paths: Optional[Sequence[str]] = None,
 ) -> Path:
-    """
-    Ensure repo root is available (find or clone).
-
-    Args:
-        auto_clone: If True and repo not found, attempt to clone
-        clone_target: Target path for cloning (default: COLAB_CLONE_TARGET)
-        repo_url: Repository URL (default: GitHub URL)
-        github_token: GitHub token for private repos
-        sparse_paths: Optional sparse checkout paths to select after clone
-
-    Returns:
-        Path to repo root
-
-    Raises:
-        RuntimeError: If repo cannot be found or cloned
-    """
-    # Try to find existing repo
+    """Ensure repo root is available (find or clone)."""
     repo_root = find_repo_root()
     if repo_root is not None:
         _ensure_sparse_checkout_paths(repo_root, ("requirements_colab.txt",))
@@ -110,7 +94,6 @@ def ensure_repo_root(
             "or enable auto_clone=True."
         )
 
-    # Setup cloning parameters
     if clone_target is None:
         clone_target = COLAB_CLONE_TARGET
     if repo_url is None:
@@ -154,7 +137,6 @@ def ensure_repo_root(
             "Set AADS_REPO_ROOT or provide valid GH_TOKEN for private repos."
         )
 
-    # Verify clone
     repo_root = find_repo_root()
     if repo_root is None:
         raise RuntimeError(
@@ -165,39 +147,12 @@ def ensure_repo_root(
     return repo_root
 
 
-# ============================================================================
-# BOOTSTRAP INITIALIZATION
-# ============================================================================
-
 def bootstrap_notebook(
     notebook_name: str = "Notebook",
     require_colab_requirements: bool = True,
     auto_clone_repo: bool = True,
 ) -> dict:
-    """
-    Bootstrap a Colab notebook with all necessary setup.
-
-    Performs:
-    - Token resolution (GitHub, HuggingFace)
-    - Repo discovery/cloning
-    - sys.path setup
-    - Colab requirements installation
-
-    Args:
-        notebook_name: Name of notebook for logging
-        require_colab_requirements: If True, install colab_notebooks/requirements_colab.txt
-        auto_clone_repo: If True, auto-clone repo if not found
-
-    Returns:
-        Dict with bootstrap result and paths:
-        {
-            "ROOT": Path,
-            "IN_COLAB": bool,
-            "GH_TOKEN": str,
-            "HF_TOKEN": str,
-            "bootstrap_status": "ok" | error message
-        }
-    """
+    """Bootstrap a Colab notebook with all necessary setup."""
     result = {
         "ROOT": None,
         "IN_COLAB": running_in_colab(),
@@ -207,7 +162,6 @@ def bootstrap_notebook(
     }
 
     try:
-        # Resolve tokens
         result["GH_TOKEN"] = resolve_github_token()
         if result["GH_TOKEN"]:
             print("[BOOTSTRAP] GitHub token found.")
@@ -220,17 +174,14 @@ def bootstrap_notebook(
         else:
             print("[BOOTSTRAP] HuggingFace token not found (public models only).")
 
-        # Ensure repo root
         ROOT = ensure_repo_root(auto_clone=auto_clone_repo, github_token=result["GH_TOKEN"])
         result["ROOT"] = ROOT
         os.chdir(ROOT)
         print(f"[BOOTSTRAP] Repo root: {ROOT}")
 
-        # Setup sys.path
         if str(ROOT) not in sys.path:
             sys.path.insert(0, str(ROOT))
 
-        # Install colab requirements
         if require_colab_requirements and result["IN_COLAB"]:
             colab_requirements = ROOT / "colab_notebooks" / "requirements_colab.txt"
             if colab_requirements.exists():

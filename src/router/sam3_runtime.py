@@ -16,7 +16,6 @@ from src.router.analysis_results import (
     init_sam3_stage_timings,
     summarize_sam3_stage_timings,
 )
-from src.router.compatibility_utils import compatible_parts_for_crop
 from src.router.confidence_utils import (
     passes_open_set_gate,
     resolve_effective_confidence_threshold,
@@ -24,13 +23,14 @@ from src.router.confidence_utils import (
 from src.router.heuristics import (
     apply_generic_part_penalty,
     apply_leaf_like_override,
+    compatible_parts_for_crop,
     compute_leaf_likeness,
     rebalance_part_scores_for_leaf_like_roi,
     select_best_crop_with_fallback,
     select_part_label_with_specificity,
 )
-from src.router.label_normalization import normalize_part_label
 from src.router.pipeline_flow_utils import resolve_effective_max_detections
+from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.roi_helpers import (
     bbox_area_ratio,
     coerce_image_input,

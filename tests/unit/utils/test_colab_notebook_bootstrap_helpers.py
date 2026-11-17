@@ -3,16 +3,16 @@ from pathlib import Path
 from src.colab import notebook_bootstrap_helpers as bootstrap_helpers
 
 
-def test_presentation_colab_profile_does_not_force_incompatible_torchao():
+def test_colab_profile_does_not_force_incompatible_torchao():
     repo_root = Path(__file__).resolve().parents[3]
-    requirements = (repo_root / "requirements_presentation_colab.txt").read_text(encoding="utf-8").splitlines()
+    requirements = (repo_root / "requirements_colab.txt").read_text(encoding="utf-8").splitlines()
 
     assert not any(line.startswith("torchao") for line in requirements)
-    assert "peft~=0.21.2" in requirements
+    assert "-r requirements.txt" in requirements
 
 
 def test_setup_notebook_environment_uses_repo_relative_requirements_override(tmp_path: Path, monkeypatch, capsys):
-    requirements_path = tmp_path / "requirements_presentation_colab.txt"
+    requirements_path = tmp_path / "requirements_colab.txt"
     requirements_path.write_text("open-clip-torch~=3.2.0\n", encoding="utf-8")
     calls = []
 
@@ -31,7 +31,7 @@ def test_setup_notebook_environment_uses_repo_relative_requirements_override(tmp
 
     assert root == tmp_path
     assert calls == [(requirements_path.resolve(), True)]
-    assert "[SETUP] Dependency profile: requirements_presentation_colab.txt" in capsys.readouterr().out
+    assert "[SETUP] Dependency profile: requirements_colab.txt" in capsys.readouterr().out
 
 
 def test_setup_notebook_environment_rejects_requirements_outside_repo(tmp_path: Path, monkeypatch):

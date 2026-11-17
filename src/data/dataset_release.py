@@ -82,7 +82,6 @@ SPLIT_TO_ROLE = {
 }
 UPLOADABLE_PRIVACY_STATES = {"approved", "complete", "no_private_metadata", "passed"}
 UPLOADABLE_REVIEW_STATES = {"approved", "accepted"}
-VERSION_CHANGE_LEVELS = {"patch": 0, "minor": 1, "major": 2}
 PRIVATE_METADATA_KEYS = {"comment", "exif", "gps", "icc_profile", "photoshop", "xml", "xmp"}
 
 
@@ -309,52 +308,6 @@ def derive_sample_id(source_asset_id: str, source_content_sha256: str) -> str:
     if not source_asset_id or len(source_content_sha256) != 64:
         raise DatasetContractError("sample_id requires source_asset_id and a valid source SHA-256")
     return "sample-" + canonical_sha256({"source_asset_id": source_asset_id, "sha256": source_content_sha256})[:32]
-
-
-def required_version_bump(change_type: str) -> str:
-    if change_type not in VERSION_CHANGE_LEVELS:
-        raise DatasetContractError(f"Unknown dataset change type: {change_type}")
-    return change_type
-
-
-def validate_version_change(previous: str, current: str, change_type: str) -> None:
-    def parse(value: str) -> tuple[int, int, int]:
-        pieces = value.removeprefix("v").split(".")
-        if len(pieces) != 3 or any(not piece.isdigit() for piece in pieces):
-            raise DatasetContractError(f"Dataset version must be semantic x.y.z: {value}")
-        return tuple(int(piece) for piece in pieces)  # type: ignore[return-value]
-
-    old = parse(previous)
-    new = parse(current)
-    required = VERSION_CHANGE_LEVELS[required_version_bump(change_type)]
-    actual = 2 if new[0] > old[0] else 1 if new[:2] > old[:2] else 0 if new > old else -1
-    if actual < required:
-        raise DatasetContractError(f"{change_type} changes require at least a {change_type} version bump")
-
-
-def validate_frozen_evaluation_assignments(
-    previous_records: Iterable[Mapping[str, Any]], current_records: Iterable[Mapping[str, Any]]
-) -> None:
-    previous = {str(row.get("sample_id")): row for row in previous_records if row.get("sample_id")}
-    current = {str(row.get("sample_id")): row for row in current_records if row.get("sample_id")}
-    for sample_id, old in previous.items():
-        if old.get("evidence_role") not in FROZEN_EVALUATION_ROLES:
-            continue
-        new = current.get(sample_id)
-        changed = new is None or any(new.get(field) != old.get(field) for field in ("evidence_role", "split", "class_name"))
-        if not changed:
-            continue
-        if new is None:
-            if not old.get("removed_in_version") or not old.get("removal_reason"):
-                raise DatasetContractError(f"Frozen evaluation sample removal lacks a tombstone: {sample_id}")
-            continue
-        if (
-            not new.get("evaluation_cohort_id")
-            or not new.get("comparability_key")
-            or new.get("evaluation_cohort_id") == old.get("evaluation_cohort_id")
-            or new.get("comparability_key") == old.get("comparability_key")
-        ):
-            raise DatasetContractError(f"Frozen evaluation change requires a new non-comparable cohort: {sample_id}")
 
 
 def _metadata_for(metadata: Mapping[str, Any], relative_path: str) -> dict[str, Any]:

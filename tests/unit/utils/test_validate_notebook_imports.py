@@ -1,81 +1,67 @@
+"""Structural checks for authored notebooks without importing model dependencies."""
+
+import ast
 import json
 from pathlib import Path
 
-import pytest
-
-from scripts import validate_notebook_imports as validator
+ROOT = Path(__file__).resolve().parents[3]
 
 
-def _write_notebook(path: Path, cells: list[dict]) -> None:
-    path.write_text(json.dumps({"cells": cells}), encoding="utf-8")
+def _sources():
+    for path in sorted((ROOT / "colab_notebooks").glob("*.ipynb")):
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+        for index, cell in enumerate(notebook["cells"]):
+            if cell["cell_type"] == "code":
+                yield f"{path.name}:{index}", "".join(cell["source"])
 
 
-def test_load_notebook_sources_from_path_collects_code_cells(tmp_path: Path):
-    notebook_path = tmp_path / "sample.ipynb"
-    _write_notebook(
-        notebook_path,
-        [
-            {"cell_type": "markdown", "source": ["# title"]},
-            {"cell_type": "code", "source": ["print('first')\n"]},
-            {"cell_type": "code", "source": ["print('second')\n"]},
-        ],
-    )
-
-    sources = validator._load_notebook_sources_from_path(notebook_path)
-
-    assert sources.notebook_path == notebook_path
-    assert sources.first_code_source == "print('first')\n"
-    assert sources.code_cells == ("print('first')\n", "print('second')\n")
-    assert "print('second')" in sources.full_source
+def _trees():
+    for label, source in _sources():
+        yield label, ast.parse(source, filename=label)
+    for folder in ("notebook_cells", "notebook_helpers"):
+        for path in sorted((ROOT / "scripts" / folder).glob("*.py")):
+            yield str(path.relative_to(ROOT)), ast.parse(path.read_text(encoding="utf-8-sig"))
 
 
-def test_find_code_cell_source_returns_first_match(tmp_path: Path):
-    notebook_path = tmp_path / "sample.ipynb"
-    _write_notebook(
-        notebook_path,
-        [
-            {"cell_type": "code", "source": ["alpha\n"]},
-            {"cell_type": "code", "source": ["beta marker\n"]},
-            {"cell_type": "code", "source": ["beta marker again\n"]},
-        ],
-    )
-    sources = validator._load_notebook_sources_from_path(notebook_path)
-
-    matched = validator._find_code_cell_source(sources, "beta marker", "missing")
-
-    assert matched == "beta marker\n"
+def test_notebook_code_compiles():
+    sources = list(_sources())
+    assert sources, "No authored notebook code found"
+    for label, source in sources:
+        compile(source, label, "exec")
 
 
-def test_assert_repo_bootstrap_contract_rejects_drive_bootstrap():
-    with pytest.raises(AssertionError):
-        validator._assert_repo_bootstrap_contract(
-            "\n".join(
-                [
-                    "CLONE_TARGET = Path('/content/bitirmeprojesi')",
-                    "REPO_URL = os.environ.get('AADS_REPO_URL', '')",
-                    "['git', 'clone', '--depth', '1', clone_url, str(CLONE_TARGET)]",
-                    "mount_drive_if_available()",
-                ]
-            ),
-            "Notebook X",
-        )
+def test_referenced_cell_scripts_exist():
+    for label, tree in _trees():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                continue
+            if node.func.id == "run_cell_script" and node.args:
+                name = node.args[0]
+                if isinstance(name, ast.Constant) and isinstance(name.value, str):
+                    assert (ROOT / "scripts/notebook_cells" / name.value).is_file(), (label, name.value)
 
 
-def test_training_notebook_bootstrap_contract_matches_repo_notebook():
-    validator.test_training_notebook_bootstrap_contract()
+def test_repository_imports_resolve():
+    for label, tree in _trees():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level == 0:
+                modules = [node.module or ""]
+            elif isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+            else:
+                continue
+            for module in modules:
+                if module.split(".")[0] not in {"src", "scripts", "experiments"}:
+                    continue
+                path = ROOT.joinpath(*module.split("."))
+                assert path.with_suffix(".py").is_file() or path.is_dir(), (label, module)
 
 
-def test_training_notebook_dataset_contract_matches_repo_notebook():
-    validator.test_training_notebook_dataset_contract_detection()
-
-
-def test_ood_oe_quality_notebook_contract_matches_repo_notebook():
-    validator.test_ood_oe_quality_notebook_contract()
-
-
-def test_adapter_ood_oe_recovery_notebook_contract_matches_repo_notebook():
-    validator.test_adapter_ood_oe_recovery_notebook_contract()
-
-
-def test_private_repo_bootstrap_security_contract_matches_all_notebooks():
-    validator.test_private_repo_bootstrap_security_contract()
+def test_notebooks_do_not_embed_tokens_in_remote_urls():
+    forbidden = ("_repo_url_with_token", "x-access-token:", "{token}@")
+    sources = list(_sources())
+    sources.extend((str(path), path.read_text(encoding="utf-8-sig"))
+                   for path in (ROOT / "scripts/notebook_cells").glob("*.py"))
+    for label, source in sources:
+        for fragment in forbidden:
+            assert fragment not in source, (label, fragment)

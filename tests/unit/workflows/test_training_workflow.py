@@ -66,7 +66,7 @@ class FakeSession:
 class FakeAdapter:
     last_export_metadata = None
 
-    def __init__(self, crop_name, model_name="model", device="cpu"):
+    def __init__(self, crop_name, part_name="unspecified", model_name="model", device="cpu"):
         self.crop_name = crop_name
         self.model_name = model_name
         self.device = device

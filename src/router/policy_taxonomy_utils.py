@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Policy/profile and taxonomy utility helpers for VLM router."""
+from __future__ import annotations
 
 import copy
 import json
@@ -8,8 +7,23 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.router.label_normalization import normalize_part_label
 from src.router.runtime_surface import coerce_bool
+
+
+def normalize_part_label(label: Any) -> str:
+    """Normalize semantically equivalent part aliases to one maintained surface."""
+    normalized = str(label).strip().lower()
+    if not normalized:
+        return ""
+    aliases = {
+        "whole": "whole plant",
+        "entire plant": "whole plant",
+    }
+    return aliases.get(normalized, normalized)
+
+#!/usr/bin/env python3
+
+
 
 logger = logging.getLogger(__name__)
 

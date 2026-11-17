@@ -7,10 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from src.router.label_normalization import normalize_part_label
+from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.prototype_bank import DEFAULT_BACKEND, euclidean_distance, image_vector
 from src.router.taxonomy_registry import make_target_id, normalize_crop_name
-from src.shared.json_utils import read_json, write_json
+from src.shared.json_utils import read_json
 
 DEFAULT_MIN_SIMILARITY = 0.20
 DEFAULT_MIN_MARGIN = 0.03
@@ -669,5 +669,3 @@ def reconcile_router_handoff(
     )
 
 
-def write_reconciliation_report(payload: dict[str, Any], output_path: Path) -> Path:
-    return write_json(output_path, payload, ensure_ascii=False, sort_keys=False)

@@ -331,9 +331,8 @@ def test_crop_dataset_tolerant_error_policy_skips_invalid_images(tmp_path: Path)
     )
 
     assert len(dataset) == 1
-    stats = dataset.get_cache_stats()
-    assert stats["load_error_count"] == 1
-    assert any("bad.jpg" in item for item in stats["skipped_files"])
+    assert len(dataset.load_errors) == 1
+    assert any("bad.jpg" in item for item in dataset.skipped_files)
 
 
 
@@ -397,9 +396,8 @@ def test_crop_dataset_can_cache_train_split_when_enabled(tmp_path: Path, monkeyp
     dataset[0]
 
     assert decode_calls["count"] == 1
-    stats = dataset.get_cache_stats()
-    assert stats["cache_train_split"] is True
-    assert stats["cache_size"] == 1
+    assert dataset.cache_train_split is True
+    assert len(dataset.cache) == 1
 
 
 

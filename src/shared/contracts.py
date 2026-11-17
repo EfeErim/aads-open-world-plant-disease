@@ -174,10 +174,6 @@ class RouterDetection:
     quality_score: Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def sort_key(self) -> Tuple[float, float, float]:
-        quality = float("-inf") if self.quality_score is None else float(self.quality_score)
-        return (quality, float(self.crop_confidence), float(self.part_confidence))
-
     def to_dict(self) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "crop": str(self.crop or "unknown"),

@@ -369,12 +369,6 @@ class ColabLiveTelemetry:
         self._artifact_index.append(normalized)
         self._store_artifact_index()
 
-    def merge_artifact_catalog(self, entries: List[Dict[str, Any]]) -> None:
-        for entry in list(entries or []):
-            if not isinstance(entry, dict):
-                continue
-            self._upsert_artifact_index_entry({"ts": _utc_now_iso(), **dict(entry)})
-
     def merge_summary_metadata(self, payload: Dict[str, Any]) -> None:
         if not isinstance(payload, dict) or not payload:
             return
@@ -445,14 +439,8 @@ class ColabLiveTelemetry:
     def _append_event_local(self, payload: Dict[str, Any]) -> None:
         _append_line(self.local_events_path, _safe_json(payload))
 
-    def _append_event_drive(self, payload: Dict[str, Any]) -> None:
-        _append_line(self.drive_events_path, _safe_json(payload))
-
     def _append_log_local(self, line: str) -> None:
         _append_line(self.local_log_path, line)
-
-    def _append_log_drive(self, line: str) -> None:
-        _append_line(self.drive_log_path, line)
 
     def emit_event(
         self,
@@ -586,10 +574,6 @@ class ColabLiveTelemetry:
         if self._should_write_latest_now(payload, force=force):
             self._write_latest_payload(payload)
         self._periodic_sync()
-
-    def write_json_artifact(self, relative_path: str, payload: Dict[str, Any]) -> Path:
-        body = _safe_json(payload)
-        return self.write_text_artifact(relative_path, body)
 
     def write_text_artifact(self, relative_path: str, text: str) -> Path:
         rel = Path(relative_path)

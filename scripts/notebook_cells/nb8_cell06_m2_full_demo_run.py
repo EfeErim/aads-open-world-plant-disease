@@ -13,8 +13,8 @@ from pathlib import Path
 from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime
 from src.colab.repo_bootstrap import push_repo_paths_to_github
 from scripts.compare_m2_demo_results import enrich_summary_manifest_sha256
-from scripts.notebook_helpers.nb8_m2_commands import build_m2_demo_checklist_command
-from scripts.notebook_helpers.nb8_m2_reporting import (
+from scripts.notebook_helpers.nb8_m2_runtime_helpers import build_m2_demo_checklist_command
+from scripts.notebook_helpers.nb8_m2_runtime_helpers import (
     format_elapsed_seconds,
     write_m2_result_comparison,
 )

@@ -154,18 +154,6 @@ def _load_bioclip_components(model_id: str, *, device: str = "cpu") -> tuple[Any
     return preprocess_val, model
 
 
-def _encode_dinov3(paths: Sequence[Path], *, model_id: str, batch_size: int, device: str) -> np.ndarray:
-    processor, model = _load_dinov3_components(model_id, device=device)
-    return _encode_dinov3_with_components(
-        paths,
-        processor=processor,
-        model=model,
-        batch_size=batch_size,
-        device=device,
-        amp_dtype=_resolve_amp_dtype(device),
-    )
-
-
 def _encode_dinov3_with_components(
     paths: Sequence[Path],
     *,
@@ -203,18 +191,6 @@ def _encode_dinov3_with_components(
         if callable(progress_fn):
             progress_fn(min(start + len(batch_paths), total), total)
     return np.concatenate(embeddings, axis=0) if embeddings else np.empty((0, 0), dtype=np.float32)
-
-
-def _encode_bioclip(paths: Sequence[Path], *, model_id: str, batch_size: int, device: str) -> np.ndarray:
-    preprocess_val, model = _load_bioclip_components(model_id, device=device)
-    return _encode_bioclip_with_components(
-        paths,
-        preprocess_val=preprocess_val,
-        model=model,
-        batch_size=batch_size,
-        device=device,
-        amp_dtype=_resolve_amp_dtype(device),
-    )
 
 
 def _encode_bioclip_with_components(
@@ -260,7 +236,6 @@ def _encode_with_oom_retries(
     progress_fn: Optional[Callable[[str], None]],
     batch_progress_fn: Optional[Callable[[int, int], None]] = None,
     label: str,
-    oom_predicate: Optional[Callable[[BaseException], bool]] = None,
     **kwargs: Any,
 ) -> np.ndarray:
     current_batch_size = max(1, int(batch_size))
@@ -273,7 +248,7 @@ def _encode_with_oom_retries(
                 **kwargs,
             )
         except RuntimeError as exc:
-            if not (oom_predicate or _is_cuda_oom)(exc) or current_batch_size <= 1:
+            if not _is_cuda_oom(exc) or current_batch_size <= 1:
                 raise
             next_batch_size = max(1, current_batch_size // 2)
             _progress(

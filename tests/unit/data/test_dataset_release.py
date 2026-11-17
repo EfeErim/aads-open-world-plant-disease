@@ -21,10 +21,8 @@ from src.data.dataset_release import (
     sanitize_source_uri,
     stage_sanitized_image,
     validate_archive,
-    validate_frozen_evaluation_assignments,
     validate_release_candidate,
     validate_snapshot_manifest,
-    validate_version_change,
     verify_snapshot_files,
 )
 
@@ -303,20 +301,7 @@ def test_runtime_parity_candidate_preserves_duplicate_paths_and_sidecars(tmp_pat
     assert validate_archive(archive)["member_count"] == 2
 
 
-def test_version_tombstone_cohort_and_revocation_contracts() -> None:
-    validate_version_change("1.2.3", "1.2.4", "patch")
-    validate_version_change("1.2.3", "1.3.0", "minor")
-    validate_version_change("1.2.3", "2.0.0", "major")
-    with pytest.raises(DatasetContractError, match="minor version bump"):
-        validate_version_change("1.2.3", "1.2.4", "minor")
-
-    old = [{"sample_id": "a", "evidence_role": "id_test", "split": "test", "class_name": "healthy",
-            "evaluation_cohort_id": "c1", "comparability_key": "k1"}]
-    changed = [{**old[0], "class_name": "disease", "evaluation_cohort_id": "c2", "comparability_key": "k2"}]
-    validate_frozen_evaluation_assignments(old, changed)
-    with pytest.raises(DatasetContractError, match="new non-comparable cohort"):
-        validate_frozen_evaluation_assignments(old, [{**old[0], "class_name": "disease"}])
-
+def test_revoked_release_cannot_be_sharded() -> None:
     release = {
         "schema_version": "v1_dataset_github_release_candidate",
         "release_state": "revoked",

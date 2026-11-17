@@ -143,7 +143,7 @@ def build_local_legacy_lineage(
     split_manifest_sha256: str,
     compatibility_reason: str,
 ) -> dict[str, Any]:
-    """Build explicitly non-production lineage for the bounded Notebook 17 bridge."""
+    """Build explicitly non-production lineage for local training inputs."""
 
     target = str(dataset_key or "").strip().lower()
     split_sha = str(split_manifest_sha256 or "").strip().lower()
@@ -251,11 +251,3 @@ def immutable_lineage_blockers(lineage: Mapping[str, Any] | None) -> list[str]:
     return [f"dataset_lineage.{field}" for field in required if payload.get(field) in (None, "")]
 
 
-def lineages_directly_comparable(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
-    """Only exact immutable release-target lineage is comparable by default."""
-
-    return bool(
-        not immutable_lineage_blockers(left)
-        and not immutable_lineage_blockers(right)
-        and str(left.get("dataset_lineage_key") or "") == str(right.get("dataset_lineage_key") or "")
-    )

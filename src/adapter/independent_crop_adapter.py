@@ -291,18 +291,6 @@ class IndependentCropAdapter:
             return trainer.predict_with_ood_batch(images.to(self.device))
         return [trainer.predict_with_ood(image.unsqueeze(0).to(self.device)) for image in images]
 
-    def detect_ood_dynamic(self, image: torch.Tensor) -> Dict[str, Any]:
-        """Compatibility helper returning OOD analysis fields only."""
-        result = self.predict_with_ood(image)
-        ood = result.get("ood_analysis", {})
-        return {
-            "score_method": str(ood.get("score_method", "ensemble")),
-            "primary_score": float(ood.get("primary_score", 0.0)),
-            "decision_threshold": float(ood.get("decision_threshold", 0.0)),
-            "is_ood": bool(ood.get("is_ood", False)),
-            "calibration_version": int(ood.get("calibration_version", 0)),
-        }
-
     def _metadata_payload(self) -> Dict[str, Any]:
         trainer = self._require_trainer()
         return build_runtime_adapter_metadata(
@@ -380,16 +368,3 @@ class IndependentCropAdapter:
         trainer.load_adapter(str(asset_dir))
         self._store_trainer(trainer)
 
-    def get_summary(self) -> Dict[str, Any]:
-        """Return concise runtime adapter summary."""
-        return {
-            "crop_name": self.crop_name,
-            "part_name": self.part_name,
-            "model_name": self.model_name,
-            "engine": self.engine,
-            "schema_version": self.schema_version,
-            "is_trained": self.is_trained,
-            "num_classes": len(self.class_to_idx),
-            "class_to_idx": dict(self.class_to_idx),
-            "ood_calibration_version": self.ood_calibration_version,
-        }

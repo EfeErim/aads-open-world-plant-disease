@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.core.config_manager import get_config
-from src.router.label_normalization import normalize_part_label
+from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.router_pipeline import RouterPipeline
 from src.shared.contracts import RouterAnalysisResult
 

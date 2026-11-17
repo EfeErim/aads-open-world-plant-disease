@@ -13,7 +13,6 @@ wrappers exist for development and CI, not as the normal user workflow.
 ## Reference
 
 - [Architecture overview](architecture/overview.md)
-- [Code organization map](architecture/code_organization_map.md)
 - [Complete source and notebook map](source_and_notebook_map.md)
 - [Methodology, literature and current results](methodology_and_results.md)
 - [Public result records](../evidence/)

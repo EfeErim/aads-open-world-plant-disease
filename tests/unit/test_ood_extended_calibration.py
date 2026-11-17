@@ -107,17 +107,6 @@ class TestExtendedCalibration:
         # SURE+ fields should not be in output when disabled
         assert "sure_semantic_score" not in ood
 
-    def test_score_class_with_sure_disabled(self):
-        detector = ContinualOODDetector(threshold_factor=2.0, sure_enabled=False)
-        features = torch.randn(20, 8)
-        logits = torch.randn(20, 2)
-        labels = torch.cat([torch.zeros(10), torch.ones(10)]).long()
-        detector.calibrate(features, logits, labels)
-
-        result = detector._score_class(0, features[0], logits[0])
-        assert result["sure_semantic_score"] is None
-        assert result["sure_confidence_score"] is None
-
     def test_conformal_set_empty_when_disabled(self):
         detector = ContinualOODDetector(threshold_factor=2.0, conformal_enabled=False)
         features = torch.randn(20, 8)

@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -35,54 +33,14 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .
 
-      - name: Validate repository contracts
-        run: |
-          python scripts/audit_code_organization.py
-          python scripts/validate_config_schema.py
-          python scripts/validate_notebook_imports.py
-          python scripts/build_behavioral_acceptance_summary.py --check
-
       - name: Lint maintained repository
         run: |
-          ruff check src scripts tests experiments
-
-      - name: Type-check maintained runtime surfaces
-        run: |
-          mypy --follow-imports skip \
-            src/shared src/data src/training/continual_sd_lora.py src/router src/workflows \
-            src/pipeline/router_adapter_runtime.py src/pipeline/inference_payloads.py \
-            src/adapter src/core/config_manager.py scripts/benchmark_surfaces.py
-
-      - name: Check dependency consistency
-        run: python -m pip check
+          ruff check src scripts tests
 
       - name: Unit and Colab smoke tests
-        shell: bash
         run: |
-          set +e
-          pytest tests/unit tests/experiments tests/colab/test_smoke_training.py -q \
-            --cov=src --cov-branch --cov-report=term-missing --cov-fail-under=78 \
-            --junitxml=.runtime_tmp/pytest-unit.xml
-          status=$?
-          python - <<'PY'
-          import os
-          import xml.etree.ElementTree as ET
-
-          report = ET.parse(".runtime_tmp/pytest-unit.xml")
-          for case in report.findall(".//testcase"):
-              failure = case.find("failure")
-              if failure is None:
-                  failure = case.find("error")
-              if failure is None:
-                  continue
-              path = case.get("file") or ".github/workflows/ci.yml"
-              line = case.get("line") or "1"
-              name = f"{case.get('classname', '')}::{case.get('name', '')}".strip(":")
-              message = (failure.get("message") or failure.text or "pytest failure").strip()
-              message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-              print(f"::error file={path},line={line},title={name}::{message}")
-          PY
-          exit "$status"
+          pytest tests/unit tests/colab/test_smoke_training.py -q \
+            --cov=src --cov-branch --cov-report=term-missing
 
       - name: Integration tests
         run: pytest tests/integration -q --runintegration

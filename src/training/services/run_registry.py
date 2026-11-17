@@ -28,17 +28,6 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _is_under(path: Path, root: Path) -> bool:
-    try:
-        path.resolve().relative_to(root.resolve())
-        return True
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
-        return False
-
-
 def discover_artifact_roots(runs_root: str | Path) -> List[Path]:
     root = Path(runs_root)
     candidates: set[Path] = set()
@@ -56,10 +45,6 @@ def discover_artifact_roots(runs_root: str | Path) -> List[Path]:
         if "_index" in manifest_path.parts:
             continue
         candidates.add(manifest_path.parent.parent)
-    for overview_path in root.rglob("guided/01_run_overview.json"):
-        if "_index" in overview_path.parts:
-            continue
-        candidates.add(overview_path.parent.parent)
     return sorted(candidates, key=lambda item: str(item).lower())
 
 
@@ -104,11 +89,10 @@ def _collect_summary_payload(artifact_root: Path, run_dir: Path) -> JsonDict:
     if isinstance(summary, dict) and summary:
         return dict(summary)
 
-    overview = _read_json_if_exists(artifact_root / "guided" / "01_run_overview.json", default={})
     telemetry_summary = _read_json_if_exists(run_dir / "telemetry" / "summary.json", default={})
     checkpoint_summary = _read_json_if_exists(run_dir / "checkpoint_state" / "summary.json", default={})
     merged: JsonDict = {}
-    for payload in (overview, telemetry_summary.get("run_overview", {}) if isinstance(telemetry_summary, dict) else {}, checkpoint_summary):
+    for payload in (telemetry_summary.get("run_overview", {}) if isinstance(telemetry_summary, dict) else {}, checkpoint_summary):
         if isinstance(payload, dict):
             merged.update({key: value for key, value in payload.items() if value not in (None, "", [], {})})
     return merged

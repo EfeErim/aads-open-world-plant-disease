@@ -6,8 +6,78 @@ import torch
 from PIL import Image
 
 from src.router import clip_runtime, sam3_runtime
-from src.router.router_pipeline import RouterPipeline
+from src.router.router_pipeline import RouterPipeline, normalize_sam3_results, sam3_error_result
+from src.router.vlm_stages import analysis_to_batch_item
 
+
+def test_analysis_to_batch_item_uses_first_detection():
+    analysis = {
+        'detections': [
+            {'crop': 'tomato', 'part': 'leaf', 'bbox': [1, 2, 3, 4], 'crop_confidence': 0.91},
+            {'crop': 'potato', 'part': 'stem', 'bbox': [0, 0, 1, 1], 'crop_confidence': 0.12},
+        ]
+    }
+
+    item, conf = analysis_to_batch_item(analysis)
+
+    assert item == {'crop': 'tomato', 'part': 'leaf', 'bbox': [1, 2, 3, 4]}
+    assert conf == 0.91
+
+
+def test_analysis_to_batch_item_defaults_when_missing_detection_keys():
+    analysis = {'detections': [{}]}
+
+    item, conf = analysis_to_batch_item(analysis)
+
+    assert item == {'crop': 'unknown', 'part': 'unknown', 'bbox': [0, 0, 0, 0]}
+    assert conf == 0.0
+
+
+def test_analysis_to_batch_item_defaults_for_empty_or_invalid_payload():
+    item_empty, conf_empty = analysis_to_batch_item({'detections': []})
+    item_invalid, conf_invalid = analysis_to_batch_item(None)
+
+    expected = {'crop': 'unknown', 'part': 'unknown', 'bbox': [0, 0, 0, 0]}
+    assert item_empty == expected
+    assert conf_empty == 0.0
+    assert item_invalid == expected
+    assert conf_invalid == 0.0
+
+class _TensorLike:
+    def __init__(self, shape):
+        self.shape = shape
+
+
+def test_normalize_sam3_results_keeps_non_empty_tensors():
+    results = {
+        'masks': _TensorLike((1, 32, 32)),
+        'boxes': _TensorLike((1, 4)),
+        'scores': _TensorLike((1,)),
+    }
+
+    normalized = normalize_sam3_results(results, empty_tensor_factory=lambda: _TensorLike((0,)))
+
+    assert normalized['masks'] is results['masks']
+    assert normalized['boxes'] is results['boxes']
+    assert normalized['scores'] is results['scores']
+
+
+def test_normalize_sam3_results_returns_empty_lists_for_empty_shapes():
+    results = {
+        'masks': _TensorLike(()),
+        'boxes': _TensorLike(()),
+        'scores': _TensorLike(()),
+    }
+
+    normalized = normalize_sam3_results(results, empty_tensor_factory=lambda: _TensorLike((0,)))
+
+    assert normalized == {'masks': [], 'boxes': [], 'scores': []}
+
+
+def test_sam3_error_result_contains_error_message():
+    err = RuntimeError('boom')
+    payload = sam3_error_result(err)
+    assert payload == {'masks': [], 'boxes': [], 'scores': [], 'error': 'boom'}
 
 class FakeTokenizer:
     def __call__(self, prompts):
@@ -239,27 +309,6 @@ def test_clip_score_labels_ensemble_uses_crop_alias_prompts(monkeypatch):
     assert any("tomato leaf" in prompt for prompt in captured_prompts)
 
 
-def test_encode_and_score_raises_on_scoring_error_when_strict(monkeypatch):
-    pipeline = _build_pipeline()
-    pipeline.bioclip_backend = "transformers"
-    pipeline.bioclip = object()
-    pipeline.bioclip_processor = object()
-    pipeline.strict_scoring_errors = True
-
-    monkeypatch.setattr(
-        clip_runtime,
-        "_score_processor_batch",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
-    )
-
-    with pytest.raises(RuntimeError, match="Prompt encoding failed"):
-        clip_runtime.encode_and_score(
-            pipeline,
-            clip_runtime.ClipScoreRequest(image=Image.new("RGB", (8, 8), color="green")),
-            ["tomato"],
-        )
-
-
 def test_encode_and_score_batch_returns_zeros_when_non_strict(monkeypatch):
     pipeline = _build_pipeline()
     pipeline.bioclip_backend = "transformers"
@@ -299,28 +348,6 @@ def test_clip_score_labels_ensemble_batch_reuses_open_clip_image_embeddings():
     assert len(results) == 3
     assert all(result[0] in {"tomato", "potato"} for result in results)
     assert model.encode_image_calls == 1
-
-
-def test_open_set_debug_payload_is_lazy_when_debug_disabled(monkeypatch):
-    pipeline = _build_pipeline()
-    _attach_open_clip_runtime(pipeline)
-
-    monkeypatch.setattr(clip_runtime.logger, "isEnabledFor", lambda _level: False)
-    monkeypatch.setattr(
-        clip_runtime.json,
-        "dumps",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("debug payload should stay lazy")),
-    )
-
-    label, confidence = clip_runtime.clip_score_labels(
-        pipeline,
-        Image.new("RGB", (8, 8), color="green"),
-        ["tomato"],
-        label_type="crop",
-    )
-
-    assert label in {"tomato", "unknown"}
-    assert confidence >= 0.0
 
 
 def test_analyze_image_sam3_delegates_to_runtime_helpers(monkeypatch):

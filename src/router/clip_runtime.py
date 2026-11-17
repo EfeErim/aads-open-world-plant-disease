@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
 from PIL import Image
 
@@ -16,7 +14,6 @@ from src.router.prompt_clip_utils import (
     aggregate_prompt_logits,
     build_prompt_ensemble,
     get_clip_logit_scale,
-    get_prompt_templates_for_type,
     open_set_unknown_prompts,
 )
 from src.router.runtime_surface import coerce_bool
@@ -39,21 +36,6 @@ class ClipScoreRequest:
 
     image: Image.Image
     image_embedding: Optional[torch.Tensor] = None
-
-
-@dataclass(frozen=True)
-class PromptMatrixPlan:
-    labels: Tuple[str, ...]
-    templates: Tuple[str, ...]
-    flattened_prompts: Tuple[str, ...]
-
-    @property
-    def label_count(self) -> int:
-        return len(self.labels)
-
-    @property
-    def template_count(self) -> int:
-        return len(self.templates)
 
 
 def _normalize_embeddings(embeddings: torch.Tensor) -> torch.Tensor:
@@ -96,54 +78,9 @@ def _build_open_clip_image_batch(
     return torch.stack(processed_images, dim=0).to(device)
 
 
-def _limit_prompt_templates(
-    runtime: Any,
-    *,
-    label_type: str,
-    num_prompts: Optional[int],
-) -> List[str]:
-    templates = get_prompt_templates_for_type(runtime.vlm_config, label_type)
-    if num_prompts is None:
-        return templates
-    try:
-        prompt_limit = int(num_prompts)
-    except (TypeError, ValueError, OverflowError):
-        prompt_limit = 0
-    if prompt_limit > 0:
-        return templates[:prompt_limit]
-    return templates
-
-
-def _average_label_scores(label_score_lists: Dict[str, List[float]]) -> Dict[str, float]:
-    return {
-        label: float(np.mean(scores)) if scores else 0.0
-        for label, scores in label_score_lists.items()
-    }
-
-
 def _best_label_and_score(label_scores: Dict[str, float]) -> tuple[str, float]:
     best_label = max(label_scores, key=lambda label: label_scores[label]) if label_scores else "unknown"
     return best_label, label_scores.get(best_label, 0.0)
-
-
-def _build_prompt_matrix_plan(
-    runtime: Any,
-    *,
-    labels: List[str],
-    label_type: str,
-    num_prompts: Optional[int],
-) -> PromptMatrixPlan:
-    templates = tuple(_limit_prompt_templates(runtime, label_type=label_type, num_prompts=num_prompts))
-    flattened_prompts = tuple(
-        template.format(term=label)
-        for template in templates
-        for label in labels
-    )
-    return PromptMatrixPlan(
-        labels=tuple(labels),
-        templates=templates,
-        flattened_prompts=flattened_prompts,
-    )
 
 
 def _build_limited_prompt_batch(
@@ -211,41 +148,6 @@ def _score_prompt_probabilities(
         image_batch_size=image_batch_size,
         image_embeddings=image_embeddings,
     )
-
-
-def _prompt_matrix_to_label_scores(
-    probabilities: torch.Tensor,
-    *,
-    labels: Tuple[str, ...],
-    template_count: int,
-) -> Dict[str, float]:
-    if probabilities.numel() <= 0 or template_count <= 0 or not labels:
-        return {}
-    score_matrix = probabilities.reshape(template_count, len(labels))
-    label_means = score_matrix.mean(dim=0)
-    return {
-        labels[index]: float(label_means[index].item())
-        for index in range(len(labels))
-    }
-
-
-def _prompt_tensor_to_batch_label_scores(
-    probabilities: torch.Tensor,
-    *,
-    labels: Tuple[str, ...],
-    template_count: int,
-) -> List[Dict[str, float]]:
-    if probabilities.numel() <= 0 or template_count <= 0 or not labels:
-        return [{} for _ in range(int(probabilities.shape[0]))]
-    score_tensor = probabilities.reshape(int(probabilities.shape[0]), template_count, len(labels))
-    label_means = score_tensor.mean(dim=1)
-    return [
-        {
-            labels[label_index]: float(label_means[image_index, label_index].item())
-            for label_index in range(len(labels))
-        }
-        for image_index in range(int(label_means.shape[0]))
-    ]
 
 
 def _score_processor_batch(
@@ -400,22 +302,6 @@ def ensure_open_clip_image_embeddings(
     return torch.cat(embeddings, dim=0)
 
 
-def score_open_clip_with_image_embedding(
-    runtime: Any,
-    image_embedding: torch.Tensor,
-    prompts: List[str],
-) -> List[float]:
-    """Score prompts against a precomputed open_clip image embedding."""
-    text_embeds = get_open_clip_text_embeddings(runtime, prompts)
-    if runtime.bioclip is None:
-        raise RuntimeError("open_clip scoring requested before BioCLIP runtime was initialized.")
-    logit_scale = get_clip_logit_scale(runtime.bioclip)
-    with torch.no_grad():
-        logits_per_image = (image_embedding @ text_embeds.T) * logit_scale
-        scores = torch.softmax(logits_per_image, dim=-1)[0]
-    return scores.detach().cpu().numpy().tolist()
-
-
 def score_open_clip_with_image_embeddings(
     runtime: Any,
     image_embeddings: torch.Tensor,
@@ -429,22 +315,6 @@ def score_open_clip_with_image_embeddings(
     with torch.no_grad():
         logits_per_image = (image_embeddings @ text_embeds.T) * logit_scale
     return torch.softmax(logits_per_image, dim=-1)
-
-
-def encode_and_score(runtime: Any, request: ClipScoreRequest, prompts: List[str]) -> List[float]:
-    """Encode image and score against text prompts."""
-    try:
-        if runtime.bioclip_backend == "open_clip":
-            image_embedding = ensure_open_clip_image_embedding(runtime, request)
-            return score_open_clip_with_image_embedding(runtime, image_embedding, prompts)
-
-        scores = _score_processor_batch(runtime, request.image, prompts)[0]
-        return scores.detach().cpu().numpy().tolist()
-    except Exception as exc:
-        logger.error("Encoding failed: %s", exc)
-        if _strict_scoring_errors(runtime):
-            raise RuntimeError("Prompt encoding failed during router inference.") from exc
-        return [0.0] * len(prompts)
 
 
 def encode_and_score_batch(
@@ -569,7 +439,7 @@ def clip_score_labels_open_set(
         text_prompts.extend(
             list(unknown_prompts)
             if isinstance(unknown_prompts, list) and unknown_prompts
-            else open_set_unknown_prompts(label_type=label_type, known_labels=labels)
+            else open_set_unknown_prompts(label_type=label_type)
         )
         prompt_to_class.extend([unknown_class_index] * max(0, len(text_prompts) - len(prompt_to_class)))
         class_count += 1
@@ -673,85 +543,3 @@ def clip_score_labels_ensemble_batch(
     return results
 
 
-def _log_open_set_debug(
-    *,
-    label_type: str,
-    labels: List[str],
-    known_probs: torch.Tensor,
-    known_class_count: int,
-    unknown_confidence: float,
-    class_index: int,
-    confidence: float,
-    second_confidence: torch.Tensor,
-    margin: float,
-    open_set_min_confidence: float,
-    open_set_margin: float,
-    rejection_reasons: List[str],
-) -> None:
-    if not logger.isEnabledFor(logging.DEBUG):
-        return
-
-    debug_info = {
-        "label_type": label_type,
-        "known_labels": labels,
-        "known_class_probabilities": {
-            labels[i]: float(known_probs[0, i].item()) if i < len(labels) else None
-            for i in range(known_class_count)
-        },
-        "unknown_probability": unknown_confidence,
-        "best_known_label": labels[class_index] if class_index < len(labels) else "unknown",
-        "best_known_confidence": confidence,
-        "second_known_confidence": float(second_confidence.item()),
-        "margin_best_vs_second": margin,
-        "threshold_min_confidence": open_set_min_confidence,
-        "threshold_margin": open_set_margin,
-        "rejection_reasons": list(rejection_reasons),
-    }
-    status = "REJECTED as unknown" if rejection_reasons else f"ACCEPTED {debug_info['best_known_label']}"
-    logger.debug("[OPEN-SET] %s: %s", status, json.dumps(debug_info, indent=2, default=str))
-
-
-def clip_score_labels(
-    runtime: Any,
-    image: Image.Image,
-    labels: List[str],
-    *,
-    label_type: str = "generic",
-) -> Tuple[str, float]:
-    """Score text labels against image using CLIP/BioCLIP."""
-    outcome = clip_score_labels_open_set(
-        runtime,
-        image,
-        labels,
-        label_type=label_type,
-        open_set_enabled=bool(runtime.open_set_enabled and label_type == "crop"),
-        open_set_min_confidence=getattr(runtime, "open_set_min_confidence", 0.0),
-        open_set_margin=getattr(runtime, "open_set_margin", 0.0),
-        unknown_label="unknown",
-    )
-    if bool(runtime.open_set_enabled and label_type == "crop"):
-        known_probs = torch.tensor(
-            [[float(outcome["label_scores"].get(label, 0.0)) for label in labels]],
-            dtype=torch.float32,
-        )
-        try:
-            class_index = labels.index(str(outcome["label"]))
-        except ValueError:
-            class_index = 0
-        _log_open_set_debug(
-            label_type=label_type,
-            labels=labels,
-            known_probs=known_probs,
-            known_class_count=len(labels),
-            unknown_confidence=float(outcome["unknown_confidence"]),
-            class_index=class_index,
-            confidence=float(outcome["confidence"]),
-            second_confidence=torch.tensor([float(outcome["second_confidence"])], dtype=torch.float32),
-            margin=float(outcome["margin"]),
-            open_set_min_confidence=float(getattr(runtime, "open_set_min_confidence", 0.0)),
-            open_set_margin=float(getattr(runtime, "open_set_margin", 0.0)),
-            rejection_reasons=list(outcome["rejection_reasons"]),
-        )
-        if outcome["rejection_reasons"]:
-            return "unknown", max(float(outcome["unknown_confidence"]), float(outcome["confidence"]))
-    return str(outcome["label"]), float(outcome["confidence"])

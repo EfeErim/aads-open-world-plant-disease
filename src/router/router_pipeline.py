@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-VLM Pipeline for AADS-ULoRA
-SAM3 + BioCLIP-2.5 only (fallback pipeline removed)
-"""
-
 import logging
 from typing import Any, Dict, List, Optional, Tuple, cast
 
@@ -11,13 +5,13 @@ import torch
 from PIL import Image
 
 from src.router import clip_runtime, sam3_runtime
-from src.router.label_normalization import normalize_part_label
 from src.router.pipeline_flow_utils import build_process_image_response
 from src.router.policy_taxonomy_utils import (
     apply_runtime_profile,
     build_policy_graph,
     load_crop_part_compatibility,
     load_taxonomy,
+    normalize_part_label,
     policy_enabled,
     policy_value,
     resolve_requested_profile,
@@ -33,10 +27,6 @@ from src.router.runtime_surface import (
 from src.router.runtime_surface import (
     resolve_request_options as resolve_router_request_options,
 )
-from src.router.sam3_output_utils import (
-    normalize_sam3_results,
-    sam3_error_result,
-)
 from src.router.vlm_stages import (
     analyze_batch_results,
     build_pipeline_surface_config,
@@ -51,10 +41,30 @@ from src.router.vlm_stages import (
 from src.router.vlm_stages import (
     load_sam as load_sam_stage,
 )
-from src.router.vlm_stages import (
-    load_sam3_bioclip25 as load_sam3_bioclip25_stage,
-)
 from src.shared.contracts import RouterAnalysisResult, RouterRequestOptions
+
+
+def normalize_sam3_results(results: Dict[str, Any], empty_tensor_factory: Any) -> Dict[str, Any]:
+    """Normalize SAM3 post-process outputs to stable masks/boxes/scores contract."""
+    masks = results.get('masks', empty_tensor_factory())
+    boxes = results.get('boxes', empty_tensor_factory())
+    scores = results.get('scores', empty_tensor_factory())
+
+    return {
+        'masks': masks if len(masks.shape) > 0 else [],
+        'boxes': boxes if len(boxes.shape) > 0 else [],
+        'scores': scores if len(scores.shape) > 0 else [],
+    }
+
+
+def sam3_error_result(error: Exception) -> Dict[str, Any]:
+    """Build stable error payload for SAM3 inference failures."""
+    return {'masks': [], 'boxes': [], 'scores': [], 'error': str(error)}
+
+#!/usr/bin/env python3
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -328,19 +338,9 @@ class RouterPipeline:
         self.bioclip = model
         self.bioclip_backend = backend
 
-    def _labels_for_type(self, label_type: str) -> List[str]:
-        if label_type == 'crop':
-            return self.crop_labels
-        if label_type == 'part':
-            return self.part_labels
-        raise ValueError(f"label_type must be 'crop' or 'part', got {label_type}")
-
     def load_models(self):
         """Load SAM3 + BioCLIP-2.5 models (fallback disabled)."""
         return load_models_stage(self)
-    def _load_sam3_bioclip25(self):
-        """Load SAM3 and BioCLIP-2.5 models."""
-        return load_sam3_bioclip25_stage(self)
     def is_ready(self) -> bool:
         """Return whether the pipeline is ready for real inference."""
         if not self.enabled:
@@ -400,19 +400,6 @@ class RouterPipeline:
             if resolved_part:
                 merged[resolved_part] = float(score)
         return merged
-
-    def _classify_with_prompt_ensemble(
-        self,
-        image: Image.Image,
-        label_type: str  # 'crop' or 'part'
-    ) -> Tuple[str, float]:
-        """Classify image with prompt-ensemble scoring."""
-        labels = self._labels_for_type(label_type)
-
-        if not labels:
-            return 'unknown', 0.0
-
-        return clip_runtime.clip_score_labels(self, image, labels, label_type=label_type)
 
     def _resolve_request_options(
         self,

@@ -88,17 +88,6 @@ def _manifest_matches(
     return bool(current) and recorded == current
 
 
-def _manifest_entries_match(manifest: Mapping[str, Any], entries: Iterable[Mapping[str, Any]]) -> bool:
-    manifest_entries = dict(manifest.get("entries", {})) if isinstance(manifest.get("entries"), Mapping) else {}
-    current = {str(entry.get("relative_path")): str(entry.get("sha256")) for entry in entries}
-    recorded = {
-        str(path): str(payload.get("sha256"))
-        for path, payload in manifest_entries.items()
-        if isinstance(payload, Mapping)
-    }
-    return bool(current) and recorded == current
-
-
 def _reconcile_frozen_manifest_entries(
     manifest: Mapping[str, Any], entries: Iterable[Mapping[str, Any]]
 ) -> Optional[Dict[str, Any]]:

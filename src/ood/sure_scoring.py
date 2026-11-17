@@ -10,7 +10,7 @@ reproduction of a standalone upstream paper.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -47,22 +47,6 @@ def calibrate_sure_thresholds(
         torch.quantile(confidence_scores.float(), min(max(confidence_q, 0.0), 1.0)).item()
     )
     return semantic_threshold, confidence_threshold
-
-
-def apply_sure_decision(
-    semantic_score: float,
-    confidence_score: float,
-    semantic_threshold: float,
-    confidence_threshold: float,
-) -> Dict[str, Any]:
-    """Apply the repo's double-scoring rejection logic."""
-    semantic_ood = bool(semantic_score > semantic_threshold)
-    confidence_reject = bool(confidence_score > confidence_threshold)
-    return {
-        "semantic_ood": semantic_ood,
-        "confidence_reject": confidence_reject,
-        "combined_reject": semantic_ood or confidence_reject,
-    }
 
 
 def compute_ds_f1(

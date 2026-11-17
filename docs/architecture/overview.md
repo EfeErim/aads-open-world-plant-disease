@@ -1,7 +1,5 @@
 # Architecture Overview
 
-This document explains the current AADS architecture in plain language.
-
 The project is intentionally narrow:
 
 - one maintained training workflow
@@ -40,10 +38,9 @@ The configuration path is intentionally simple.
    own `config/` directory, so it works from any working directory; an explicit relative `config_dir` still resolves
    from the current directory.
 2. If an environment is requested, such as `colab`, it deep-merges `config/colab.json` on top.
-3. `src/core/config_migrations.py` upgrades each config file through the declared `config_schema_version`.
+3. `migrate_config_payload` in the same module upgrades each config file through the declared `config_schema_version`.
 4. `src/training/services/config_surface.py` normalizes the public training surface under `training.continual`.
 5. Config files must declare `config_schema_version: 2` and use the canonical `training.continual` / `colab.training.checkpoint_every_n_steps` surface.
-6. `src/training/quantization.py` rejects prohibited 4-bit flags before the merged config is used.
 
 Why this matters:
 
@@ -68,22 +65,22 @@ src/workflows/training.py -> TrainingWorkflow.run(...)
    - class detection
    - loader-size and split-count summaries
    - supported-class reference-count resolution from `split_manifest.json` or the runtime `continual` split
-   - early rejection when a supported class resolves below `100` images unless explicit few-shot research mode is enabled
+   - early rejection when a supported class resolves below `100` images unless `training.continual.data.allow_under_min_training=true`
    - runtime-only class-balance metadata injection before adapter initialization
 3. `src/data/loaders.py` creates the training loaders from the runtime dataset. The shipped `training.continual.data.sampler` default is `"auto"`, which keeps shuffle for roughly balanced continual splits and promotes the train loader to weighted sampling when the largest class is at least 1.5x the smallest non-zero class.
-4. `src/training/services/class_balance.py` computes the training-side class-support policy and effective-number class-balanced weights. When all supported classes resolve to at least `100` images and at least one class is in the `100-200` band, the trainer applies Cui et al.-style effective-number weighting to the training classifier loss across all supported classes while leaving validation/test loss unweighted for artifact comparability. If the train loader already resolved to weighted sampling, effective-number loss weighting is disabled by default unless `training.continual.class_balance.allow_sampler_and_loss_rebalance=true`. Few-shot research mode can lower the hard floor for ablation runs while recording the production guardrail bypass in artifacts.
+4. `src/training/services/class_balance.py` computes the training-side class-support policy and effective-number class-balanced weights. When all supported classes resolve to at least `100` images and at least one class is in the `100-200` band, the trainer applies Cui et al.-style effective-number weighting to the training classifier loss across all supported classes while leaving validation/test loss unweighted for artifact comparability. If the train loader already resolved to weighted sampling, effective-number loss weighting is disabled by default unless `training.continual.class_balance.allow_sampler_and_loss_rebalance=true`.
 5. `src/adapter/independent_crop_adapter.py` exposes the public adapter lifecycle.
-5. `src/training/continual_sd_lora.py` owns the actual training engine (its configuration is
+6. `src/training/continual_sd_lora.py` owns the actual training engine (its configuration is
    `ContinualSDLoRAConfig` in `src/training/config.py`):
    - backbone loading
    - LoRA wrapping
    - optimization: gradient accumulation, clipping, optimizer and LR-scheduler steps
    - prediction
    - OOD calibration
-6. `src/training/session.py` runs epochs and emits observer events for progress, telemetry, and checkpoints.
-7. `src/training/services/reporting.py` writes plots, CSV files, JSON metrics, confusion matrices, and readiness artifacts.
-8. `src/training/services/ood_benchmark.py` runs the held-out fallback benchmark when real OOD data is missing.
-9. The workflow saves the adapter and returns a structured `TrainingWorkflowResult`.
+7. `src/training/session.py` runs epochs and emits observer events for progress, telemetry, and checkpoints.
+8. `src/training/services/reporting.py` writes plots, CSV files, JSON metrics, confusion matrices, and readiness artifacts.
+9. `src/training/services/ood_benchmark.py` runs the held-out fallback benchmark when real OOD data is missing.
+10. The workflow saves the adapter and returns a structured `TrainingWorkflowResult`.
 
 ### What the training stack is optimizing
 
@@ -138,7 +135,7 @@ It writes:
 - `split_manifest.json`
 
 
-The grouped Notebook 0 prep path uses a 60/20/20 family split target with small-class safeguards. Before materialization, it now also applies conservative metadata-free prep filters:
+The grouped Notebook 0 prep path uses a 60/20/20 family split target with small-class safeguards. Before materialization, it also applies conservative metadata-free prep filters:
 
 - source-style proxy grouping from observable cues such as path tokens, stock-site or screenshot hints, aspect/resolution buckets, border/layout traits, web-export naming, and existing source hints
 - label-risk triage from strong cross-class conflicts, same-class review clusters, and the grouped representation-review surface
@@ -213,11 +210,11 @@ These are intentionally separate surfaces:
 - Notebook 5 is the router calibration notebook surface over `scripts/evaluate_router_surface.py` and `scripts/calibrate_router_surface.py`
 - direct adapter smoke testing loads one adapter directly and bypasses the router
 
-Notebook 3, Notebook 4, and `src/colab/adapter_smoke_test.py` are for the second case. Notebook 4 is a smaller widget wrapper over the same direct-adapter helper path.
+Notebook 3 and `src/colab/adapter_smoke_test.py` are for the second case.
 
 ### Router evidence policy
 
-The maintained router now follows two evidence rules:
+The router follows these evidence rules:
 
 - whole-image crop evidence is fused with SAM3 ROI evidence before choosing the crop
 - the final exposed `part` label is chosen only from the configured crop-compatible part surface, and ambiguous organ evidence is rejected to `unknown` instead of forcing a confident label
@@ -272,10 +269,10 @@ The supported path is:
 - held-out fallback benchmark: `src/training/services/ood_benchmark.py`
 - class-balance policy and effective-number weighting: `src/training/services/class_balance.py`
 
-Important current detail:
+Details:
 
 - the "SURE+" label in this repo is shorthand for a two-threshold semantic-plus-confidence diagnostic path used for DS-F1-style evaluation; the runtime `is_ood` verdict still follows the calibrated primary score method rather than letting the confidence-reject flag override it directly
-- conformal mode can now be threshold conformalization on OOD residuals, or standard APS/RAPS set-valued classification
+- conformal mode can be threshold conformalization on OOD residuals, or standard APS/RAPS set-valued classification
 - the energy detector can optionally calibrate a temperature on the calibration split before thresholds are written
 - kNN distance scoring supports `cdist`, chunked distance search, and optional FAISS when available
 
@@ -309,7 +306,7 @@ Training writes:
 
 ### Run lineage and optimizer-facing records
 
-Each training run now writes two canonical traceability artifacts under:
+Each training run writes two canonical traceability artifacts under:
 
 ```text
 <output_dir>/<crop>/<part>/training_metrics/training/
@@ -319,7 +316,7 @@ Each training run now writes two canonical traceability artifacts under:
 
 These files do not replace `training/summary.json` or `training/run_context.json`. Instead, they normalize those existing workflow artifacts into a stable experiment-record surface for Pareto analysis.
 
-Current contract:
+Contract:
 
 - `experiment_manifest.json` is the immutable run-lineage record
 - `optimization_record.json` is the optimizer-facing parameter and objective record
@@ -352,28 +349,16 @@ runs/_index/
   automatic_wins.md
 ```
 
-The registry prefers canonical traceability files when they exist and falls back to best-effort reconstruction from older `summary`, `run_context`, readiness, and guided artifacts.
+The registry prefers canonical traceability files when they exist and falls back to best-effort reconstruction from older `summary`, `run_context`, and checkpoint summaries.
 
-Current automatic behavior:
+Automatic behavior:
 
 - when a training run writes canonical traceability artifacts successfully, the repo-local `runs/_index/` registry is refreshed best-effort
-- that same refresh now also rebuilds cohort-safe Pareto frontier summaries from the indexed runs
+- that same refresh also rebuilds cohort-safe Pareto frontier summaries from the indexed runs
 - that same refresh also writes `automatic_wins.md`, a human-readable Markdown summary of Pareto-frontier winners by comparable cohort
 - Notebook 2 enables Bayesian proposal refresh by default; standalone registry rebuilds write `bayesian_recommendations.json` only when explicitly requested
-- the standalone script remains available when you want to rebuild the registry on demand across existing runs
 
-Phase 2 optimization entrypoint:
-
-```bash
-python scripts/optimize_training_runs.py --dataset-lineage-key <dataset_key>::<split_manifest_sha256> --crop-name <crop> --part-name <part>
-```
-
-That surface reads the canonical run registry, stays inside one comparable cohort, and reports:
-
-- analyze the current Pareto frontier
-- Bayesian optimization disabled status by default, or explicit feature-flagged proposal candidates when `--enable-bayesian-optimization` is passed
-
-`training_metrics/` currently contains:
+`training_metrics/` contains:
 
 - `training/`
 - `validation/`
@@ -389,22 +374,20 @@ Notebook 2 writes to three places in its Colab session and repository workspace:
 - repo mirrors under `runs/<crop>/<part>/<RUN_ID>/`
 - repo-local telemetry runtime under `outputs/colab_notebook_training/telemetry_runtime/telemetry/<RUN_ID>/`
 
-The artifact roots now also include a `guided/` layer with a human-readable start file plus machine-readable overview/catalog files. This layer organizes the raw artifacts without replacing them.
-
 The repo mirror keeps notebook outputs, telemetry copies, and checkpoint manifests plus only the best checkpoint; rolling checkpoint history remains under the repo-local telemetry runtime root.
 
-Current adapter export detail:
+Adapter export locations:
 
 - notebook-session export: `outputs/colab_notebook_training/<crop>/<part>/continual_sd_lora_adapter/`
 - workflow export: `<output_dir>/<crop>/<part>/continual_sd_lora_adapter/`
 - telemetry runtime export: `outputs/colab_notebook_training/telemetry_runtime/telemetry/<RUN_ID>/artifacts/adapter_export/<crop>/<part>/continual_sd_lora_adapter/`
 
-Current notebook naming/detail:
+Notebook 2 details:
 
 - Notebook 2 exposes `CROP_NAME` and `PART_NAME` at the notebook surface
 - Notebook 2 run ids are human-readable and include crop/part/date-time information
 - maintained notebooks perform an early update/access check before the main long-running cells
-- Notebook 2 no longer requests Google Drive mount access by default
+- Notebook 2 does not request Google Drive mount access by default
 - Notebook 2 sets `ENABLE_BAYESIAN_OPTIMIZATION=True` by default, applies the current adapter cohort's next proposal when one exists, and refreshes `runs/_index/bayesian_recommendations.json` after the run writes traceability.
 
 
@@ -430,48 +413,41 @@ These helpers handle:
 - repo update and access preflight reporting
 - Hugging Face token checks
 - dataset materialization
-- guided artifact indexing and overview generation
 - local output mirroring
 - telemetry sync
 - checkpoint management
 - direct adapter smoke testing
 
-## File-to-Responsibility Map
-
-Use this as the quick code map.
-
-- `src/core/config_manager.py`: config loading, merge, normalization, and alias sync
-- `src/workflows/training.py`: canonical training workflow
-- `src/workflows/run_setup.py`: run preparation and artifact payload shaping
-- `src/workflows/inference.py`: canonical inference workflow
-- `src/adapter/independent_crop_adapter.py`: public adapter lifecycle
-- `src/training/continual_sd_lora.py`: actual adapter training engine
-- `src/training/services/metrics.py`: metric thresholds and readiness logic
-- `src/training/services/reporting.py`: artifact persistence
-- `src/training/services/ood_benchmark.py`: held-out fallback OOD benchmark
-- `src/pipeline/router_adapter_runtime.py`: router-plus-adapter inference runtime
-- `src/router/router_pipeline.py`: canonical router implementation surface
-
-- `src/shared/contracts.py`: shared result and metadata contracts
-
 ## Validation Surfaces
 
 The repo validates the maintained surface through:
 
-- `scripts/validate_notebook_imports.py`
-- `scripts/validate_config_schema.py`
 - `python -m scripts.router_open_world.preflight`
 - `python -m scripts.router_open_world.result`
 - `scripts/evaluate_dataset_layout.py`
 - `scripts/evaluate_router_part_surface.py`
-- `scripts/benchmark_surfaces.py`
 - `tests/unit/`
 - `tests/integration/`
 - `tests/colab/test_smoke_training.py`
 
-## Related Docs
+## Dependency Direction
 
-- [../../README.md](../../README.md)
-- [code_organization_map.md](code_organization_map.md)
-- [../methodology_and_results.md](../methodology_and_results.md)
-- [../source_and_notebook_map.md](../source_and_notebook_map.md)
+Allowed direction:
+
+```text
+notebooks -> notebook_cells -> notebook_helpers -> scripts/src
+scripts -> src
+src/app -> src/workflows
+src/workflows -> src services/runtimes/domain/shared
+src services/runtimes/domain -> src/shared
+tests -> any maintained surface under test
+```
+
+Forbidden direction:
+
+- `src/` must not import `scripts`, `tests`, `colab_notebooks` or `experiments`.
+- Core `src/` packages must not import `src.colab`.
+- `src/shared/` must not depend on domain-specific runtime modules.
+- Notebook cell files must not become canonical sources of training, routing, OOD, or inference behavior.
+- Generated surfaces such as `runs/`, `models/adapters/`, `outputs/`, and `.runtime_tmp/` must not be treated as maintained source.
+

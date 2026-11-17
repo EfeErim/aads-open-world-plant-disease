@@ -7,14 +7,6 @@ from typing import Any, Callable, Dict, TypeVar
 T = TypeVar("T")
 
 
-def has_metric_gate(candidate: Dict[str, Any]) -> bool:
-    return isinstance(candidate, dict) and isinstance(candidate.get("metric_gate"), dict)
-
-
-def has_evaluation_labels(candidate: Any) -> bool:
-    return candidate is not None and bool(list(getattr(candidate, "y_true", []) or []))
-
-
 def select_authoritative_value(
     validation_value: T,
     test_value: T,
@@ -40,7 +32,7 @@ def select_authoritative_artifacts(
         validation_artifacts,
         test_artifacts,
         calibration_split_name=calibration_split_name,
-        is_present=has_metric_gate,
+        is_present=lambda candidate: isinstance(candidate, dict) and isinstance(candidate.get("metric_gate"), dict),
         empty_value={},
     )
 
@@ -55,9 +47,18 @@ def select_authoritative_evaluation(
         validation_evaluation,
         test_evaluation,
         calibration_split_name=calibration_split_name,
-        is_present=has_evaluation_labels,
+        is_present=lambda candidate: candidate is not None and bool(list(getattr(candidate, "y_true", []) or [])),
         empty_value=None,
     )
+
+
+def _apply_selection_metadata(target: Dict[str, Any], selection_metadata: Dict[str, Any] | None) -> None:
+    if not selection_metadata:
+        return
+    target["selection_metadata"] = dict(selection_metadata)
+    for key in ("selected_threshold", "target_fpr"):
+        if selection_metadata.get(key) is not None:
+            target[key] = float(selection_metadata[key])
 
 
 def record_primary_score_selection(
@@ -74,12 +75,7 @@ def record_primary_score_selection(
     calibration["requested_primary_score_method"] = requested_primary_score_method
     calibration["primary_score_method"] = selected_primary_score_method
     calibration["selection_source"] = selection_source
-    if selection_metadata:
-        calibration["selection_metadata"] = dict(selection_metadata)
-        if selection_metadata.get("selected_threshold") is not None:
-            calibration["selected_threshold"] = float(selection_metadata["selected_threshold"])
-        if selection_metadata.get("target_fpr") is not None:
-            calibration["target_fpr"] = float(selection_metadata["target_fpr"])
+    _apply_selection_metadata(calibration, selection_metadata)
 
 
 def record_adapter_export_metadata(
@@ -119,12 +115,7 @@ def record_adapter_export_metadata(
             "selection_source": str(selection_source),
         }
     )
-    if selection_metadata:
-        calibration_metadata["selection_metadata"] = dict(selection_metadata)
-        if selection_metadata.get("selected_threshold") is not None:
-            calibration_metadata["selected_threshold"] = float(selection_metadata["selected_threshold"])
-        if selection_metadata.get("target_fpr") is not None:
-            calibration_metadata["target_fpr"] = float(selection_metadata["target_fpr"])
+    _apply_selection_metadata(calibration_metadata, selection_metadata)
     adapter_runtime = {
         "best_state_restored": bool(best_state_restored),
         "crop_name": str(crop_name or ""),

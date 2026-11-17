@@ -31,8 +31,7 @@ from src.data.grouped_dataset_embeddings import (
 from src.data.grouped_dataset_embeddings import (
     _encode_dinov3_with_components as _encode_dinov3_with_components,
 )
-from src.data.grouped_dataset_embeddings import _encode_with_oom_retries as _encode_with_oom_retries_impl
-from src.data.grouped_dataset_embeddings import _is_cuda_oom as _is_cuda_oom
+from src.data.grouped_dataset_embeddings import _encode_with_oom_retries as _encode_with_oom_retries
 from src.data.grouped_dataset_embeddings import _load_bioclip_components as _load_bioclip_components
 from src.data.grouped_dataset_embeddings import _load_dinov3_components as _load_dinov3_components
 from src.data.grouped_dataset_embeddings import _progress as _progress
@@ -68,7 +67,6 @@ from src.data.grouped_dataset_reporting import _skipped_class_entry as _skipped_
 from src.data.grouped_dataset_reporting import build_human_review_packet as build_human_review_packet
 from src.data.grouped_dataset_reporting import build_label_review_summary as build_label_review_summary
 from src.data.grouped_dataset_reporting import format_human_review_packet as format_human_review_packet
-from src.guided_artifacts import refresh_prep_guided_artifacts
 from src.shared.csv_utils import write_csv_rows
 from src.shared.hash_utils import sha256_file
 from src.shared.json_utils import read_json, write_json
@@ -171,28 +169,6 @@ LABEL_RISK_CLEAR = "clear"
 LABEL_RISK_TRAIN_ONLY = "train_only_risk"
 LABEL_RISK_REVIEW = "review_candidate"
 LABEL_RISK_BLOCKING = "blocking_conflict"
-
-
-def _encode_with_oom_retries(
-    encode_fn: Callable[..., np.ndarray],
-    *,
-    paths: Sequence[Path],
-    batch_size: int,
-    progress_fn: Optional[Callable[[str], None]],
-    batch_progress_fn: Optional[Callable[[int, int], None]] = None,
-    label: str,
-    **kwargs: Any,
-) -> np.ndarray:
-    return _encode_with_oom_retries_impl(
-        encode_fn,
-        paths=paths,
-        batch_size=batch_size,
-        progress_fn=progress_fn,
-        batch_progress_fn=batch_progress_fn,
-        label=label,
-        oom_predicate=_is_cuda_oom,
-        **kwargs,
-    )
 
 
 @dataclass
@@ -1134,14 +1110,6 @@ def _select_bioclip_candidate_pairs(
     ]
 
 
-def _family_targets(records: Sequence[ImageRecord]) -> Dict[str, tuple[int, int, int]]:
-    totals: Dict[str, int] = defaultdict(int)
-    for record in records:
-        if not record.excluded_reason:
-            totals[record.normalized_class_name] += 1
-    return {class_name: _estimate_grouped_split_counts(total) for class_name, total in totals.items()}
-
-
 def _estimate_grouped_split_counts(total: int) -> tuple[int, int, int]:
     if total <= 0:
         return 0, 0, 0
@@ -1890,17 +1858,6 @@ def build_grouped_dataset_plan(
         label_review_candidates=label_review_candidates,
     )
     write_json(artifact_root / LABEL_REVIEW_SUMMARY_FILENAME, label_review_summary, ensure_ascii=False)
-    refresh_prep_guided_artifacts(
-        artifact_root,
-        overview_updates={
-            "crop_name": str(crop_name),
-            "part_name": str(part_name),
-            "runtime_ready": bool(summary["runtime_ready"]),
-            "prepared_runtime_root": str(
-                (DEFAULT_RUNTIME_ROOT / build_prepared_dataset_key(crop_name, part_name)).resolve()
-            ),
-        },
-    )
     return summary
 
 

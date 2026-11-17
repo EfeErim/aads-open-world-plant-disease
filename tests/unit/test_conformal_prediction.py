@@ -8,7 +8,6 @@ from src.ood.conformal_prediction import (
     build_prediction_set,
     calibrate_conformal_qhat,
     calibrate_prediction_set_qhat,
-    compute_empirical_coverage,
     compute_nonconformity_scores,
     compute_prediction_set_nonconformity_scores,
     describe_conformal_method,
@@ -187,25 +186,3 @@ class TestBuildPredictionSet:
         assert len(pred_set) <= 2
 
 
-class TestEmpiricalCoverage:
-    def test_perfect_coverage(self):
-        labels = torch.tensor([0, 1, 2])
-        sets = [[0, 1], [1, 2], [2, 0]]
-        coverage = compute_empirical_coverage(labels, sets)
-        assert coverage == 1.0
-
-    def test_zero_coverage(self):
-        labels = torch.tensor([0, 1, 2])
-        sets = [[3], [3], [3]]
-        coverage = compute_empirical_coverage(labels, sets)
-        assert coverage == 0.0
-
-    def test_partial_coverage(self):
-        labels = torch.tensor([0, 1])
-        sets = [[0], [2]]  # 1 out of 2 covered
-        coverage = compute_empirical_coverage(labels, sets)
-        assert abs(coverage - 0.5) < 1e-6
-
-    def test_empty(self):
-        coverage = compute_empirical_coverage(torch.tensor([]), [])
-        assert coverage == 0.0

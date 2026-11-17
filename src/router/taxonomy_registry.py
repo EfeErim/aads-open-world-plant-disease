@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from src.data.dataset_release_runtime import DEFAULT_MATERIALIZED_DATASET_ROOT
-from src.router.label_normalization import normalize_part_label
+from src.router.policy_taxonomy_utils import normalize_part_label
 from src.shared.hash_utils import sha256_file
 from src.shared.json_utils import read_json, write_json
 

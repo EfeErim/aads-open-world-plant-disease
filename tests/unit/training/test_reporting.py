@@ -10,7 +10,6 @@ from src.training.services.reporting import (
     persist_batch_metrics_artifacts,
     persist_behavioral_acceptance_artifact,
     persist_behavioral_dev_report_artifact,
-    persist_production_readiness_artifact,
     persist_training_history_artifacts,
     persist_training_results_figure,
     persist_training_run_context_artifact,
@@ -46,8 +45,6 @@ def test_persist_behavioral_acceptance_is_the_default_decision_artifact(tmp_path
     assert json.loads(result["acceptance_json"].read_text(encoding="utf-8"))["decision_authority"] == (
         "adapter_behavioral_acceptance"
     )
-    catalog = json.loads((tmp_path / "guided" / "02_file_catalog.json").read_text(encoding="utf-8"))
-    assert "adapter_behavioral_acceptance.json" in {entry["relative_path"] for entry in catalog["entries"]}
 
 
 def test_persist_behavioral_dev_report_is_non_authoritative(tmp_path: Path):
@@ -359,44 +356,6 @@ def test_reporting_prefers_real_fpr_when_building_worst_slice_summary(tmp_path: 
     assert comparison["methods"]["energy"]["worst_slice"]["slice_name"] == "blur"
     assert comparison["methods"]["energy"]["worst_slice"]["metrics"]["ood_false_positive_rate"] == 0.08
 
-def test_reporting_refreshes_guided_catalog_for_training_outputs(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-
-    persist_training_summary_artifact(
-        artifact_root=artifact_root,
-        summary_payload={"run_id": "run_1", "run_label": "run_1", "crop_name": "tomato", "part_name": "leaf"},
-    )
-    validation = persist_validation_artifacts(
-        artifact_root=artifact_root,
-        y_true=[0, 1],
-        y_pred=[0, 1],
-        classes=["healthy", "disease_a"],
-        artifact_subdir="test",
-        context={"crop_name": "tomato", "split_name": "test"},
-    )
-    persist_production_readiness_artifact(
-        artifact_root=artifact_root,
-        classification_metric_gate=validation["metric_gate"],
-        classification_split="test",
-        ood_evidence_source="unavailable",
-        ood_metrics={},
-        require_ood=False,
-    )
-
-    guided_dir = artifact_root / "guided"
-    catalog = json.loads((guided_dir / "02_file_catalog.json").read_text(encoding="utf-8"))
-    entry_paths = {entry["relative_path"] for entry in catalog["entries"]}
-    start_here = (guided_dir / "00_start_here.md").read_text(encoding="utf-8")
-    catalog_text = json.dumps(catalog, ensure_ascii=False)
-
-    assert (guided_dir / "00_start_here.md").exists()
-    assert (guided_dir / "01_run_overview.json").exists()
-    assert "training/summary.json" in entry_paths
-    assert "test/metric_gate.json" in entry_paths
-    assert "production_readiness.json" in entry_paths
-    assert "# Buradan Ba\u015fla" in start_here
-    assert "\u00c3" not in start_here
-    assert "\u00c3" not in catalog_text
 
 
 def test_reporting_writes_prediction_rows_csv(tmp_path: Path):
@@ -496,51 +455,3 @@ def test_reporting_writes_hard_examples_csv_and_thumbnails(tmp_path: Path):
     assert all((hard_examples_csv.parent / path).exists() for path in thumbnail_paths)
 
 
-def test_guided_catalog_includes_prediction_and_hard_example_entries(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-    image_dir = tmp_path / "images"
-    image_dir.mkdir()
-    sample = image_dir / "review_me.png"
-    Image.new("RGB", (64, 32), color=(0, 128, 0)).save(sample)
-
-    persist_training_summary_artifact(
-        artifact_root=artifact_root,
-        summary_payload={"run_id": "run_1", "run_label": "run_1", "crop_name": "tomato", "part_name": "leaf"},
-    )
-    validation = persist_validation_artifacts(
-        artifact_root=artifact_root,
-        y_true=[0],
-        y_pred=[1],
-        classes=["healthy", "disease_a"],
-        artifact_subdir="test",
-        context={"crop_name": "tomato", "split_name": "test"},
-        prediction_rows=[
-            {
-                "sample_origin": "in_distribution",
-                "split_name": "test",
-                "image_path": sample.as_posix(),
-                "true_index": 0,
-                "true_label": "healthy",
-                "pred_index": 1,
-                "pred_label": "disease_a",
-                "is_correct": False,
-                "class_confidence": 0.91,
-            }
-        ],
-    )
-    persist_production_readiness_artifact(
-        artifact_root=artifact_root,
-        classification_metric_gate=validation["metric_gate"],
-        classification_split="test",
-        ood_evidence_source="unavailable",
-        ood_metrics={},
-        require_ood=False,
-    )
-
-    guided_dir = artifact_root / "guided"
-    catalog = json.loads((guided_dir / "02_file_catalog.json").read_text(encoding="utf-8"))
-    entry_paths = {entry["relative_path"] for entry in catalog["entries"]}
-
-    assert "test/predictions.csv" in entry_paths
-    assert "test/hard_examples.csv" in entry_paths
-    assert "test/hard_examples_thumbnails" in entry_paths

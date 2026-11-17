@@ -2,12 +2,27 @@ from PIL import Image
 
 from src.router.heuristics import (
     apply_leaf_like_override,
+    compatible_parts_for_crop,
     compute_leaf_likeness,
     rebalance_part_scores_for_leaf_like_roi,
     select_best_crop_with_fallback,
     select_part_label_with_specificity,
 )
 
+
+def test_compatible_parts_for_crop_filters_to_known_part_labels():
+    result = compatible_parts_for_crop(
+        crop_label='Tomato',
+        crop_part_compatibility={'tomato': ['leaf', 'stem', 'unknown_part']},
+        part_labels=['leaf', 'stem', 'fruit'],
+    )
+
+    assert result == ['leaf', 'stem']
+
+
+def test_compatible_parts_for_crop_returns_empty_for_missing_or_unknown_crop():
+    assert compatible_parts_for_crop('', {'tomato': ['leaf']}, ['leaf']) == []
+    assert compatible_parts_for_crop('potato', {'tomato': ['leaf']}, ['leaf']) == []
 
 def test_compute_leaf_likeness_scores_green_roi_high():
     likeness = compute_leaf_likeness(

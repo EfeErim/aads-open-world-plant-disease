@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from src.colab.checkpointing import TrainingCheckpointManager
+from src.shared.json_utils import read_json
 
 
 class _FakeAdapter:
@@ -33,7 +34,7 @@ def test_checkpoint_manager_marks_best_without_duplicate_best_tree(tmp_path: Pat
         val_loss=0.2,
     )
 
-    best = manager.get_best()
+    best = read_json(manager.best_manifest_path)
 
     assert isinstance(best, dict)
     assert best["path"] == record["path"]
@@ -110,7 +111,7 @@ def test_checkpoint_manager_skips_prune_when_best_manifest_is_corrupt(tmp_path: 
         run_id="run_3",
     )
 
-    rows = manager.list_checkpoints()
+    rows = manager._load_index()
 
     assert Path(first["path"]).exists()
     assert Path(third["path"]).exists()

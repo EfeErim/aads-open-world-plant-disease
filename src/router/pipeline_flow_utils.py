@@ -3,7 +3,6 @@ from typing import (
     Callable,
     Dict,
     Optional,
-    Tuple,
     TypeVar,
 )
 
@@ -21,15 +20,6 @@ def build_process_image_response(analysis: Dict[str, Any], enabled: bool) -> Dic
         'status': 'ok',
         'scenario': scenario,
         'analysis': analysis,
-    }
-
-
-def empty_analysis_result(image_size: Tuple[int, int, int]) -> Dict[str, Any]:
-    """Compatibility-safe empty analysis response when runtime pipeline is unavailable."""
-    return {
-        'detections': [],
-        'image_size': image_size,
-        'processing_time_ms': 0.0,
     }
 
 

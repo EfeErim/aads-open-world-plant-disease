@@ -14,7 +14,7 @@ import torch
 from src.ood.continual_ood import ClassCalibration, ContinualOODDetector
 from src.shared.contracts import AdapterMetadata
 from src.shared.json_utils import read_json_dict, write_json
-from src.training.services.serialization import serialize_ood_state as build_serialized_ood_state
+from src.training.services.serialization import serialize_ood_state
 from src.training.types import TrainingCheckpointPayload
 
 
@@ -132,10 +132,6 @@ def compute_config_hash(contract: Dict[str, Any]) -> str:
 def assert_exportable_ood_state(ood_detector: ContinualOODDetector) -> None:
     """Fail fast when an adapter export would silently disable OOD."""
     ood_detector.assert_calibrated(operation="saving adapter assets")
-
-
-def serialize_ood_state(ood_detector: ContinualOODDetector) -> Dict[str, Any]:
-    return build_serialized_ood_state(ood_detector, strict=True)
 
 
 def restore_ood_state(

@@ -44,8 +44,8 @@ HF_TOKEN_NAMES = ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN")
 GITHUB_TOKEN_NAMES = ("GH_TOKEN", "GITHUB_TOKEN")
 GITHUB_READ_TOKEN_NAMES = ("AADS_GITHUB_RELEASE_READ_TOKEN",)
 TORCH_REQUIREMENT_PREFIXES = ("torch", "torchvision", "torchaudio")
-# Every notebook's first cell clones the repository here before any `src` import (the path is part of the
-# notebook bootstrap contract in scripts/notebook_contracts/support.py), so all discovery code looks here too.
+# Every notebook's first cell clones the repository here before any `src` import, so all discovery code
+# looks here too.
 COLAB_CLONE_TARGET = Path("/content/bitirmeprojesi")
 
 

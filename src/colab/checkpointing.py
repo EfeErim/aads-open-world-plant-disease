@@ -52,17 +52,8 @@ class TrainingCheckpointManager:
         ordered = sorted(rows, key=lambda row: str(row.get("created_at", "")))
         self._write_json(self.index_path, ordered)
 
-    def list_checkpoints(self) -> List[Dict[str, Any]]:
-        rows = self._load_index()
-        rows.sort(key=lambda row: str(row.get("created_at", "")), reverse=True)
-        return rows
-
     def get_latest(self) -> Optional[Dict[str, Any]]:
         payload = self._read_json(self.latest_manifest_path, None)
-        return dict(payload) if isinstance(payload, dict) else None
-
-    def get_best(self) -> Optional[Dict[str, Any]]:
-        payload = self._read_json(self.best_manifest_path, None)
         return dict(payload) if isinstance(payload, dict) else None
 
     def save_checkpoint(
@@ -159,15 +150,3 @@ class TrainingCheckpointManager:
                 logger.warning("Failed to prune checkpoint path: %s", row_path)
         self._store_index(kept)
 
-    def load_checkpoint(self, *, adapter: Any, checkpoint_path: str | Path) -> Dict[str, Any]:
-        loaded = adapter.load_training_checkpoint(str(checkpoint_path))
-        return dict(loaded)
-
-    def load_latest_checkpoint(self, *, adapter: Any) -> Optional[Dict[str, Any]]:
-        latest = self.get_latest()
-        if not latest:
-            return None
-        checkpoint_path = latest.get("path")
-        if not isinstance(checkpoint_path, str) or not checkpoint_path:
-            return None
-        return self.load_checkpoint(adapter=adapter, checkpoint_path=checkpoint_path)

@@ -620,13 +620,6 @@ def evaluate_model(trainer: Any, loader: Iterable[Dict[str, torch.Tensor]]) -> O
     return None if result is None else result[0]
 
 
-def evaluate_model_with_predictions(
-    trainer: Any,
-    loader: Iterable[Dict[str, torch.Tensor]],
-) -> Optional[Tuple[ValidationReport, List[int], List[int]]]:
-    return _evaluate_model_core(trainer, loader)
-
-
 def evaluate_model_with_artifact_metrics(
     trainer: Any,
     loader: Iterable[Dict[str, torch.Tensor]],

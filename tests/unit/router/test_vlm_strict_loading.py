@@ -4,6 +4,45 @@ import pytest
 import torch
 
 from src.router.router_pipeline import RouterPipeline
+from src.router.vlm_stages import check_vlm_dependencies
+
+
+def _fake_import(transformers_version, *, open_clip_available=True):
+    def fake_import(name):
+        if name == 'transformers':
+            class _T:
+                __version__ = transformers_version
+            return _T
+        if name == 'open_clip' and open_clip_available:
+            return object()
+        raise ImportError(name)
+
+    return fake_import
+
+
+def test_check_vlm_dependencies_reports_old_transformers_and_missing_optional():
+    diagnostics = check_vlm_dependencies(import_module=_fake_import('4.40.0', open_clip_available=False))
+
+    assert "outside the repo's validated range" in diagnostics['transformers_warning']
+    assert '5.1.0' in diagnostics['transformers_warning']
+    assert diagnostics['missing_deps'] == ['open-clip-torch']
+    assert diagnostics['install_command'] == '!pip install open-clip-torch'
+
+
+def test_check_vlm_dependencies_ok_path():
+    diagnostics = check_vlm_dependencies(import_module=_fake_import('5.1.0'))
+
+    assert diagnostics['transformers_warning'] is None
+    assert diagnostics['missing_deps'] == []
+    assert diagnostics['install_command'] is None
+
+
+@pytest.mark.parametrize('version', ['5.2.0', '6.0.0'])
+def test_check_vlm_dependencies_warns_outside_validated_range(version):
+    diagnostics = check_vlm_dependencies(import_module=_fake_import(version))
+
+    assert "outside the repo's validated range" in diagnostics['transformers_warning']
+    assert '5.1.0' in diagnostics['transformers_warning']
 
 
 class _FakeProcessor:

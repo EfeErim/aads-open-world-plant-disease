@@ -91,5 +91,3 @@ def distribution_threshold(values: torch.Tensor, threshold_factor: float) -> flo
     return float(values.mean().item() + (float(threshold_factor) * std))
 
 
-def ensemble_threshold(ensemble_scores: torch.Tensor, threshold_factor: float) -> float:
-    return distribution_threshold(ensemble_scores, threshold_factor)

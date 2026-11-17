@@ -1,7 +1,6 @@
 ﻿import pytest
 
-from src.core.config_manager import ConfigurationManager
-from src.core.config_migrations import CURRENT_CONFIG_SCHEMA_VERSION
+from src.core.config_manager import CURRENT_CONFIG_SCHEMA_VERSION, ConfigurationManager
 from src.training.services.config_surface import extract_continual_training_config
 
 

@@ -54,7 +54,7 @@ def test_encode_with_oom_retries_forwards_batch_progress_and_reduces_batch_size(
         return np.ones((len(paths), 1), dtype=np.float32)
 
     monkeypatch.setattr(
-        "src.data.grouped_runtime_dataset_preparation._is_cuda_oom",
+        "src.data.grouped_dataset_embeddings._is_cuda_oom",
         lambda exc: "out of memory" in str(exc).lower(),
     )
     result = _encode_with_oom_retries(
@@ -1060,54 +1060,3 @@ def test_build_grouped_dataset_plan_excludes_images_missing_after_scan(tmp_path:
     assert summary["summary"]["readable_images"] == 2
     assert summary["summary"]["excluded_reason_breakdown"]["missing_after_scan"] == 1
 
-def test_grouped_dataset_plan_writes_guided_catalog(tmp_path: Path, monkeypatch):
-    source_root = tmp_path / "source"
-    artifact_root = tmp_path / "artifacts"
-    runtime_root = tmp_path / "runtime"
-
-    for index, offset in enumerate((2, 10, 18)):
-        _write_pattern(source_root / "Healthy" / f"healthy_{index}.jpg", offset=offset)
-        _write_pattern(source_root / "Early Blight" / f"disease_{index}.jpg", offset=offset + 1)
-
-    monkeypatch.setattr(
-        "src.data.grouped_runtime_dataset_preparation._load_dinov3_components",
-        lambda model_id, device="cpu": (object(), _FakeModel()),
-    )
-    monkeypatch.setattr(
-        "src.data.grouped_runtime_dataset_preparation._load_bioclip_components",
-        lambda model_id, device="cpu": (object(), _FakeModel()),
-    )
-    monkeypatch.setattr(
-        "src.data.grouped_runtime_dataset_preparation._encode_dinov3_with_components",
-        lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
-    )
-    monkeypatch.setattr(
-        "src.data.grouped_runtime_dataset_preparation._encode_bioclip_with_components",
-        lambda paths, **kwargs: _fake_embeddings(paths, model_id="fake", batch_size=0, device="cpu"),
-    )
-
-    build_grouped_dataset_plan(
-        class_root=source_root,
-        crop_name="tomato",
-        artifact_root=artifact_root,
-        taxonomy_path=None,
-    )
-    materialize_grouped_runtime_dataset(
-        class_root=source_root,
-        crop_name="tomato",
-        artifact_root=artifact_root,
-        runtime_root=runtime_root,
-    )
-
-    guided_dir = artifact_root / "guided"
-    catalog = json.loads((guided_dir / "02_file_catalog.json").read_text(encoding="utf-8"))
-
-    assert (guided_dir / "00_start_here.md").exists()
-    assert (guided_dir / "01_prep_overview.json").exists()
-    assert any(entry["relative_path"] == "prep_summary.json" for entry in catalog["entries"])
-    assert any(entry["relative_path"] == "human_review_packet.json" for entry in catalog["entries"])
-    assert any(entry["relative_path"] == "label_review_summary.json" for entry in catalog["entries"])
-    assert any(entry["relative_path"] == "label_risk_summary.json" for entry in catalog["entries"])
-    assert any(entry["relative_path"] == "label_review_candidates.csv" for entry in catalog["entries"])
-    assert any(entry["relative_path"] == "source_style_groups.csv" for entry in catalog["entries"])
-    assert any(entry["title_tr"] == "Materyalize edilmis runtime split manifesti" for entry in catalog["entries"])

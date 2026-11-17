@@ -7,7 +7,6 @@ from src.data.dataset_lineage import (
     DatasetLineageError,
     build_github_release_lineage,
     immutable_lineage_blockers,
-    lineages_directly_comparable,
     resolve_dataset_lineage,
 )
 from src.data.dataset_release import canonical_sha256, sha256_file
@@ -70,10 +69,9 @@ def test_same_immutable_release_target_yields_same_lineage(tmp_path: Path) -> No
 
     assert first["dataset_lineage_key"] == second["dataset_lineage_key"]
     assert first["asset_inventory_sha256"] == canonical_sha256(first["asset_inventory"])
-    assert lineages_directly_comparable(first, second) is True
 
 
-def test_different_releases_are_not_directly_comparable(tmp_path: Path) -> None:
+def test_different_releases_yield_different_lineage(tmp_path: Path) -> None:
     target = _target(tmp_path)
     split_sha = sha256_file(target / "split_manifest.json")
     first = build_github_release_lineage(
@@ -88,7 +86,6 @@ def test_different_releases_are_not_directly_comparable(tmp_path: Path) -> None:
     )
 
     assert first["dataset_lineage_key"] != second["dataset_lineage_key"]
-    assert lineages_directly_comparable(first, second) is False
 
 
 def test_release_lineage_requires_exact_materialized_target(tmp_path: Path) -> None:

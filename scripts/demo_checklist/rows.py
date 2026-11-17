@@ -1,10 +1,9 @@
-"""Row parsing, grading, and cache-key helpers for the M2 demo checklist runner."""
-
 from __future__ import annotations
 
 import csv
 import gc
 import json
+import re
 import sys
 import unicodedata
 from dataclasses import dataclass
@@ -13,20 +12,47 @@ from typing import Any
 
 import torch
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from scripts.demo_checklist.grading import (  # noqa: E402
-    ABSTAIN_STATUSES,
-    CLASSLESS_SUPPORTED_PROBE_MARKERS,
-)
 from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _handoff_cache_key as _build_handoff_cache_key,
 )
 from scripts.demo_checklist.handoff_cache import (  # noqa: E402
     _path_fingerprint as _build_path_fingerprint,
 )
+
+ABSTAIN_STATUSES = {
+    "unknown_crop",
+    "router_uncertain",
+    "adapter_unavailable",
+    "non_plant_rejected",
+    "router_unavailable",
+}
+
+CLASSLESS_SUPPORTED_PROBE_MARKERS = (
+    "disease answer or review expected",
+    "supported crop/part image",
+)
+
+
+def opposite_part_label(expected_part: str, diagnosis: Any) -> bool:
+    expected = str(expected_part or "").strip().lower()
+    diagnosis_key = unicodedata.normalize("NFKD", str(diagnosis or "").lower()).encode("ascii", "ignore").decode()
+    diagnosis_tokens = [token for token in re.split(r"[^a-z0-9]+", diagnosis_key) if token]
+    while diagnosis_tokens and diagnosis_tokens[-1].isdigit():
+        diagnosis_tokens.pop()
+    predicted_part = next(
+        (token for token in reversed(diagnosis_tokens) if token in {"leaf", "yaprak", "fruit", "meyve"}),
+        "",
+    )
+    if expected == "fruit":
+        return predicted_part in {"leaf", "yaprak"}
+    if expected == "leaf":
+        return predicted_part in {"fruit", "meyve"}
+    return False
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 DEPENDENCY_MARKERS = (
@@ -44,7 +70,6 @@ CUDA_OOM_MARKERS = (
 )
 FINAL_DEMO_SUPPORTED_CROPS = frozenset({"tomato", "strawberry", "grape", "apricot"})
 FINAL_DEMO_SUPPORTED_PARTS = frozenset({"leaf", "fruit"})
-ADAPTER_ALLOWED_ROUTER_STATUSES = frozenset({"ok", "trusted_hint_skipped", "skipped"})
 
 
 def format_elapsed_seconds(seconds: float) -> str:
@@ -413,17 +438,6 @@ def _confidence_or_ood(result: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
-
-
-def _adapter_batch_eligible(router_result: dict[str, Any]) -> tuple[str, str] | None:
-    status = str(router_result.get("status") or "").strip().lower()
-    crop = str(router_result.get("crop") or "").strip().lower()
-    part = str(router_result.get("part") or "").strip().lower()
-    if status not in ADAPTER_ALLOWED_ROUTER_STATUSES:
-        return None
-    if crop not in FINAL_DEMO_SUPPORTED_CROPS or part not in FINAL_DEMO_SUPPORTED_PARTS:
-        return None
-    return crop, part
 
 
 def _handoff_adapter_target(handoff: dict[str, Any]) -> tuple[str, str] | None:

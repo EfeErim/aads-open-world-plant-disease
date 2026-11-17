@@ -5,20 +5,20 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     import json
     from datetime import datetime, timezone
     from src.colab.training_helpers import (
-        merge_training_summary_fields,
-        notebook_artifact_root,
-        persist_behavioral_acceptance_artifact,
-        persist_production_readiness_artifact,
-        persist_validation_artifacts,
         print_notebook_optimization_campaign_status,
         resolve_notebook_optimization_campaign,
+        select_notebook_ood_policy,
         summarize_notebook_optimization_campaign,
     )
     from src.adapter.independent_crop_adapter import IndependentCropAdapter
-    from src.colab.training_helpers import select_notebook_ood_policy
     from src.colab.training_session import (
+        merge_training_summary_fields,
+        notebook_artifact_root,
+        persist_behavioral_acceptance_artifact,
         persist_behavioral_dev_report_artifact,
+        persist_production_readiness_artifact,
         persist_training_run_context_artifact,
+        persist_validation_artifacts,
     )
     from src.training.services.ood_benchmark import run_leave_one_class_out_benchmark
     from src.training.services.ood_score_selection import apply_primary_score_method_to_evaluation
@@ -287,7 +287,8 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
         )
         print("[DONE] Frozen winner evaluated once on held-out ID test and OOD test.")
 
-from src.colab.training_helpers import build_notebook_completion_report, maybe_auto_disconnect_colab_runtime, merge_training_summary_fields, print_notebook_optimization_campaign_status, resolve_notebook_optimization_campaign, summarize_notebook_optimization_campaign
+from src.colab.training_helpers import maybe_auto_disconnect_colab_runtime, print_notebook_optimization_campaign_status, resolve_notebook_optimization_campaign, summarize_notebook_optimization_campaign
+from src.colab.training_session import build_notebook_completion_report, merge_training_summary_fields
 
 REPO_RUN_EXPORTS = save_run_outputs_to_repo()
 effective_params = dict(STATE.get("effective_params") or {})

@@ -22,7 +22,7 @@ def test_live_telemetry_writes_events_logs_and_artifacts(tmp_path):
     telemetry.emit_event("train_batch", {"global_step": 1}, phase="train")
     telemetry.emit_log("batch completed", phase="train", level="info")
     telemetry.update_latest({"epoch": 1, "batch": 1})
-    telemetry.write_json_artifact("training/history.json", {"train_loss": [0.1]})
+    telemetry.write_text_artifact("training/history.json", '{"train_loss": [0.1]}')
     telemetry.close({"status": "ok"})
 
     run_dir = drive_root / "telemetry" / "run_001"
@@ -224,7 +224,7 @@ def test_live_telemetry_spools_locally_when_drive_mount_is_missing(tmp_path, mon
         sync_interval_sec=0.1,
     )
     telemetry.emit_event("train_batch", {"global_step": 1}, phase="train")
-    telemetry.write_json_artifact("training/history.json", {"train_loss": [0.1]})
+    telemetry.write_text_artifact("training/history.json", '{"train_loss": [0.1]}')
     telemetry.close({"status": "ok"})
 
     drive_run_dir = drive_root / "telemetry" / "run_005"
@@ -321,7 +321,7 @@ def test_close_emits_repo_notebook_export_unavailable_when_exporter_returns_none
     assert unavailable_events[-1]["payload"]["warning"] == "Notebook exporter returned no payload."
 
 
-def test_live_telemetry_merges_guided_catalog_and_summary_metadata(tmp_path):
+def test_live_telemetry_merges_summary_metadata(tmp_path):
     drive_root = tmp_path / "drive"
     local_root = tmp_path / "local"
     telemetry = ColabLiveTelemetry(
@@ -332,31 +332,11 @@ def test_live_telemetry_merges_guided_catalog_and_summary_metadata(tmp_path):
         sync_interval_sec=0.1,
     )
 
-    telemetry.merge_artifact_catalog(
-        [
-            {
-                "relative_path": "guided/00_start_here.md",
-                "category": "training",
-                "priority": "critical",
-                "title_tr": "Baslangic rehberi",
-                "description_tr": "Kullanici icin ilk okuma noktasi.",
-                "reader_goal": "Nereden baslayacagini gormek",
-                "format": "md",
-                "generated_by": "test",
-                "decision_importance": "run_overview",
-                "read_order": 1,
-            }
-        ]
-    )
     telemetry.merge_summary_metadata({"guided_artifacts": {"start_here": "guided/00_start_here.md"}})
     telemetry.close({"status": "ok"})
 
-    artifact_index = json.loads(
-        (drive_root / "telemetry" / "run_guided" / "artifact_index.json").read_text(encoding="utf-8")
-    )
     summary = json.loads((drive_root / "telemetry" / "run_guided" / "summary.json").read_text(encoding="utf-8"))
 
-    assert any(entry["relative_path"] == "guided/00_start_here.md" for entry in artifact_index)
     assert summary["metadata"]["guided_artifacts"]["start_here"] == "guided/00_start_here.md"
 
 

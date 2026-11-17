@@ -6,17 +6,7 @@ import re
 
 
 def normalize_class_name(name: str) -> str:
-    """Normalize a class name for dataset layout consistency.
-
-    Converts to lowercase, replaces separators with underscores,
-    collapses consecutive underscores, and strips leading/trailing underscores.
-
-    Args:
-        name: Raw class name (e.g., 'Grape Leaf', 'berry-spot', 'fruit/type').
-
-    Returns:
-        Normalized class name (e.g., 'grape_leaf', 'berry_spot', 'fruit_type').
-    """
+    """Normalize a class name for dataset layout consistency."""
     normalized = str(name or "").strip().lower()
     for token in (" ", "-", "/", "\\"):
         normalized = normalized.replace(token, "_")
@@ -26,18 +16,7 @@ def normalize_class_name(name: str) -> str:
 
 
 def slug_label_component(value: str, *, default: str = "unspecified") -> str:
-    """Convert a label component to a URL-safe slug.
-
-    Lowercases, keeps only alphanumeric + underscores, collapses runs,
-    strips boundaries.
-
-    Args:
-        value: Label text (e.g., 'Leaf Spot', 'Disease-Type-1').
-        default: Fallback if result is empty.
-
-    Returns:
-        Slugified label (e.g., 'leaf_spot', 'disease_type_1').
-    """
+    """Convert a label component to a URL-safe slug."""
     normalized = re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower())
     normalized = re.sub(r"_+", "_", normalized).strip("_")
     return normalized or default

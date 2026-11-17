@@ -10,7 +10,7 @@ import torch
 from PIL import Image
 
 from src.router.confidence_utils import build_open_set_rejection_reasons
-from src.router.label_normalization import normalize_part_label
+from src.router.policy_taxonomy_utils import normalize_part_label
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 
@@ -89,18 +89,18 @@ TURKEY_PRIORITY_PART_ALIASES: Dict[str, List[str]] = {
 }
 
 
-def _crop_key(label: str) -> str:
+def _label_key(label: str) -> str:
     return str(label or '').strip().lower()
 
 
 def _crop_alias_to_canonical() -> Dict[str, str]:
     canonical_by_alias: Dict[str, str] = {}
     for canonical_label, aliases in TURKEY_PRIORITY_CROP_ALIASES.items():
-        canonical_key = _crop_key(canonical_label)
+        canonical_key = _label_key(canonical_label)
         if canonical_key:
             canonical_by_alias[canonical_key] = canonical_key
         for alias in aliases:
-            alias_key = _crop_key(alias)
+            alias_key = _label_key(alias)
             if alias_key:
                 canonical_by_alias[alias_key] = canonical_key
     return canonical_by_alias
@@ -108,7 +108,7 @@ def _crop_alias_to_canonical() -> Dict[str, str]:
 
 def canonicalize_crop_prompt_label(label: str) -> str:
     """Resolve crop aliases to a maintained canonical label for prompt generation."""
-    label_key = _crop_key(label)
+    label_key = _label_key(label)
     if not label_key:
         return ""
     return _crop_alias_to_canonical().get(label_key, label_key)
@@ -149,34 +149,9 @@ def _crop_part_prompt_variants(term: str, part: str) -> List[str]:
     ]
 
 
-def _part_key(label: str) -> str:
-    return str(label or '').strip().lower()
-
-
-def part_prompt_aliases() -> Dict[str, List[str]]:
-    """Return part prompt aliases used to broaden zero-shot organ coverage."""
-    aliases = dict(TURKEY_PRIORITY_PART_ALIASES)
-    return aliases
-
-
-def get_prompt_templates_for_type(vlm_config: Dict[str, Any], label_type: str) -> List[str]:
-    """Get dynamic prompt templates from config with sane default fallback."""
-    templates_cfg = vlm_config.get('prompt_templates', {}) if isinstance(vlm_config, dict) else {}
-    if not isinstance(templates_cfg, dict):
-        templates_cfg = {}
-
-    label_templates = templates_cfg.get(label_type, templates_cfg.get('default', []))
-    if not isinstance(label_templates, list):
-        label_templates = []
-
-    cleaned_templates = [str(template).strip() for template in label_templates if str(template).strip()]
-    return cleaned_templates if cleaned_templates else default_prompt_templates_for_type(label_type)
-
-
 def crop_prompt_aliases() -> Dict[str, List[str]]:
     """Return crop prompt aliases including scientific names where available."""
-    aliases = dict(TURKEY_PRIORITY_CROP_ALIASES)
-    return aliases
+    return dict(TURKEY_PRIORITY_CROP_ALIASES)
 
 
 def build_prompt_ensemble(label: str, label_type: str, vlm_config: Dict[str, Any]) -> List[str]:
@@ -187,25 +162,22 @@ def build_prompt_ensemble(label: str, label_type: str, vlm_config: Dict[str, Any
 
     prompt_templates_cfg = vlm_config.get('prompt_templates', {}) if isinstance(vlm_config, dict) else {}
     custom_templates = prompt_templates_cfg.get(label_type, []) if isinstance(prompt_templates_cfg, dict) else []
+    templates = custom_templates if custom_templates else default_prompt_templates_for_type(label_type)
 
     if label_type == 'part':
-        aliases = part_prompt_aliases()
-        alias_terms = aliases.get(_part_key(label_text), [label_text])
+        alias_terms = TURKEY_PRIORITY_PART_ALIASES.get(_label_key(label_text), [label_text])
         base_terms = [term for term in [label_text, *alias_terms] if isinstance(term, str) and term.strip()]
-        templates = custom_templates if custom_templates else default_prompt_templates_for_type(label_type)
     else:
         canonical_label = canonicalize_crop_prompt_label(label_text)
-        aliases = crop_prompt_aliases()
+        aliases = TURKEY_PRIORITY_CROP_ALIASES
         alias_terms = aliases.get(canonical_label, aliases.get(label_text.lower(), [label_text]))
         base_terms = [term for term in [canonical_label, label_text, *alias_terms] if isinstance(term, str) and term.strip()]
-
-        templates = custom_templates if custom_templates else default_prompt_templates_for_type(label_type)
 
     prompts: List[str] = []
     seen = set()
     if label_type == 'crop' and not custom_templates:
         canonical_crop = canonicalize_crop_prompt_label(label_text)
-        for part_name in TURKEY_PRIORITY_CROP_PARTS.get(canonical_crop or _crop_key(label_text), []):
+        for part_name in TURKEY_PRIORITY_CROP_PARTS.get(canonical_crop or _label_key(label_text), []):
             for prompt in _crop_part_prompt_variants(canonical_crop or label_text, part_name):
                 key = prompt.lower()
                 if key not in seen:
@@ -223,24 +195,8 @@ def build_prompt_ensemble(label: str, label_type: str, vlm_config: Dict[str, Any
     return prompts
 
 
-def build_prompt_batch(labels: List[str], label_type: str, vlm_config: Dict[str, Any]) -> Tuple[List[str], List[int]]:
-    """Build prompt list and class index mapping for class-level aggregation."""
-    prompt_texts: List[str] = []
-    prompt_to_class: List[int] = []
-
-    for class_index, label in enumerate(labels):
-        class_prompts = build_prompt_ensemble(label, label_type=label_type, vlm_config=vlm_config)
-        if not class_prompts:
-            class_prompts = [str(label)]
-        prompt_texts.extend(class_prompts)
-        prompt_to_class.extend([class_index] * len(class_prompts))
-
-    return prompt_texts, prompt_to_class
-
-
-def open_set_unknown_prompts(label_type: str, known_labels: Optional[List[str]] = None) -> List[str]:
+def open_set_unknown_prompts(label_type: str) -> List[str]:
     """Prompt set for unknown/out-of-scope rejection."""
-    _ = known_labels
     if label_type == 'part':
         return [
             "a photo of a rock or stone",

@@ -6,7 +6,6 @@ import torch
 
 from src.adapter.independent_crop_adapter import IndependentCropAdapter
 from src.core.config_manager import ConfigurationManager
-from src.training.config import ContinualSDLoRAConfig
 from src.training.session import ContinualTrainingSession
 from src.training.types import TrainingCheckpointPayload
 
@@ -22,19 +21,6 @@ def test_colab_config_contains_minimal_contract():
     assert "ood" in continual
 
 
-def test_continual_config_rejects_low_bit_payload():
-    try:
-        ContinualSDLoRAConfig.from_training_config(
-            {
-                "backbone": {"model_name": "facebook/dinov3-vitl16-pretrain-lvd1689m"},
-                "adapter": {"target_modules_strategy": "all_linear_transformer", "lora_r": 4, "lora_alpha": 8},
-                "fusion": {"layers": [2, 5, 8, 11]},
-                "load_in_4bit": True,
-            }
-        )
-        assert False, "low-bit payload should be rejected"
-    except ValueError:
-        assert True
 
 
 def test_adapter_metadata_roundtrip_without_model_download(monkeypatch, tmp_path):

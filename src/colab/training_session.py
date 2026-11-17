@@ -13,7 +13,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 import matplotlib
 
-from src.guided_artifacts import refresh_training_guided_artifacts
 from src.shared.json_utils import deep_merge, read_json, write_json
 from src.shared.string_utils import slug_label_component
 from src.training.services.reporting import (
@@ -74,13 +73,6 @@ def merge_training_summary_fields(
     if telemetry is not None and hasattr(telemetry, "copy_artifact_file"):
         telemetry.copy_artifact_file(summary_path, "training/summary.json")
     _refresh_traceability_records(root=_artifact_dir(root), summary_payload=merged, telemetry=telemetry)
-    refresh_training_guided_artifacts(
-        _artifact_dir(root),
-        telemetry=telemetry,
-        overview_updates=merged,
-        extra_entries=list(extra_entries or []),
-        generated_by="src.colab.training_helpers",
-    )
     return merged
 
 
@@ -169,17 +161,6 @@ def ensure_notebook_checkpoint_manager(
     return TrainingCheckpointManager(resolved_drive_root / "telemetry" / resolved_run_id, retention=retention)
 
 
-def _format_duration(seconds: float) -> str:
-    total = max(0, int(round(float(seconds or 0.0))))
-    minutes, sec = divmod(total, 60)
-    hours, minutes = divmod(minutes, 60)
-    if hours > 0:
-        return f"{hours}h{minutes:02d}m"
-    if minutes > 0:
-        return f"{minutes}m{sec:02d}s"
-    return f"{sec}s"
-
-
 def _path_exists(path_like: Optional[str | Path]) -> bool:
     return bool(path_like and Path(path_like).expanduser().exists())
 
@@ -195,116 +176,6 @@ def _call_if_present(target: Any, method_name: str, *args, **kwargs) -> None:
 
         logging.exception("Unhandled exception")
         raise
-
-
-class NotebookTrainingStatusPrinter:
-    """Emit low-frequency, notebook-friendly training status lines."""
-
-    def __init__(
-        self,
-        *,
-        total_epochs: int,
-        batch_interval: int = 50,
-        min_interval_sec: float = 15.0,
-        print_fn: Optional[Callable[[str], None]] = None,
-    ) -> None:
-        self.total_epochs = int(max(1, total_epochs))
-        self.batch_interval = int(max(0, batch_interval))
-        self.min_interval_sec = float(max(1.0, min_interval_sec))
-        self.print_fn = print if print_fn is None else print_fn
-        self._last_batch_emit_elapsed = -1.0
-
-    def _emit(self, message: str) -> None:
-        self.print_fn(str(message))
-
-    @staticmethod
-    def _append_advisory(
-        parts: List[str],
-        payload: Dict[str, Any],
-        *,
-        message_key: str,
-        severity_key: str,
-    ) -> None:
-        advisory = str(payload.get(message_key, "")).strip()
-        severity = str(payload.get(severity_key, "")).strip().lower()
-        if advisory and severity in {"warning", "critical"}:
-            parts.append(f"{severity}={advisory}")
-
-    def _metric_fragment(self, payload: Dict[str, Any], key: str, label: str) -> Optional[str]:
-        value = payload.get(key)
-        if value is None:
-            return None
-        return f"{label}={float(value):.4f}"
-
-    def handle(self, event_type: str, payload: Optional[Dict[str, Any]] = None) -> None:
-        event_name = str(event_type or "")
-        event = dict(payload or {})
-        handler = {
-            "batch_end": self._handle_batch_end,
-            "validation_end": self._handle_validation_end,
-            "best_metric_updated": self._handle_best_metric,
-            "stop_requested": self._handle_stop_requested,
-        }.get(event_name)
-        if handler is not None:
-            handler(event)
-
-    def _handle_batch_end(self, payload: Dict[str, Any]) -> None:
-        batch = int(payload.get("batch", 0))
-        if batch <= 0:
-            return
-        total_batches = int(payload.get("total_batches", 0))
-        elapsed_sec = float(payload.get("elapsed_sec", 0.0))
-        emit_due_to_interval = self.batch_interval > 0 and (batch % self.batch_interval == 0)
-        emit_due_to_time = (
-            self._last_batch_emit_elapsed < 0 or (elapsed_sec - self._last_batch_emit_elapsed) >= self.min_interval_sec
-        )
-        emit_due_to_terminal_batch = total_batches > 0 and batch >= total_batches
-        if not (batch == 1 or emit_due_to_interval or emit_due_to_time or emit_due_to_terminal_batch):
-            return
-
-        self._last_batch_emit_elapsed = elapsed_sec
-        epoch = int(payload.get("epoch", 0))
-        parts = [
-            f"[LIVE] {epoch}/{self.total_epochs}",
-            f"batch={batch}/{total_batches or '?'}",
-            f"loss={float(payload.get('loss', 0.0)):.4f}",
-            f"lr={float(payload.get('lr', 0.0)):.6f}",
-            f"throughput={float(payload.get('samples_per_sec', 0.0)):.1f}/s",
-            f"elapsed={_format_duration(elapsed_sec)}",
-            f"eta={_format_duration(float(payload.get('eta_sec', 0.0)))}",
-        ]
-        self._append_advisory(parts, payload, message_key="advisory", severity_key="severity")
-        self._emit(" ".join(parts))
-
-    def _handle_validation_end(self, payload: Dict[str, Any]) -> None:
-        epoch_done = int(payload.get("epoch_done", 0))
-        parts = [f"[VALID] {epoch_done}/{self.total_epochs}"]
-        for key, label in (
-            ("val_loss", "val_loss"),
-            ("val_accuracy", "val_acc"),
-            ("macro_f1", "macro_f1"),
-            ("balanced_accuracy", "bal_acc"),
-            ("generalization_gap", "gap"),
-        ):
-            metric = self._metric_fragment(payload, key, label)
-            if metric is not None:
-                parts.append(metric)
-        self._append_advisory(parts, payload, message_key="epoch_advisory", severity_key="epoch_severity")
-        self._emit(" ".join(parts))
-
-    def _handle_best_metric(self, payload: Dict[str, Any]) -> None:
-        metric_name = str(payload.get("best_metric_name", "metric"))
-        metric_value = payload.get("best_metric_value")
-        if metric_value is None:
-            return
-        epoch_done = int(payload.get("epoch_done", 0))
-        self._emit(f"[BEST] {epoch_done}/{self.total_epochs} {metric_name}={float(metric_value):.4f}")
-
-    def _handle_stop_requested(self, payload: Dict[str, Any]) -> None:
-        reason = str(payload.get("reason", "requested"))
-        epoch = int(payload.get("epoch", 0))
-        step = int(payload.get("global_step", 0))
-        self._emit(f"[STOP] epoch={epoch} step={step} reason={reason}")
 
 
 def build_history_snapshot(
@@ -394,293 +265,6 @@ def save_notebook_checkpoint(
     return record
 
 
-def run_notebook_training_session(
-    *,
-    root: Path,
-    state: Dict[str, Any],
-    run_id: str,
-    epochs: int,
-    device: str,
-    stdout_batch_interval: int,
-    validation_every_n_epochs: int,
-    checkpoint_every_n_steps: int,
-    checkpoint_on_exception: bool,
-    resume_mode: str = "fresh",
-    telemetry: Any = None,
-    print_fn: Optional[Callable[[str], None]] = None,
-) -> Dict[str, Any]:
-    import matplotlib.pyplot as plt
-
-    emit = print if print_fn is None else print_fn
-    if state.get("adapter") is None or state.get("loaders") is None:
-        raise RuntimeError("Once engine init hucresini calistirin.")
-
-    adapter = state["adapter"]
-    loaders = state["loaders"]
-    checkpoint_manager = state.get("checkpoint_manager")
-    val_loader = loaders.get("val")
-    resolved_telemetry = telemetry if telemetry is not None else state.get("telemetry")
-
-    resume_state = None
-    if str(resume_mode or "").strip().lower() == "resume" and isinstance(state.get("resume_manifest"), dict):
-        checkpoint_path = str(state["resume_manifest"].get("path", "")).strip()
-        if checkpoint_path:
-            try:
-                resume_state = adapter.load_training_checkpoint(checkpoint_path)
-                state["resume_state"] = resume_state
-                progress_state = resume_state.get("progress_state") or {}
-                emit(f"[RESUME] epoch={progress_state.get('epoch', 0)} step={progress_state.get('global_step', 0)}")
-            except Exception as exc:
-                emit(f"[RESUME] Basarisiz: {exc}")
-
-    existing_history = (resume_state or {}).get("history", (resume_state or {}).get("history_snapshot", {}))
-    train_loss_curve = list(existing_history.get("train_loss", []))
-    val_loss_curve = list(existing_history.get("val_loss", []))
-    val_acc_curve = list(existing_history.get("val_accuracy", []))
-    macro_f1_curve = list(existing_history.get("macro_f1", []))
-    weighted_f1_curve = list(existing_history.get("weighted_f1", []))
-    balanced_acc_curve = list(existing_history.get("balanced_accuracy", []))
-    gap_curve = list(existing_history.get("generalization_gap", []))
-
-    start_time = time.time()
-    session = None
-    last_checkpoint_step = -1
-    best_val_loss = float(state["best_val_loss"]) if state.get("best_val_loss") is not None else None
-    status_printer = NotebookTrainingStatusPrinter(
-        total_epochs=int(epochs),
-        batch_interval=int(stdout_batch_interval),
-        print_fn=emit,
-    )
-
-    emit(f"[TRAIN] epochs={int(epochs)} device={device} batch_interval={int(stdout_batch_interval)}")
-    state["training_runtime"] = {
-        "checkpoint_every_n_steps": int(checkpoint_every_n_steps),
-        "validation_every_n_epochs": int(validation_every_n_epochs),
-        "stdout_batch_interval": int(stdout_batch_interval),
-        "resume_mode": str(resume_mode or "fresh"),
-    }
-    _call_if_present(
-        resolved_telemetry,
-        "update_latest",
-        {
-            "phase": "training_started",
-            "epochs": int(epochs),
-            "batch_interval": int(stdout_batch_interval),
-        },
-    )
-
-    def _history_snapshot() -> Dict[str, Any]:
-        return build_history_snapshot(
-            state_history=state.get("history"),
-            train_loss_curve=train_loss_curve,
-            val_loss_curve=val_loss_curve,
-            val_acc_curve=val_acc_curve,
-            macro_f1_curve=macro_f1_curve,
-            weighted_f1_curve=weighted_f1_curve,
-            balanced_acc_curve=balanced_acc_curve,
-            gap_curve=gap_curve,
-        )
-
-    def _persist_history() -> Dict[str, Any]:
-        snapshot = _history_snapshot()
-        state["history"] = dict((state.get("history") or {}), **snapshot)
-        persist_training_history_artifacts(
-            root=root,
-            history_snapshot=state["history"],
-            telemetry=resolved_telemetry,
-        )
-        return snapshot
-
-    def _checkpoint(
-        reason: str, event: Dict[str, Any], *, mark_best: bool = False, val_loss: Optional[float] = None
-    ) -> Optional[Dict[str, Any]]:
-        if session is None:
-            return None
-        record = save_notebook_checkpoint(
-            checkpoint_manager=checkpoint_manager,
-            adapter=adapter,
-            session=session,
-            reason=reason,
-            run_id=run_id,
-            telemetry=resolved_telemetry,
-            mark_best=bool(mark_best),
-            val_loss=(float(val_loss) if val_loss is not None else None),
-        )
-        if record is not None:
-            state["resume_manifest"] = record
-            emit(f"[CKPT] {reason} epoch={record.get('epoch', '?')} step={record.get('global_step', '?')}")
-        return record
-
-    def session_observer(record: Dict[str, Any]) -> None:
-        nonlocal last_checkpoint_step, best_val_loss
-        event_type = str(record.get("event_type", "") or "")
-        event = dict(record.get("payload", {}) or {})
-        if event_type == "stop_requested":
-            status_printer.handle("stop_requested", event)
-            return
-        if event_type == "batch_end":
-            status_printer.handle(
-                "batch_end",
-                dict(
-                    event,
-                    loss=event.get("loss", event.get("batch_loss", 0.0)),
-                ),
-            )
-            step = int(event.get("global_step", 0))
-            if (
-                int(checkpoint_every_n_steps) > 0
-                and step > 0
-                and (step % int(checkpoint_every_n_steps) == 0)
-                and step != last_checkpoint_step
-            ):
-                _checkpoint(f"batch_{int(checkpoint_every_n_steps)}", event)
-                last_checkpoint_step = step
-            return
-        if event_type != "epoch_end":
-            return
-
-        train_loss_curve.append(float(event.get("epoch_loss", 0.0)))
-        for key, curve in [
-            ("val_loss", val_loss_curve),
-            ("val_accuracy", val_acc_curve),
-            ("macro_f1", macro_f1_curve),
-            ("weighted_f1", weighted_f1_curve),
-            ("balanced_accuracy", balanced_acc_curve),
-            ("generalization_gap", gap_curve),
-        ]:
-            if key in event:
-                curve.append(float(event[key]))
-
-        val_loss = float(event["val_loss"]) if "val_loss" in event else None
-        mark_best = False
-        if val_loss is not None and (best_val_loss is None or val_loss < best_val_loss):
-            best_val_loss = val_loss
-            state["best_val_loss"] = best_val_loss
-            mark_best = True
-
-        status_printer.handle("validation_end", event)
-        if mark_best:
-            status_printer.handle(
-                "best_metric_updated",
-                {
-                    "epoch_done": int(event.get("epoch_done", 0)),
-                    "best_metric_name": "val_loss",
-                    "best_metric_value": val_loss,
-                },
-            )
-
-        should_persist_curve = (
-            mark_best
-            or int(event["epoch_done"]) == 1
-            or int(event["epoch_done"]) == int(epochs)
-            or bool(event.get("stopped_early", False))
-            or (int(event["epoch_done"]) % 5 == 0)
-        )
-        if should_persist_curve:
-            _fig, axes = plt.subplots(1, 3, figsize=(13, 3))
-            axes[0].plot(range(1, len(train_loss_curve) + 1), train_loss_curve, marker="o", label="Train")
-            if val_loss_curve:
-                axes[0].plot(range(1, len(val_loss_curve) + 1), val_loss_curve, marker="s", label="Val")
-            for values, label, marker in [
-                (val_acc_curve, "Acc", "^"),
-                (macro_f1_curve, "MacroF1", "d"),
-                (weighted_f1_curve, "WtdF1", "x"),
-                (balanced_acc_curve, "BalAcc", "*"),
-            ]:
-                if values:
-                    axes[1].plot(range(1, len(values) + 1), values, marker=marker, label=label)
-            if gap_curve:
-                axes[2].plot(range(1, len(gap_curve) + 1), gap_curve, marker="o", label="Gap")
-            axes[1].set_ylim(0, 1)
-            axes[2].axhline(0, color="black", lw=1, alpha=0.5)
-            for axis, title, ylabel in zip(axes, ("Loss", "Metrics", "Gen. Gap"), ("Loss", "Score", "Gap")):
-                axis.set(xlabel="Epoch", ylabel=ylabel, title=title)
-                axis.grid(True, alpha=0.3)
-                axis.legend()
-            plt.tight_layout()
-            persist_training_curve_figure(
-                root=root,
-                epoch_done=int(event["epoch_done"]),
-                telemetry=resolved_telemetry,
-            )
-            plt.close("all")
-
-        _persist_history()
-        if (
-            mark_best
-            or bool(event.get("stopped_early", False))
-            or int(event["epoch_done"]) == int(epochs)
-            or int(checkpoint_every_n_steps) <= 0
-        ):
-            _checkpoint("epoch_end", event, mark_best=mark_best, val_loss=val_loss)
-
-        _call_if_present(
-            resolved_telemetry,
-            "update_latest",
-            {
-                "phase": "training",
-                "epoch_done": int(event["epoch_done"]),
-                "global_step": int(event.get("global_step", 0)),
-                "best_val_loss": best_val_loss,
-            },
-        )
-
-    session = adapter.build_training_session(
-        loaders["train"],
-        num_epochs=int(epochs),
-        val_loader=val_loader,
-        observers=[session_observer],
-        resume_state=resume_state,
-        run_id=run_id,
-        validation_every_n_epochs=int(validation_every_n_epochs),
-    )
-
-    try:
-        history = session.run()
-        adapter.is_trained = True
-    except Exception as exc:
-        emit(f"[TRAIN] Exception: {exc}")
-        _call_if_present(resolved_telemetry, "emit_log", f"Training exception: {exc}", phase="train", level="error")
-        if checkpoint_on_exception:
-            try:
-                _checkpoint(
-                    "exception",
-                    {
-                        "epoch": 0,
-                        "batch": 0,
-                        "global_step": int((state.get("history") or {}).get("global_step", 0)),
-                        "elapsed_sec": time.time() - start_time,
-                    },
-                )
-            except Exception as exc:
-                import logging
-
-                logging.exception("Unhandled exception")
-                raise
-        raise
-
-    elapsed_total = time.time() - start_time
-    state["history"] = history.to_dict()
-    state["resume_state"] = session.snapshot_state()
-    _persist_history()
-    _call_if_present(
-        resolved_telemetry,
-        "update_latest",
-        {
-            "phase": "training_complete",
-            "elapsed_sec": round(elapsed_total, 3),
-            "stopped_early": bool(state["history"].get("stopped_early", False)),
-        },
-    )
-    emit(f"[TRAIN] Complete. elapsed={elapsed_total:.1f}s stopped_early={state['history'].get('stopped_early', False)}")
-    return {
-        "state": state,
-        "history": state["history"],
-        "resume_state": state.get("resume_state"),
-        "elapsed_sec": elapsed_total,
-    }
-
-
 def persist_validation_artifacts(
     *,
     root: Path,
@@ -689,7 +273,6 @@ def persist_validation_artifacts(
     classes: List[str],
     telemetry: Any = None,
     artifact_subdir: str = "validation",
-    telemetry_subdir: Optional[str] = None,
     gate_targets: Optional[Dict[str, float]] = None,
     require_ood: bool = False,
     emit_metric_gate: bool = True,
@@ -710,7 +293,6 @@ def persist_validation_artifacts(
         classes=classes,
         telemetry=telemetry,
         artifact_subdir=artifact_subdir,
-        telemetry_subdir=telemetry_subdir,
         gate_targets=gate_targets,
         require_ood=require_ood,
         emit_metric_gate=emit_metric_gate,

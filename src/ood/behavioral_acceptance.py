@@ -20,13 +20,6 @@ DEFAULT_BEHAVIORAL_THRESHOLDS: dict[str, tuple[str, float]] = {
     "forced_supported_answer_count": ("<=", 0.0),
     "same_crop_ood_rejection_rate": (">=", 1.0),
 }
-REQUIRED_BEHAVIORAL_CHECKS = frozenset(
-    {
-        *DEFAULT_BEHAVIORAL_THRESHOLDS,
-        "id_decisions_complete",
-        "same_crop_ood_decisions_complete",
-    }
-)
 
 
 def _number(value: Any) -> float | None:
@@ -63,10 +56,8 @@ def build_behavioral_acceptance(
     classification_metrics: Mapping[str, Any] | None,
     prediction_rows: Sequence[Mapping[str, Any]] | None,
     context: Mapping[str, Any] | None = None,
-    thresholds: Mapping[str, tuple[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Evaluate the two default adapter behaviors from held-out per-sample decisions."""
-
     rows = [dict(row) for row in list(prediction_rows or [])]
     id_rows = [row for row in rows if str(row.get("sample_origin") or "") == "in_distribution"]
     same_crop_ood_rows = [
@@ -106,7 +97,6 @@ def build_behavioral_acceptance(
             None if not ood_rows_with_decision else float(ood_rejections) / float(len(ood_rows_with_decision))
         ),
     }
-    resolved_thresholds = dict(thresholds or DEFAULT_BEHAVIORAL_THRESHOLDS)
     checks = {
         name: {
             "value": metrics.get(name),
@@ -114,20 +104,13 @@ def build_behavioral_acceptance(
             "threshold": threshold,
             "passed": _passes(_number(metrics.get(name)), operator, threshold),
         }
-        for name, (operator, threshold) in resolved_thresholds.items()
+        for name, (operator, threshold) in DEFAULT_BEHAVIORAL_THRESHOLDS.items()
     }
-    checks["id_decisions_complete"] = {
-        "value": metrics["id_missing_decision_count"],
-        "operator": "==",
-        "threshold": 0,
-        "passed": metrics["id_missing_decision_count"] == 0,
-    }
-    checks["same_crop_ood_decisions_complete"] = {
-        "value": metrics["same_crop_ood_missing_decision_count"],
-        "operator": "==",
-        "threshold": 0,
-        "passed": metrics["same_crop_ood_missing_decision_count"] == 0,
-    }
+    for check_name, count_name in (
+        ("id_decisions_complete", "id_missing_decision_count"),
+        ("same_crop_ood_decisions_complete", "same_crop_ood_missing_decision_count"),
+    ):
+        checks[check_name] = {"value": metrics[count_name], "operator": "==", "threshold": 0, "passed": metrics[count_name] == 0}
     failure_reasons = [name for name, check in checks.items() if not bool(check["passed"])]
     disease_counts: dict[str, Counter[str]] = {}
     for row in same_crop_ood_rows:
@@ -157,30 +140,13 @@ def build_behavioral_acceptance(
     }
 
 
-def behavioral_acceptance_pass(payload: Mapping[str, Any] | None) -> bool:
-    """Return the canonical campaign decision without consulting readiness status."""
-
-    resolved = dict(payload or {})
-    checks = dict(resolved.get("checks") or {})
-    return (
-        resolved.get("schema_version") == BEHAVIORAL_ACCEPTANCE_SCHEMA
-        and resolved.get("decision_authority") == "adapter_behavioral_acceptance"
-        and resolved.get("status") == "pass"
-        and resolved.get("pass") is True
-        and REQUIRED_BEHAVIORAL_CHECKS.issubset(checks)
-        and all(isinstance(checks[name], Mapping) and checks[name].get("passed") is True for name in REQUIRED_BEHAVIORAL_CHECKS)
-    )
-
-
 def build_behavioral_dev_report(
     *,
     classification_metrics: Mapping[str, Any] | None,
     prediction_rows: Sequence[Mapping[str, Any]] | None,
     context: Mapping[str, Any] | None = None,
-    thresholds: Mapping[str, tuple[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Build a non-authoritative selection report from ID validation and OOD-dev only."""
-
     payload = build_behavioral_acceptance(
         classification_metrics=classification_metrics,
         prediction_rows=prediction_rows,
@@ -190,7 +156,6 @@ def build_behavioral_dev_report(
             "ood_split": "ood_dev",
             "locked_test_evidence_loaded": False,
         },
-        thresholds=thresholds,
     )
     payload.update(
         {
@@ -208,15 +173,3 @@ def build_behavioral_dev_report(
     return payload
 
 
-def behavioral_dev_report_pass(payload: Mapping[str, Any] | None) -> bool:
-    resolved = dict(payload or {})
-    checks = dict(resolved.get("checks") or {})
-    return (
-        resolved.get("schema_version") == BEHAVIORAL_DEV_REPORT_SCHEMA
-        and resolved.get("decision_authority") == "adapter_behavioral_dev_selection"
-        and resolved.get("authoritative") is False
-        and resolved.get("evaluation_scope") == "id_validation_and_ood_dev"
-        and resolved.get("pass") is True
-        and REQUIRED_BEHAVIORAL_CHECKS.issubset(checks)
-        and all(checks[name].get("passed") is True for name in REQUIRED_BEHAVIORAL_CHECKS)
-    )

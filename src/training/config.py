@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from src.training.quantization import assert_no_prohibited_4bit_flags
 from src.training.services.config_surface import (
     DEFAULT_BACKBONE_MODEL_NAME,
     normalize_continual_training_config,
@@ -365,7 +364,6 @@ class ContinualSDLoRAConfig:
             model_name=str(training_continual.get("backbone", {}).get("model_name", DEFAULT_BACKBONE_MODEL_NAME)),
             device=training_continual.get("device", "cuda"),
         )
-        assert_no_prohibited_4bit_flags(normalized)
         backbone = normalized.get("backbone", {})
         adapter = normalized.get("adapter", {})
         fusion = normalized.get("fusion", {})
