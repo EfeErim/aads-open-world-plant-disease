@@ -188,10 +188,7 @@ def build_adamw_optimizer(
     last_error: Exception | None = None
     for kwargs in candidate_kwargs:
         try:
-            # Some torch stubs trigger false-positive arg-type errors for AdamW kwargs.
-            # Call via an Any-typed reference to avoid mypy checking the call signature.
-            optimizer_ctor: Any = torch.optim.AdamW
-            return optimizer_ctor(resolved_parameters, **kwargs)
+            return torch.optim.AdamW(resolved_parameters, **kwargs)
         except (TypeError, RuntimeError, ValueError) as exc:
             last_error = exc
             if kwargs == base_kwargs:

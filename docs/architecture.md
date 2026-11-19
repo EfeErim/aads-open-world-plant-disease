@@ -7,7 +7,7 @@ what an inference call can return, and which output files carry a decision.
 
 `src/core/config_manager.py` loads `config/base.json` from the repository (independent of the working directory) and,
 for the `colab` environment, deep-merges `config/colab.json` on top. Both files declare `config_schema_version: 2`;
-`migrate_config_payload` upgrades older files and unsupported aliases fail instead of being repaired silently.
+`validate_config_payload` rejects any other schema version and removed keys instead of upgrading or repairing them.
 `src/training/services/config_surface.py` normalizes `training.continual` into the shape the trainer reads.
 
 ## Data layouts
@@ -90,5 +90,5 @@ scripts -> src
 src/app -> src/workflows -> other src packages -> src/shared
 ```
 
-`src/` must not import `scripts`, `tests` or `experiments` (enforced by Ruff `TID251`). Notebook cell files call `src/`
+`src/` must not import `scripts` or `tests` (enforced by Ruff `TID251`). Notebook cell files call `src/`
 and do not hold training, routing, OOD or inference logic of their own.

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from src.colab import notebooks_bootstrap as nb_bootstrap
+from src.colab.git_utils import build_repo_access_url
 
 
 def _make_repo(root: Path) -> Path:
@@ -69,9 +70,10 @@ def test_ensure_repo_root_raises_when_clone_fails(tmp_path: Path, monkeypatch):
 
 
 def test_build_repo_access_url_only_adds_tokens_to_https_urls():
-    assert nb_bootstrap._build_repo_access_url("https://github.com/a/b.git", "tok") == "https://tok@github.com/a/b.git"
-    assert nb_bootstrap._build_repo_access_url("git@github.com:a/b.git", "tok") == "git@github.com:a/b.git"
-    assert nb_bootstrap._build_repo_access_url("https://github.com/a/b.git", None) == "https://github.com/a/b.git"
+    assert build_repo_access_url("https://github.com/a/b.git", "tok") == "https://x-access-token:tok@github.com/a/b.git"
+    assert build_repo_access_url("https://old@github.com/a/b.git", "tok") == "https://x-access-token:tok@github.com/a/b.git"
+    assert build_repo_access_url("git@github.com:a/b.git", "tok") == "git@github.com:a/b.git"
+    assert build_repo_access_url("https://github.com/a/b.git", None) == "https://github.com/a/b.git"
 
 
 def test_bootstrap_notebook_puts_repo_on_sys_path_and_skips_pip_outside_colab(tmp_path: Path, monkeypatch, capsys):

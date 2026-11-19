@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, RandomSampler, WeightedRandomSampler
 
 from src.shared.artifacts import ArtifactStore
-from src.shared.coercion import optional_float
+from src.shared.coercion import optional_float, utc_now_iso
 from src.training.services.metrics import (
     compute_plan_metrics,
     load_plan_targets,
@@ -90,10 +90,6 @@ def _loader_size(loader: Any) -> int:
         return 0
     except Exception as exc:
         raise RuntimeError("Failed to resolve loader length for OOD benchmark loader.") from exc
-
-
-def _utc_now_iso() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 def _dataset_labels(dataset: Any) -> List[int]:
@@ -447,7 +443,7 @@ def _persist_benchmark_progress(
 ) -> Dict[str, Any]:
     progress_payload = {
         "schema_version": "v6_ood_benchmark_progress",
-        "ts": _utc_now_iso(),
+        "ts": utc_now_iso(),
         **dict(payload),
     }
     progress_dir = Path(artifact_root) / "ood_benchmark"
@@ -975,7 +971,7 @@ def _run_benchmark_fold(
                 "run_id": run_id,
                 "crop_name": crop_name,
                 "sample_counts": sample_counts,
-                "ts": _utc_now_iso(),
+                "ts": utc_now_iso(),
             },
             traceback_text=traceback_text,
         )

@@ -1,5 +1,4 @@
 -r requirements.txt
-torchaudio~=2.11.1
 open-clip-torch~=3.3.0
 google-colab>=1.0.0
 ipywidgets>=8.1.9

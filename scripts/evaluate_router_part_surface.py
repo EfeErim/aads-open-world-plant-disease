@@ -10,17 +10,12 @@ from typing import Any, Dict, Iterable, List
 
 from PIL import Image
 
+from scripts.evaluate_router_surface import is_image_path, parse_grid
 from src.core.config_manager import get_config
 from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.router_pipeline import RouterPipeline
 from src.shared.coercion import coerce_float
 from src.shared.contracts import RouterAnalysisResult
-
-IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-
-
-def _is_image_path(path: Path) -> bool:
-    return path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
 
 
 def discover_eval_samples(root: Path) -> List[Dict[str, Any]]:
@@ -29,7 +24,7 @@ def discover_eval_samples(root: Path) -> List[Dict[str, Any]]:
         expected_crop = str(crop_dir.name).strip().lower()
         for part_dir in sorted(path for path in crop_dir.iterdir() if path.is_dir()):
             expected_part = normalize_part_label(part_dir.name)
-            for image_path in sorted(path for path in part_dir.rglob("*") if _is_image_path(path)):
+            for image_path in sorted(path for path in part_dir.rglob("*") if is_image_path(path)):
                 samples.append(
                     {
                         "image_path": image_path,
@@ -321,10 +316,6 @@ def evaluate_router_part_surface(
     }
 
 
-def _parse_grid(raw_value: str) -> List[float]:
-    return [float(item.strip()) for item in str(raw_value).split(",") if str(item).strip()]
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate router part predictions and sweep abstention thresholds.")
     parser.add_argument("--root", type=Path, required=True, help="Eval dataset root: data/router_part_eval/<crop>/<part>/*")
@@ -347,8 +338,8 @@ def main() -> int:
         args.root,
         config_env=args.config_env,
         device=args.device,
-        min_confidence_grid=_parse_grid(args.min_confidence_grid),
-        margin_grid=_parse_grid(args.margin_grid),
+        min_confidence_grid=parse_grid(args.min_confidence_grid),
+        margin_grid=parse_grid(args.margin_grid),
     )
     body = json.dumps(result, indent=2)
     if args.output is not None:

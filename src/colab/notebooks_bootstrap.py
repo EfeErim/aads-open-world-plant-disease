@@ -11,8 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, Sequence
-from urllib.parse import urlsplit, urlunsplit
 
+from src.colab.git_utils import build_repo_access_url
 from src.colab.repo_bootstrap import (
     COLAB_CLONE_TARGET,
     find_repo_root,
@@ -60,21 +60,6 @@ def _ensure_sparse_checkout_paths(repo_root: Path, paths: tuple[str, ...]) -> No
     )
 
 
-def _build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
-    """Add authentication token to repo URL if provided."""
-    if not token:
-        return repo_url
-
-    parsed = urlsplit(str(repo_url or "").strip())
-    if parsed.scheme != "https" or not parsed.netloc:
-        return repo_url
-
-    netloc = parsed.netloc.split("@", 1)[-1]
-    return urlunsplit(
-        (parsed.scheme, f"{token}@{netloc}", parsed.path, parsed.query, parsed.fragment)
-    )
-
-
 def ensure_repo_root(
     auto_clone: bool = True,
     clone_target: Optional[Path] = None,
@@ -106,7 +91,7 @@ def ensure_repo_root(
     if clone_target.exists() and not is_repo_root(clone_target):
         shutil.rmtree(clone_target)
 
-    clone_url = _build_repo_access_url(repo_url, github_token)
+    clone_url = build_repo_access_url(repo_url, github_token)
     clone_target.parent.mkdir(parents=True, exist_ok=True)
     clone_args = ["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", clone_url, str(clone_target)]
     print(f"[BOOTSTRAP] Sparse cloning repo to {clone_target}...")

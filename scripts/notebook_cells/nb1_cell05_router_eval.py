@@ -5,14 +5,15 @@ import json
 from pathlib import Path
 
 if RUN_ROUTER_EVAL and ROUTER_EVAL_ROOT:
-    from scripts.evaluate_router_part_surface import evaluate_router_part_surface, _parse_grid
+    from scripts.evaluate_router_part_surface import evaluate_router_part_surface
+    from scripts.evaluate_router_surface import parse_grid
 
     eval_result = evaluate_router_part_surface(
         Path(ROUTER_EVAL_ROOT),
         config_env=CONFIG_ENV,
         device=DEVICE,
-        min_confidence_grid=_parse_grid(EVAL_MIN_CONFIDENCE_GRID),
-        margin_grid=_parse_grid(EVAL_MARGIN_GRID),
+        min_confidence_grid=parse_grid(EVAL_MIN_CONFIDENCE_GRID),
+        margin_grid=parse_grid(EVAL_MARGIN_GRID),
     )
     if ROUTER_EVAL_OUTPUT:
         output_path = Path(ROUTER_EVAL_OUTPUT)

@@ -27,7 +27,7 @@ IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 ABSTAIN_STATUSES = {"unknown_crop", "router_uncertain", "unknown", "unavailable", "error", "failed"}
 
 
-def _is_image_path(path: Path) -> bool:
+def is_image_path(path: Path) -> bool:
     return path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
 
 
@@ -37,7 +37,7 @@ def _iter_image_samples(root: Path, parts: tuple[str, ...], payload: Dict[str, A
         return []
     return [
         {"image_path": image_path, **payload}
-        for image_path in sorted(path for path in sample_root.rglob("*") if _is_image_path(path))
+        for image_path in sorted(path for path in sample_root.rglob("*") if is_image_path(path))
     ]
 
 
@@ -439,7 +439,7 @@ def evaluate_router_surface(
     }
 
 
-def _parse_grid(raw_value: str) -> List[float]:
+def parse_grid(raw_value: str) -> List[float]:
     return [float(item.strip()) for item in str(raw_value).split(",") if str(item).strip()]
 
 
@@ -465,7 +465,7 @@ def main() -> int:
         args.root,
         config_env=args.config_env,
         device=args.device,
-        threshold_grid=_parse_grid(args.threshold_grid),
+        threshold_grid=parse_grid(args.threshold_grid),
     )
     body = json.dumps(result, indent=2)
     if args.output is not None:
