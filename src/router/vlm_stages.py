@@ -4,29 +4,12 @@ import copy
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import torch
 
-from src.pipeline.inference_payloads import best_detection_from_analysis
 from src.router import sam3_runtime
 from src.router.runtime_surface import RouterRequestOptions
-
-
-def analysis_to_batch_item(analysis: Any) -> Tuple[Dict[str, Any], float]:
-    """Map analysis payload to route_batch item contract (crop dict + confidence)."""
-    detection = best_detection_from_analysis(analysis)
-    if detection:
-        return (
-            {
-                'crop': detection.get('crop', 'unknown'),
-                'part': detection.get('part', 'unknown'),
-                'bbox': detection.get('bbox', [0, 0, 0, 0]),
-            },
-            detection.get('crop_confidence', 0.0),
-        )
-
-    return ({'crop': 'unknown', 'part': 'unknown', 'bbox': [0, 0, 0, 0]}, 0.0)
 
 _SUPPORTED_TRANSFORMERS_MIN = (5, 1, 0)
 _SUPPORTED_TRANSFORMERS_MAX_EXCLUSIVE = (5, 2, 0)
@@ -152,31 +135,6 @@ def load_sam3_bioclip25(runtime: Any) -> None:
     sam_id = str(runtime.model_ids.get("sam", ""))
     bioclip_id = str(runtime.model_ids.get("bioclip", ""))
 
-    if sam_id.startswith("fake-") or bioclip_id.startswith("fake-"):
-        logger.info("Using helper loaders for fake model ids")
-        sam_loader = getattr(runtime, "_load_sam", None)
-        clip_loader = getattr(runtime, "_load_clip_like_model", None)
-        def _load_sam_via_helper(model_id: str):
-            return load_sam(runtime, model_id)
-
-        def _load_clip_via_helper(model_id: str):
-            return load_clip_like_model(runtime, model_id)
-
-        if not callable(sam_loader):
-            sam_loader = _load_sam_via_helper
-        if not callable(clip_loader):
-            clip_loader = _load_clip_via_helper
-        sam_processor, sam_model = sam_loader(sam_id)
-        bioclip_processor, bioclip_model = clip_loader(bioclip_id)
-
-        runtime._set_sam_runtime(sam_processor, sam_model, backend="sam3")
-        runtime._set_bioclip_runtime(
-            bioclip_processor,
-            bioclip_model,
-            backend=runtime.bioclip_backend or "transformers",
-        )
-        return
-
     import open_clip
     from transformers import Sam3Model, Sam3Processor
 
@@ -201,71 +159,6 @@ def load_sam3_bioclip25(runtime: Any) -> None:
     )
 
 
-def load_sam(runtime: Any, model_id: str) -> Tuple[Any, Any]:
-    sam2_requested = "sam2" in model_id.lower() or "hiera" in model_id.lower() or model_id.lower().endswith(".pt")
-    if sam2_requested:
-        try:
-            import importlib
-
-            ultralytics_module = importlib.import_module("ultralytics")
-            sam_cls = getattr(ultralytics_module, "SAM")
-
-            checkpoint = model_id
-            if "/" in checkpoint and checkpoint.startswith("facebook/sam2"):
-                checkpoint = runtime.vlm_config.get("sam2_checkpoint", "sam2_b.pt")
-
-            model = sam_cls(checkpoint)
-            runtime.sam_backend = "ultralytics"
-            return {"backend": "ultralytics", "checkpoint": checkpoint}, model
-        except Exception as exc:
-            raise RuntimeError(
-                "SAM-2 requires ultralytics in this pipeline configuration. "
-                "Install ultralytics and ensure SAM-2 weights are accessible (e.g., checkpoint 'sam2_b.pt')."
-            ) from exc
-
-    from transformers import SamModel, SamProcessor
-
-    processor = SamProcessor.from_pretrained(model_id)
-    model = SamModel.from_pretrained(model_id)
-    runtime.sam_backend = "transformers_sam"
-    model = runtime._prepare_inference_model(model)
-    return processor, model
-
-
-def load_clip_like_model(runtime: Any, model_id: str) -> Tuple[Any, Any]:
-    if "bioclip" in model_id.lower() or "imageomics" in model_id.lower():
-        try:
-            import open_clip
-
-            hub_model_id = f"hf-hub:{model_id}"
-            model, _, preprocess_val = open_clip.create_model_and_transforms(hub_model_id)
-            tokenizer = open_clip.get_tokenizer(hub_model_id)
-            model = runtime._prepare_inference_model(model)
-            runtime.bioclip_backend = "open_clip"
-            return {
-                "preprocess": preprocess_val,
-                "tokenizer": tokenizer,
-            }, model
-        except Exception as exc:
-            logger.debug(
-                f"Failed to load CLIP/BioCLIP model '{model_id}' via open_clip; will attempt transformers fallback",
-                exc_info=exc,
-            )
-
-    try:
-        from transformers import AutoModel, AutoProcessor
-
-        processor = AutoProcessor.from_pretrained(model_id)
-        model = runtime._prepare_inference_model(AutoModel.from_pretrained(model_id))
-        runtime.bioclip_backend = "transformers"
-        return processor, model
-    except Exception as exc:
-        raise RuntimeError(
-            f"Failed to load CLIP/BioCLIP model '{model_id}' via both open_clip and transformers. "
-            "For BioCLIP models, ensure open_clip_torch is installed."
-        ) from exc
-
-
 def analyze_batch_results(runtime: Any, batch: torch.Tensor, request: RouterRequestOptions) -> List[Any]:
     if runtime.enabled and runtime.models_loaded and runtime.actual_pipeline == "sam3":
         analyses = sam3_runtime.analyze_sam3_batch(
@@ -280,25 +173,3 @@ def analyze_batch_results(runtime: Any, batch: torch.Tensor, request: RouterRequ
         runtime.analyze_image_result(batch[index], options=request)
         for index in range(int(batch.shape[0]))
     ]
-
-
-def route_batch_items(
-    runtime: Any,
-    batch: torch.Tensor,
-    *,
-    confidence_threshold: Optional[float] = None,
-    max_detections: Optional[int] = None,
-) -> Tuple[List[Dict[str, Any]], List[float]]:
-    analyses = runtime.analyze_batch_result(
-        batch,
-        confidence_threshold=confidence_threshold,
-        max_detections=max_detections,
-    )
-
-    crops_out: List[Dict[str, Any]] = []
-    confs: List[float] = []
-    for analysis in analyses:
-        crop_item, confidence = analysis_to_batch_item(analysis)
-        crops_out.append(crop_item)
-        confs.append(confidence)
-    return crops_out, confs

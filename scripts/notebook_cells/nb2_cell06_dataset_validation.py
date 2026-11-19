@@ -12,7 +12,7 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         crop_key = crop_key.replace("__", "_")
     crop_key = crop_key.strip("_")
     if not crop_key:
-        raise RuntimeError("CROP_NAME bos olmayan bir crop anahtarina cozulmeli.")
+        raise RuntimeError("CROP_NAME must resolve to a non-empty crop key.")
 
     requested_release_target = str(DATASET_NAME or ADAPTER_KEY).strip()
     if DATASET_SOURCE_KIND == "github_release":
@@ -66,30 +66,30 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         selected = matches[0]
     elif len(candidates) == 1:
         selected = candidates[0]
-        print(f"[DATASET] Yalnizca bir runtime dataset bulundu, otomatik secildi: {selected['name']}")
+        print(f"[DATASET] Only one runtime dataset found, selected automatically: {selected['name']}")
     else:
-        print("[DATASET] Kullanilabilir runtime dataset secenekleri:")
+        print("[DATASET] Available runtime datasets:")
         for index, item in enumerate(candidates, start=1):
             print(f"  [{index}] {item['name']} ({item['path']})")
-        raw_choice = str(input(f"Kullanilacak dataset icin numara ya da isim girin (1-{len(candidates)}): ")).strip()
+        raw_choice = str(input(f"Enter the number or name of the dataset to use (1-{len(candidates)}): ")).strip()
         if not raw_choice:
-            raise RuntimeError("Dataset secimi bos birakilamaz.")
+            raise RuntimeError("Dataset selection cannot be empty.")
         if raw_choice.isdigit():
             selected_index = int(raw_choice) - 1
             if selected_index < 0 or selected_index >= len(candidates):
-                raise RuntimeError(f"Dataset secim index'i aralik disi: {raw_choice}")
+                raise RuntimeError(f"Dataset selection index is out of range: {raw_choice}")
             selected = candidates[selected_index]
         else:
             matches = [item for item in candidates if item['name'] == raw_choice]
             if not matches:
-                raise RuntimeError(f"Dataset secimi bulunamadi: {raw_choice}")
+                raise RuntimeError(f"Dataset selection not found: {raw_choice}")
             selected = matches[0]
 
     selected_dataset_name = str(selected['name'])
     selected_dataset_root = Path(selected['path'])
     if not selected_dataset_name.startswith(crop_key):
         raise RuntimeError(
-            f"Secilen runtime dataset CROP_NAME ile uyusmuyor: {selected_dataset_name} vs {crop_key}"
+            f"Selected runtime dataset does not match CROP_NAME: {selected_dataset_name} vs {crop_key}"
         )
     missing_splits = [name for name in ("continual", "val", "test") if not (selected_dataset_root / name).is_dir()]
     if missing_splits:
@@ -105,7 +105,7 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
     oe_enabled = bool(OE_ENABLED)
     if bool(ASK_FOR_OOD_ROOT) and not requested_ood_root:
         default_hint = str(default_ood_root) if default_ood_root.is_dir() else ""
-        prompt = "OOD klasoru yolunu girin"
+        prompt = "Enter the OOD folder path"
         if default_hint:
             prompt += f" [Enter={default_hint}]"
         requested_ood_root = str(input(prompt + ": ")).strip()
@@ -113,7 +113,7 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
             requested_ood_root = default_hint
     if oe_enabled and bool(ASK_FOR_OE_ROOT) and not requested_oe_root:
         default_hint = str(default_oe_root) if default_oe_root.is_dir() else ""
-        prompt = "OE klasoru yolunu girin"
+        prompt = "Enter the OE folder path"
         if default_hint:
             prompt += f" [Enter={default_hint}]"
         requested_oe_root = str(input(prompt + ": ")).strip()
@@ -125,25 +125,25 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         if not resolved_ood_root.is_absolute():
             resolved_ood_root = (runtime_parent / resolved_ood_root).resolve()
         if not resolved_ood_root.is_dir():
-            raise RuntimeError(f"OOD klasoru bulunamadi veya klasor degil: {resolved_ood_root}")
+            raise RuntimeError(f"OOD folder not found or not a directory: {resolved_ood_root}")
         print(f"[OOD] explicit ood root={resolved_ood_root}")
         resolved_ood_root_value = str(resolved_ood_root)
     elif default_ood_root.is_dir():
         print(f"[OOD] runtime ood root={default_ood_root}")
         resolved_ood_root_value = str(default_ood_root)
     else:
-        print("[OOD] Gercek OOD split secilmedi; fallback held-out benchmark kullanilabilir.")
+        print("[OOD] No real OOD split selected; the held-out fallback benchmark can be used.")
         resolved_ood_root_value = ""
     if not oe_enabled:
         if requested_oe_root:
-            print("[OE] OE_ENABLED=False; OE_ROOT yok sayildi.")
+            print("[OE] OE_ENABLED=False; OE_ROOT ignored.")
         resolved_oe_root_value = ""
     elif requested_oe_root:
         resolved_oe_root = Path(requested_oe_root).expanduser()
         if not resolved_oe_root.is_absolute():
             resolved_oe_root = (runtime_parent / resolved_oe_root).resolve()
         if not resolved_oe_root.is_dir():
-            raise RuntimeError(f"OE klasoru bulunamadi veya klasor degil: {resolved_oe_root}")
+            raise RuntimeError(f"OE folder not found or not a directory: {resolved_oe_root}")
         print(f"[OE] explicit oe root={resolved_oe_root}")
         resolved_oe_root_value = str(resolved_oe_root)
     elif default_oe_root.is_dir():
@@ -151,8 +151,8 @@ with TELEMETRY.capture_cell_output("Cell 4: Dataset Validation"):
         resolved_oe_root_value = str(default_oe_root)
     else:
         raise RuntimeError(
-            "OE_ENABLED=True ama OE klasoru cozulmedi. OE_ROOT girin, runtime dataset altina oe/ ekleyin, "
-            "veya OE_ENABLED=False yapin."
+            "OE_ENABLED=True but no OE folder was resolved. Set OE_ROOT, add oe/ under the runtime dataset, "
+            "or set OE_ENABLED=False."
         )
     print(f"[DATASET] runtime root={selected_dataset_root} classes={len(class_names)}: {class_names}")
 

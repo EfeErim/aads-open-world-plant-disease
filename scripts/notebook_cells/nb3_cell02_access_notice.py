@@ -2,4 +2,4 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 # Access check was handled in cell 1
-print('[KONTROL] Access/update check was already executed in the first code cell.')
+print('[CHECK] Access/update check was already executed in the first code cell.')

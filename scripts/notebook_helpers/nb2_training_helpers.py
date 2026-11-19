@@ -13,7 +13,7 @@ def run_bootstrap_notebook_nb2(notebook_name: str = "Notebook 2: Continual Adapt
         # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
         pass
 
-    # [KONTROL] Ilk hucre: Bootstrap kontrati
+    # [CHECK] First cell: bootstrap contract
     BOOTSTRAP = bootstrap_notebook(
         notebook_name=notebook_name,
         require_colab_requirements=require_colab_requirements,
@@ -38,7 +38,7 @@ def run_access_check_nb2(ROOT: Path, print_fn=print) -> dict:
     )
     print_notebook_access_report(ACCESS_REPORT, print_fn=print_fn)
     if BACKBONE_MODEL_NAME:
-        print_fn(f"[KONTROL] Varsayilan backbone modeli: {BACKBONE_MODEL_NAME}")
+        print_fn(f"[CHECK] Default backbone model: {BACKBONE_MODEL_NAME}")
     return ACCESS_REPORT
 
 

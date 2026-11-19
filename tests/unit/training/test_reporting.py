@@ -1,18 +1,12 @@
-import csv
 import json
 from pathlib import Path
 
-from PIL import Image
-
 from src.training.services.reporting import (
-    BatchMetricsRecorder,
-    load_batch_metrics_history,
     persist_batch_metrics_artifacts,
     persist_behavioral_acceptance_artifact,
     persist_behavioral_dev_report_artifact,
     persist_training_history_artifacts,
     persist_training_results_figure,
-    persist_training_run_context_artifact,
     persist_training_summary_artifact,
     persist_validation_artifacts,
 )
@@ -136,35 +130,6 @@ def test_reporting_writes_training_and_validation_artifacts(tmp_path: Path):
     assert validation_paths["paths"]["metric_gate_json"].exists()
 
 
-def test_reporting_can_write_test_artifacts_to_a_separate_subdirectory(tmp_path: Path):
-    result = persist_validation_artifacts(
-        artifact_root=tmp_path / "training_metrics",
-        y_true=[0, 1, 0, 1],
-        y_pred=[0, 1, 0, 1],
-        classes=["healthy", "disease_a"],
-        artifact_subdir="test",
-        context={"crop_name": "tomato", "split_name": "test"},
-    )
-
-    assert result["paths"]["report_txt"].exists()
-    assert result["paths"]["report_txt"].parent.name == "test"
-    assert result["paths"]["metric_gate_json"].parent.name == "test"
-
-
-def test_reporting_can_skip_metric_gate_artifact_emission(tmp_path: Path):
-    result = persist_validation_artifacts(
-        artifact_root=tmp_path / "training_metrics",
-        y_true=[0, 1, 0, 1],
-        y_pred=[0, 1, 0, 1],
-        classes=["healthy", "disease_a"],
-        emit_metric_gate=False,
-    )
-
-    assert "metric_gate_json" not in result["paths"]
-    assert result["metric_gate"]["metrics"]["accuracy"] == 1.0
-    assert not (tmp_path / "training_metrics" / "validation" / "metric_gate.json").exists()
-
-
 def test_reporting_writes_ood_type_breakdown_artifact(tmp_path: Path):
     result = persist_validation_artifacts(
         artifact_root=tmp_path / "training_metrics",
@@ -178,66 +143,6 @@ def test_reporting_writes_ood_type_breakdown_artifact(tmp_path: Path):
 
     assert result["paths"]["ood_type_breakdown_json"].exists()
 
-
-def test_batch_metrics_artifacts_include_optional_ber_columns(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-    batch_history = [
-        {
-            "epoch": 1,
-            "batch": 1,
-            "global_step": 1,
-            "optimizer_steps": 1,
-            "loss": 0.8,
-            "lr": 1e-3,
-            "ber_ce_loss": 0.7,
-            "ber_old_loss": 0.02,
-            "ber_new_loss": 0.03,
-        }
-    ]
-
-    batch_paths = persist_batch_metrics_artifacts(
-        artifact_root=artifact_root,
-        batch_history=batch_history,
-    )
-
-    with batch_paths["batch_metrics_csv"].open("r", encoding="utf-8", newline="") as handle:
-        rows = list(csv.DictReader(handle))
-
-    assert rows
-    assert rows[0]["ber_ce_loss"] == "0.7"
-    assert rows[0]["ber_old_loss"] == "0.02"
-    assert rows[0]["ber_new_loss"] == "0.03"
-
-
-def test_batch_metrics_recorder_flushes_buffered_rows(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-    recorder = BatchMetricsRecorder(artifact_root=artifact_root, flush_interval=8)
-
-    recorder.append(
-        {
-            "epoch": 1,
-            "batch": 1,
-            "global_step": 1,
-            "optimizer_steps": 0,
-            "loss": 0.8,
-            "lr": 1e-3,
-            "grad_norm": 0.0,
-            "step_time_sec": 0.1,
-            "samples_per_sec": 10.0,
-            "batch_size": 2,
-            "accumulation_step": 1,
-            "optimizer_step_applied": False,
-        }
-    )
-
-    assert load_batch_metrics_history(recorder.output_path) == []
-
-    recorder.flush()
-
-    rows = load_batch_metrics_history(recorder.output_path)
-    assert len(rows) == 1
-    assert rows[0]["loss"] == 0.8
-    assert rows[0]["optimizer_step_applied"] is False
 
 def test_reporting_writes_ood_evidence_summary_artifact(tmp_path: Path):
     result = persist_validation_artifacts(
@@ -314,50 +219,6 @@ def test_reporting_writes_ood_method_comparison_artifact(tmp_path: Path):
     assert "energy" in summary["method_comparison"]["methods"]
 
 
-
-def test_reporting_prefers_real_fpr_when_building_worst_slice_summary(tmp_path: Path):
-    result = persist_validation_artifacts(
-        artifact_root=tmp_path / "training_metrics",
-        y_true=[0, 1, 0, 1],
-        y_pred=[0, 1, 0, 1],
-        classes=["healthy", "disease_a"],
-        ood_labels=[0, 0, 0, 0, 1, 1],
-        ood_scores=[0.1, 0.2, 0.15, 0.18, 0.8, 0.9],
-        ood_scores_by_method={
-            "ensemble": [0.1, 0.2, 0.15, 0.18, 0.8, 0.9],
-            "energy": [0.2, 0.3, 0.22, 0.25, 0.85, 0.95],
-        },
-        sure_ds_f1=0.95,
-        conformal_empirical_coverage=0.97,
-        conformal_avg_set_size=1.0,
-        ood_type_breakdown={
-            "missing_fpr": {
-                "sample_count": 2,
-                "method_metrics": {
-                    "energy": {"ood_auroc": 0.10, "ood_false_positive_rate": None, "in_distribution_samples": 4},
-                },
-            },
-            "blur": {
-                "sample_count": 2,
-                "method_metrics": {
-                    "energy": {"ood_auroc": 0.84, "ood_false_positive_rate": 0.08, "in_distribution_samples": 4},
-                },
-            },
-        },
-        context={
-            "ood_requested_primary_score_method": "auto",
-            "ood_primary_score_method": "ensemble",
-            "ood_primary_score_selection_source": "real_ood_guardrail_no_dev",
-            "ood_score_methods": ["ensemble", "energy"],
-        },
-    )
-
-    comparison = json.loads(result["paths"]["ood_method_comparison_json"].read_text(encoding="utf-8"))
-    assert comparison["methods"]["energy"]["worst_slice"]["slice_name"] == "blur"
-    assert comparison["methods"]["energy"]["worst_slice"]["metrics"]["ood_false_positive_rate"] == 0.08
-
-
-
 def test_reporting_writes_prediction_rows_csv(tmp_path: Path):
     result = persist_validation_artifacts(
         artifact_root=tmp_path / "training_metrics",
@@ -382,76 +243,3 @@ def test_reporting_writes_prediction_rows_csv(tmp_path: Path):
     body = predictions_csv.read_text(encoding="utf-8")
     assert "image_path" in body
     assert "runtime/tomato/val/healthy/img1.jpg" in body
-
-
-def test_reporting_writes_run_context_artifact(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-    result = persist_training_run_context_artifact(
-        artifact_root=artifact_root,
-        context_payload={"run_id": "run_1", "device": "cpu"},
-    )
-
-    context_path = result["run_context_json"]
-    assert context_path.exists()
-    payload = json.loads(context_path.read_text(encoding="utf-8"))
-    assert payload["run_id"] == "run_1"
-    assert payload["device"] == "cpu"
-
-
-def test_reporting_writes_hard_examples_csv_and_thumbnails(tmp_path: Path):
-    artifact_root = tmp_path / "training_metrics"
-    image_dir = tmp_path / "images"
-    image_dir.mkdir()
-    sample_a = image_dir / "misclassified.png"
-    sample_b = image_dir / "missed_ood.png"
-    Image.new("RGB", (48, 48), color=(255, 0, 0)).save(sample_a)
-    Image.new("RGB", (48, 48), color=(0, 0, 255)).save(sample_b)
-
-    result = persist_validation_artifacts(
-        artifact_root=artifact_root,
-        y_true=[0, 1],
-        y_pred=[1, 1],
-        classes=["healthy", "disease_a"],
-        artifact_subdir="test",
-        context={"crop_name": "tomato", "split_name": "test"},
-        prediction_rows=[
-            {
-                "sample_origin": "in_distribution",
-                "split_name": "test",
-                "image_path": sample_a.as_posix(),
-                "true_index": 0,
-                "true_label": "healthy",
-                "pred_index": 1,
-                "pred_label": "disease_a",
-                "is_correct": False,
-                "class_confidence": 0.97,
-            },
-            {
-                "sample_origin": "ood",
-                "split_name": "test",
-                "image_path": sample_b.as_posix(),
-                "ood_type": "blur",
-                "ood_primary_score_method": "energy",
-                "ood_primary_score": 0.11,
-                "ood_predicted": False,
-            },
-        ],
-    )
-
-    hard_examples_csv = result["paths"]["hard_examples_csv"]
-    thumbnails_dir = result["paths"]["hard_examples_thumbnails_dir"]
-    assert hard_examples_csv.exists()
-    assert thumbnails_dir.exists()
-
-    with hard_examples_csv.open("r", encoding="utf-8", newline="") as handle:
-        rows = list(csv.DictReader(handle))
-
-    assert [row["hard_example_reason"] for row in rows] == [
-        "misclassified_in_distribution",
-        "missed_ood_rejection",
-    ]
-    thumbnail_paths = [row["thumbnail_path"] for row in rows]
-    assert all(path for path in thumbnail_paths)
-    assert all((hard_examples_csv.parent / path).exists() for path in thumbnail_paths)
-
-

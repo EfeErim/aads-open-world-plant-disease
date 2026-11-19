@@ -20,7 +20,7 @@ summary = load_adapter_summary(
 
 CROP_NAME = summary['crop_name']
 ADAPTER_DIR = summary['resolved_adapter_dir']
-print(f"Cozulen crop_name={CROP_NAME}")
-print(f"Cozulen adapter_dir={ADAPTER_DIR}")
+print(f"Resolved crop_name={CROP_NAME}")
+print(f"Resolved adapter_dir={ADAPTER_DIR}")
 
 print(json.dumps(summary, indent=2))

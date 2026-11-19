@@ -9,6 +9,22 @@ from typing import Any
 from .json_utils import ensure_parent, write_json
 
 
+def ensure_artifact_dir(root: str | Path, *parts: str) -> Path:
+    """Return ``root/parts...`` and create it if needed."""
+    target = Path(root)
+    for part in parts:
+        target /= part
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def copy_to_telemetry(telemetry: Any, source_path: Path, relative_path: str) -> None:
+    """Mirror an artifact into a telemetry sink that supports ``copy_artifact_file``."""
+    if telemetry is None or not hasattr(telemetry, "copy_artifact_file"):
+        return
+    telemetry.copy_artifact_file(source_path, relative_path)
+
+
 class ArtifactStore:
     """Persist JSON, text, and copied artifacts under a root directory."""
 
@@ -25,11 +41,6 @@ class ArtifactStore:
     def write_text(self, relative_path: str | Path, text: str, *, encoding: str = "utf-8") -> Path:
         target = ensure_parent(self.resolve(relative_path))
         target.write_text(text, encoding=encoding)
-        return target
-
-    def write_bytes(self, relative_path: str | Path, content: bytes) -> Path:
-        target = ensure_parent(self.resolve(relative_path))
-        target.write_bytes(content)
         return target
 
     def copy_file(self, source_path: str | Path, relative_path: str | Path) -> Path:

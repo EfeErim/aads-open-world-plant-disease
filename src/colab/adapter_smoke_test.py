@@ -1,7 +1,7 @@
 """CLI for direct adapter smoke tests; re-exports the helpers Notebook 3 imports.
 
 The command-line path is contract-first: it discovers exported adapter bundles,
-validates the metadata shape Notebook 3/4 and inference need, and optionally
+validates the metadata shape Notebook 3 and inference need, and optionally
 runs image-folder predictions when a review image directory is provided. A
 missing local adapter directory is reported as a skipped check so source-only CI
 jobs can still run without generated model artifacts.

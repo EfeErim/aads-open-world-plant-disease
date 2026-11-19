@@ -15,7 +15,6 @@ from src.colab.training_session import (
     _call_if_present,
     _resolve_colab_runtime_api,
 )
-from src.colab.training_session import ensure_notebook_checkpoint_manager as _ensure_notebook_checkpoint_manager_impl
 from src.colab.training_session import maybe_auto_disconnect_colab_runtime as _maybe_auto_disconnect_colab_runtime_impl
 from src.shared.hash_utils import sha256_file
 from src.shared.json_utils import read_json, write_json
@@ -103,22 +102,6 @@ def coerce_like_value(reference: Any, value: Any) -> Any:
         except (TypeError, ValueError):
             return reference
     return value
-
-
-def ensure_notebook_checkpoint_manager(
-    checkpoint_manager: Any = None,
-    *,
-    run_id: Optional[str] = None,
-    drive_root: Optional[str | Path] = None,
-    retention: int = 3,
-) -> Any:
-    return _ensure_notebook_checkpoint_manager_impl(
-        checkpoint_manager,
-        run_id=run_id,
-        drive_root=drive_root,
-        retention=retention,
-        now_fn=datetime.now,
-    )
 
 
 def maybe_auto_disconnect_colab_runtime(
@@ -637,11 +620,11 @@ def calibrate_notebook_ood_policy(
 
     val_loader = loaders.get("val")
     if loader_size(val_loader) <= 0:
-        raise RuntimeError("Validation loader bos; OOD kalibrasyonu yapilamaz.")
+        raise RuntimeError("Validation loader is empty; OOD calibration cannot run.")
     calibration = adapter.calibrate_ood(val_loader)
     trainer = getattr(adapter, "_trainer", None)
     if trainer is None:
-        raise RuntimeError("Trainer hazir degil.")
+        raise RuntimeError("Trainer is not ready.")
     policy = select_notebook_ood_policy(
         trainer=trainer,
         loaders=loaders,

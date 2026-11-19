@@ -1,7 +1,7 @@
 # Auto-extracted from colab_notebooks/2_train_continual_sd_lora_adapter.ipynb cell 5.
 # Keep notebook execute-only cells thin; edit behavior here.
 
-with TELEMETRY.capture_cell_output("Cell 3b: Guncelleme ve Erisim Kontrolu"):
+with TELEMETRY.capture_cell_output("Cell 3b: Update and Access Check"):
     from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
     from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker
     from src.pipeline.adapter_release import resolve_token

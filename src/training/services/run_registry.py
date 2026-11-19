@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
+from src.shared.coercion import utc_now_iso
 from src.shared.json_utils import read_json, write_json
 from src.training.services.optimization import build_bayesian_recommendations, build_pareto_frontiers
 from src.training.services.traceability import (
@@ -22,10 +22,6 @@ JsonDict = Dict[str, Any]
 REGISTRY_SCHEMA = "v1_training_run_registry"
 TRIAL_SCHEMA = "v1_training_registry_trial"
 AUTOMATIC_WINS_FILENAME = "automatic_wins.md"
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def discover_artifact_roots(runs_root: str | Path) -> List[Path]:
@@ -242,7 +238,7 @@ def build_pareto_inputs(trials: Iterable[JsonDict]) -> JsonDict:
         )
     return {
         "schema_version": REGISTRY_SCHEMA,
-        "generated_at": _utc_now_iso(),
+        "generated_at": utc_now_iso(),
         "optimization_profile": "accuracy_plus_ood",
         "cohort_count": len(cohorts),
         "cohorts": cohorts,
@@ -510,7 +506,7 @@ def _build_lineage_report(trials: List[JsonDict]) -> JsonDict:
     ]
     return {
         "schema_version": "v1_artifact_lineage_report",
-        "generated_at": _utc_now_iso(),
+        "generated_at": utc_now_iso(),
         "adapter_count": len(adapters),
         "missing_lineage_count": len(missing_lineage),
         "adapters": adapters,

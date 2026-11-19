@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from PIL import Image
 
 from src.router.pipeline_flow_utils import resolve_active_analyzer
+from src.shared.coercion import coerce_float
 from src.shared.contracts import RouterAnalysisResult, RouterRequestOptions
 
 RouterAnalyzer = Callable[
@@ -29,14 +30,6 @@ def coerce_bool(value: Any, default: bool = False) -> bool:
     if text in {"0", "false", "no", "off"}:
         return False
     return bool(default)
-
-
-def coerce_float(value: Any, default: float) -> float:
-    fallback = float(default)
-    try:
-        return fallback if value is None else float(value)
-    except (TypeError, ValueError, OverflowError):
-        return fallback
 
 
 def coerce_non_negative_int(value: Any, default: int = 0) -> int:

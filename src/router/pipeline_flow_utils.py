@@ -9,20 +9,6 @@ from typing import (
 TAnalyzer = TypeVar("TAnalyzer", bound=Callable[..., Any])
 
 
-def build_process_image_response(analysis: Dict[str, Any], enabled: bool) -> Dict[str, Any]:
-    """Build stable process_image response payload and scenario."""
-    if enabled:
-        scenario = 'diagnostic_scouting'
-    else:
-        detection_count = len(analysis.get('detections', [])) if isinstance(analysis, dict) else 0
-        scenario = 'single_detection' if detection_count == 1 else 'multiple'
-    return {
-        'status': 'ok',
-        'scenario': scenario,
-        'analysis': analysis,
-    }
-
-
 def resolve_active_analyzer(
     actual_pipeline: Optional[str],
     analyzers: Dict[str, TAnalyzer],

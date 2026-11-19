@@ -13,6 +13,7 @@ from PIL import Image
 from src.core.config_manager import get_config
 from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.router_pipeline import RouterPipeline
+from src.shared.coercion import coerce_float
 from src.shared.contracts import RouterAnalysisResult
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -39,16 +40,6 @@ def discover_eval_samples(root: Path) -> List[Dict[str, Any]]:
     return samples
 
 
-def _coerce_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
-        return float(default)
-
-
 def sample_from_analysis(
     *,
     image_path: Path,
@@ -62,9 +53,9 @@ def sample_from_analysis(
     predicted_crop = str(detection_payload.get("crop", "unknown") or "unknown").strip().lower()
     predicted_part = normalize_part_label(detection_payload.get("part", "unknown")) or "unknown"
     raw_part_label = normalize_part_label(detection_payload.get("raw_part_label", predicted_part)) or "unknown"
-    raw_part_confidence = _coerce_float(detection_payload.get("raw_part_confidence"), _coerce_float(detection_payload.get("part_confidence"), 0.0))
-    raw_part_second_confidence = _coerce_float(detection_payload.get("raw_part_second_confidence"), 0.0)
-    raw_part_margin = _coerce_float(
+    raw_part_confidence = coerce_float(detection_payload.get("raw_part_confidence"), coerce_float(detection_payload.get("part_confidence"), 0.0))
+    raw_part_second_confidence = coerce_float(detection_payload.get("raw_part_second_confidence"), 0.0)
+    raw_part_margin = coerce_float(
         detection_payload.get("raw_part_margin"),
         raw_part_confidence - raw_part_second_confidence,
     )
@@ -80,7 +71,7 @@ def sample_from_analysis(
         "raw_part_label": raw_part_label,
         "raw_part_confidence": raw_part_confidence,
         "raw_part_second_confidence": raw_part_second_confidence,
-        "part_unknown_confidence": _coerce_float(detection_payload.get("part_unknown_confidence"), 0.0),
+        "part_unknown_confidence": coerce_float(detection_payload.get("part_unknown_confidence"), 0.0),
         "raw_part_margin": raw_part_margin,
         "part_rejection_reason": str(detection_payload.get("part_rejection_reason", "") or ""),
     }
@@ -101,11 +92,11 @@ def simulate_thresholded_part_prediction(
     }
     if raw_part_label == unknown_label or not compatible_parts or raw_part_label not in compatible_parts:
         return unknown_label
-    if _coerce_float(sample.get("part_unknown_confidence"), 0.0) >= _coerce_float(sample.get("raw_part_confidence"), 0.0):
+    if coerce_float(sample.get("part_unknown_confidence"), 0.0) >= coerce_float(sample.get("raw_part_confidence"), 0.0):
         return unknown_label
-    if _coerce_float(sample.get("raw_part_confidence"), 0.0) < float(min_confidence):
+    if coerce_float(sample.get("raw_part_confidence"), 0.0) < float(min_confidence):
         return unknown_label
-    if _coerce_float(sample.get("raw_part_margin"), 0.0) < float(margin_threshold):
+    if coerce_float(sample.get("raw_part_margin"), 0.0) < float(margin_threshold):
         return unknown_label
     return raw_part_label
 

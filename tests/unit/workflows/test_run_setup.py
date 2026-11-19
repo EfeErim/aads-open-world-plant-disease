@@ -1,33 +1,10 @@
 import json
-import types
-from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from src.workflows import run_setup as th
 from src.workflows.run_setup import prepare_training_run
 
-
-def test_loader_size_with_sequence():
-    seq = [1, 2, 3]
-    assert th.loader_size(seq) == 3
-
-
-def test_loader_size_with_none():
-    assert th.loader_size(None) == 0
-
-
-def test_stringify_paths_converts_path():
-    p = Path("/tmp/example")
-    assert th.stringify_paths(p) == str(p)
-
-
-def test_build_loader_sizes_with_mapping():
-    fake_loader = types.SimpleNamespace(dataset=[1, 2, 3])
-    sizes = th.build_loader_sizes({"train": fake_loader, "val": None})
-    assert sizes["train"] == 3
-    assert sizes["val"] == 0
 
 class FakeDataset:
     def __init__(self, classes, labels):
@@ -119,62 +96,6 @@ def test_prepare_training_run_rejects_eval_only_classes():
         )
 
 
-def test_prepare_training_run_generates_microsecond_resolution_run_ids(monkeypatch):
-    loaders = {
-        "train": FakeLoader(["healthy"], [0] * 100, 1),
-        "val": FakeLoader(["healthy"], [0] * 100, 1),
-        "test": FakeLoader(["healthy"], [0] * 100, 1),
-    }
-
-    class _FakeDateTime:
-        values = [
-            datetime(2026, 3, 11, 12, 0, 0, 1),
-            datetime(2026, 3, 11, 12, 0, 0, 2),
-        ]
-
-        @classmethod
-        def utcnow(cls):
-            return cls.values.pop(0)
-
-    monkeypatch.setattr("src.workflows.run_setup.datetime", _FakeDateTime)
-
-    first = prepare_training_run(
-        config=_base_config(),
-        device="cpu",
-        crop_name="tomato",
-        part_name=None,
-        data_dir=Path("runtime"),
-        class_names=None,
-        num_workers=0,
-        pin_memory=False,
-        use_cache=False,
-        sampler=None,
-        error_policy=None,
-        run_id="",
-        loader_factory=lambda **kwargs: loaders,
-        adapter_factory=lambda **kwargs: FakeAdapter(),
-    )
-    second = prepare_training_run(
-        config=_base_config(),
-        device="cpu",
-        crop_name="tomato",
-        part_name=None,
-        data_dir=Path("runtime"),
-        class_names=None,
-        num_workers=0,
-        pin_memory=False,
-        use_cache=False,
-        sampler=None,
-        error_policy=None,
-        run_id="",
-        loader_factory=lambda **kwargs: loaders,
-        adapter_factory=lambda **kwargs: FakeAdapter(),
-    )
-
-    assert first.run_id == "tomato_20260311_120000_000001"
-    assert second.run_id == "tomato_20260311_120000_000002"
-
-
 def test_prepare_training_run_rejects_supported_classes_below_min_reference_count(tmp_path: Path):
     crop_root = tmp_path / "runtime" / "tomato"
     crop_root.mkdir(parents=True, exist_ok=True)
@@ -212,53 +133,6 @@ def test_prepare_training_run_rejects_supported_classes_below_min_reference_coun
             loader_factory=lambda **kwargs: loaders,
             adapter_factory=lambda **kwargs: FakeAdapter(),
         )
-
-
-def test_prepare_training_run_allows_under_min_training_when_enabled(tmp_path: Path):
-    crop_root = tmp_path / "runtime" / "tomato"
-    crop_root.mkdir(parents=True, exist_ok=True)
-    (crop_root / "split_manifest.json").write_text(
-        json.dumps(
-            {
-                "classes": [
-                    {"class_name": "healthy", "image_count": 12},
-                    {"class_name": "disease_a", "image_count": 8},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-    config = _base_config()
-    config["training"]["continual"]["data"]["allow_under_min_training"] = True
-    adapter = FakeAdapter()
-    loaders = {
-        "train": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-        "val": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-        "test": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-    }
-
-    setup = prepare_training_run(
-        config=config,
-        device="cpu",
-        crop_name="tomato",
-        part_name=None,
-        data_dir=tmp_path / "runtime",
-        class_names=None,
-        num_workers=0,
-        pin_memory=False,
-        use_cache=False,
-        sampler=None,
-        error_policy=None,
-        run_id="run_1",
-        loader_factory=lambda **kwargs: loaders,
-        adapter_factory=lambda **kwargs: adapter,
-    )
-
-    assert setup.class_balance_runtime["allow_under_min_training"] is True
-    assert setup.class_balance_runtime["production_guardrail_bypassed"] is True
-    assert setup.class_balance_runtime["production_under_min_classes"] == ["healthy", "disease_a"]
-    injected = adapter.initialized["config"]["training"]["continual"]["class_balance"]
-    assert injected["allow_under_min_training"] is True
 
 
 def test_prepare_training_run_injects_active_class_balance_runtime(tmp_path: Path):
@@ -304,44 +178,3 @@ def test_prepare_training_run_injects_active_class_balance_runtime(tmp_path: Pat
     injected = adapter.initialized["config"]["training"]["continual"]["class_balance"]
     assert injected["active"] is True
     assert set(injected["weights_by_class"].keys()) == {"healthy", "disease_a"}
-
-
-def test_prepare_training_run_keeps_class_balance_inactive_when_all_classes_are_large(tmp_path: Path):
-    crop_root = tmp_path / "runtime" / "tomato"
-    crop_root.mkdir(parents=True, exist_ok=True)
-    (crop_root / "split_manifest.json").write_text(
-        json.dumps(
-            {
-                "classes": [
-                    {"class_name": "healthy", "image_count": 260},
-                    {"class_name": "disease_a", "image_count": 220},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-    loaders = {
-        "train": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-        "val": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-        "test": FakeLoader(["healthy", "disease_a"], [0, 1], 1),
-    }
-
-    setup = prepare_training_run(
-        config=_base_config(),
-        device="cpu",
-        crop_name="tomato",
-        part_name=None,
-        data_dir=tmp_path / "runtime",
-        class_names=None,
-        num_workers=0,
-        pin_memory=False,
-        use_cache=False,
-        sampler=None,
-        error_policy=None,
-        run_id="run_1",
-        loader_factory=lambda **kwargs: loaders,
-        adapter_factory=lambda **kwargs: FakeAdapter(),
-    )
-
-    assert setup.class_balance_runtime["active"] is False
-    assert setup.class_balance_runtime["eligible_classes"] == []

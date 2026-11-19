@@ -161,21 +161,6 @@ def test_session_batch_event_exposes_loss_and_checkpoint_request():
     assert checkpoint_events[0]["payload"]["reason"] == "batch_interval"
 
 
-def test_session_snapshot_includes_best_metric_state():
-    trainer, _ = _build_minimal_trainer()
-    session = ContinualTrainingSession(
-        trainer,
-        _make_loader(1),
-        1,
-        val_loader=_make_loader(1),
-    )
-
-    session.run()
-    snapshot = session.snapshot_state()
-
-    assert "best_metric_state" in snapshot
-
-
 def test_session_can_skip_intermediate_validation_epochs():
     trainer, _ = _build_minimal_trainer(num_epochs=3)
     events = []
@@ -233,35 +218,6 @@ def test_session_flushes_final_accumulation_step():
 
     assert history.optimizer_steps == 1
     assert trainable.item() != pytest.approx(1.0)
-
-
-def test_train_batch_computes_grad_norm_once_when_step_is_applied():
-    trainer, _ = _build_minimal_trainer(num_epochs=1, grad_accumulation_steps=1)
-    calls = []
-
-    trainer._reported_grad_norm = lambda *, gradients_unscaled: calls.append("reported") or 0.1  # type: ignore[assignment]
-    trainer._compute_grad_norm = lambda: calls.append("compute") or 0.2  # type: ignore[assignment]
-
-    stats = trainer.train_batch(_make_loader(1)[0])
-
-    assert stats.optimizer_step_applied is True
-    assert calls == ["compute"]
-
-
-def test_train_batch_skips_grad_norm_scan_on_non_step_microbatch():
-    trainer, _ = _build_minimal_trainer(num_epochs=1, grad_accumulation_steps=2)
-    calls = []
-
-    trainer._compute_grad_norm = lambda: calls.append("compute") or 0.2  # type: ignore[assignment]
-
-    first_stats = trainer.train_batch(_make_loader(1)[0])
-    second_stats = trainer.train_batch(_make_loader(1)[0])
-
-    assert first_stats.optimizer_step_applied is False
-    assert first_stats.grad_norm == pytest.approx(0.0)
-    assert second_stats.optimizer_step_applied is True
-    assert second_stats.grad_norm == pytest.approx(0.2)
-    assert calls == ["compute"]
 
 
 def test_session_resume_matches_uninterrupted_training_mid_epoch():

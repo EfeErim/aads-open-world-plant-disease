@@ -6,6 +6,7 @@ import math
 from dataclasses import replace
 from typing import Any, Dict, Mapping, Optional, Sequence
 
+from src.shared.coercion import optional_float
 from src.training.services.metrics import compute_plan_metrics, load_plan_targets, validate_ood_metrics
 from src.training.types import EvaluationArtifactsPayload
 
@@ -127,15 +128,6 @@ def _coerce_metric_mapping(value: Any) -> Dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _coerce_float(value: Any) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _resolve_method_details(method_metrics: Mapping[str, Any], method_name: str) -> Dict[str, Any]:
     methods = _coerce_metric_mapping(method_metrics.get("methods"))
     if method_name in methods:
@@ -174,12 +166,12 @@ def _resolve_robust_fpr(details: Dict[str, Any], pooled_metrics: Dict[str, Any])
     for key in ("worst_slice", "worst_fold"):
         robust_payload = _coerce_metric_mapping(details.get(key))
         metrics = _coerce_metric_mapping(robust_payload.get("metrics")) if robust_payload else {}
-        candidate = _coerce_float(robust_payload.get("ood_false_positive_rate"))
+        candidate = optional_float(robust_payload.get("ood_false_positive_rate"))
         if candidate is None:
-            candidate = _coerce_float(metrics.get("ood_false_positive_rate"))
+            candidate = optional_float(metrics.get("ood_false_positive_rate"))
         if candidate is not None:
             return candidate
-    return _coerce_float(pooled_metrics.get("ood_false_positive_rate"))
+    return optional_float(pooled_metrics.get("ood_false_positive_rate"))
 
 
 def select_best_ood_score_method(
@@ -192,7 +184,7 @@ def select_best_ood_score_method(
     for method_name in SUPPORTED_CONCRETE_OOD_SCORE_METHODS:
         details = _resolve_method_details(method_metrics, method_name)
         pooled_metrics = _coerce_metric_mapping(details.get("pooled_metrics"))
-        pooled_auroc = _coerce_float(pooled_metrics.get("ood_auroc"))
+        pooled_auroc = optional_float(pooled_metrics.get("ood_auroc"))
         robust_fpr = _resolve_robust_fpr(details, pooled_metrics)
         if pooled_auroc is None and robust_fpr is None:
             continue

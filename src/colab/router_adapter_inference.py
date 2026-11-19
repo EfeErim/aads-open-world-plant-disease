@@ -15,6 +15,7 @@ from PIL import Image
 from src.core.config_manager import get_config
 from src.pipeline.inference_payloads import build_router_skipped_analysis
 from src.router.router_pipeline import RouterPipeline
+from src.shared.coercion import coerce_float
 from src.shared.contracts import RouterAnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -92,14 +93,6 @@ def _prepare_router_image(
             _IMAGE_SESSION_CACHE.popitem(last=False)
 
     return final_image
-
-
-def _coerce_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        logger.debug("Coercing %r to float failed; using default %s", value, default)
-        return float(default)
 
 
 def _emit_status(status_printer: Optional[StatusPrinter], message: str) -> None:
@@ -181,17 +174,17 @@ def _build_router_diagnostics(
     primary = analysis.primary_detection
     primary_payload = {} if primary is None else primary.to_dict()
 
-    best_confidence = _coerce_float(primary_payload.get("crop_confidence"), 0.0)
+    best_confidence = coerce_float(primary_payload.get("crop_confidence"), 0.0)
     second_confidence = 0.0
     if len(top_crop_candidates) > 1:
-        second_confidence = _coerce_float(top_crop_candidates[1].get("crop_confidence"), 0.0)
+        second_confidence = coerce_float(top_crop_candidates[1].get("crop_confidence"), 0.0)
 
     return {
         "top_crop_candidates": top_crop_candidates,
         "crop_confidence_margin": round(best_confidence - second_confidence, 4),
         "raw_part_label": str(primary_payload.get("raw_part_label", "") or ""),
-        "raw_part_confidence": _coerce_float(primary_payload.get("raw_part_confidence"), 0.0),
-        "part_unknown_confidence": _coerce_float(primary_payload.get("part_unknown_confidence"), 0.0),
+        "raw_part_confidence": coerce_float(primary_payload.get("raw_part_confidence"), 0.0),
+        "part_unknown_confidence": coerce_float(primary_payload.get("part_unknown_confidence"), 0.0),
         "part_rejection_reason": str(primary_payload.get("part_rejection_reason", "") or ""),
     }
 

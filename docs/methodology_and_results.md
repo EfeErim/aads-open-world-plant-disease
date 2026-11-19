@@ -1,351 +1,142 @@
-# Methodology, literature and results
+# Methodology and results
 
-This document explains why AADS is built the way it is, which ideas came from the literature, what is implemented in
-the repository, and what the current evidence does and does not prove.
-
-The short version is:
-
-- the project is an open-world decision pipeline, not a single image classifier;
-- a router first decides whether a supported crop/part adapter should receive the image;
-- a frozen DINOv3 backbone is adapted with LoRA for each crop/part target;
-- the adapter can classify a supported disease or reject the input through calibrated OOD logic;
-- a fixed 48-row regression replay, built only from rows that had already passed an earlier stress run, reproduces
-  its recorded decisions end to end;
-- the stricter per-adapter behavioral gate is 0/8, so this is not presented as production-ready diagnosis.
-
-## Project status
-
-The project is frozen. It is complete as a graduation project and is no longer under active model development: no
-further adapter training or data collection is planned, and the `aads-public-demo-v1.1.2` adapters are the final
-artifacts. The results on this page are therefore final for this release, not interim numbers awaiting another
-training round. The gaps listed under [Known limitations](#known-limitations) are documented as properties of the
-final system, not as scheduled work.
+Why AADS is built the way it is, which ideas came from the literature, and what the published evidence does and does
+not show. The project is frozen: the results below are final for the `aads-public-demo-v1.1.2` adapters, and the
+limitations are properties of the final system, not scheduled work.
 
 ## Research question
 
-Most plant-disease classifiers are evaluated as closed-set systems: every test image is assumed to belong to one of
-the disease classes seen during training. That assumption is fragile outside a curated benchmark. A real input may
-show:
-
-- the wrong crop;
-- the right crop but the wrong plant part;
-- a supported crop/part with an unsupported disease;
-- a non-plant scene;
-- an ambiguous or low-quality image.
-
-A closed-set classifier still has to return one of its known labels. AADS instead asks a harder question:
+Plant-disease classifiers are usually evaluated as closed-set systems: every test image belongs to a trained class.
+A real input may show the wrong crop, the wrong plant part, an unsupported disease on a supported crop, a non-plant
+scene, or a poor image, and a closed-set classifier still has to return one of its labels. AADS asks:
 
 > Can the system return a supported diagnosis when the evidence is strong, and send the image to review when the
 > crop, part or disease is outside its supported surface?
 
-That combines three related research areas:
-
-1. **open-set recognition**, where unseen semantic classes appear at inference time;
-2. **out-of-distribution detection**, where a score separates supported and unsupported inputs;
-3. **selective prediction**, where the system may abstain instead of forcing a label.
+That combines open-set recognition, out-of-distribution (OOD) detection and selective prediction.
 
 ## System design
 
 ```text
-image
-  -> crop/part router
-  -> confidence and compatibility gates
-  -> matching crop__part adapter
-  -> supported-class prediction + OOD scores
-  -> answer or review/abstain
+image -> crop/part router -> confidence and compatibility gates -> crop__part adapter
+      -> supported-class prediction + OOD scores -> answer or review
 ```
 
-The canonical code path is:
+Routing failure, missing adapter, corrupt input, calibration mismatch and OOD rejection stay distinct typed outcomes
+instead of being collapsed into a disease label.
 
-```text
-src/workflows/inference.py
-  -> src/pipeline/router_adapter_runtime.py
-  -> src/router/router_pipeline.py
-  -> src/adapter/independent_crop_adapter.py
-  -> src/ood/continual_ood.py
-```
+## Backbone and adapters
 
-The pipeline is deliberately modular. Routing failure, adapter absence, corrupt input, calibration mismatch and OOD
-rejection remain distinct typed outcomes instead of being collapsed into a disease label.
+The backbone is `facebook/dinov3-vitl16-pretrain-lvd1689m`, kept frozen. Features from transformer layers 2, 5, 8 and
+11 are projected to 768 dimensions and combined with a learned softmax gate. Self-supervised pretraining matters here
+because each crop/part dataset is small compared with the backbone's pretraining corpus.
 
-## Representation and parameter-efficient adaptation
-
-### DINOv3 backbone
-
-The configured visual backbone is `facebook/dinov3-vitl16-pretrain-lvd1689m`. DINOv3 is used as a strong pretrained
-feature extractor; the project does not train a vision transformer from scratch.
-
-The motivation is transfer learning. Large self-supervised vision models learn reusable visual structure before the
-plant-disease task is introduced. This matters when the downstream dataset is much smaller than the backbone's
-pretraining corpus.
-
-The maintained configuration keeps the backbone frozen and extracts features from transformer layers 2, 5, 8 and 11.
-Those features are projected to 768 dimensions and combined with a learned softmax gate.
-
-Implementation:
-
-- [`src/training/continual_sd_lora.py`](../src/training/continual_sd_lora.py)
-- [`src/adapter/multi_scale_fusion.py`](../src/adapter/multi_scale_fusion.py)
-- [`config/base.json`](../config/base.json)
-
-### LoRA adapters
-
-Full fine-tuning would create a separate large backbone for every crop/part target. AADS instead uses Low-Rank
-Adaptation (LoRA): the pretrained weights stay frozen while small trainable low-rank matrices are inserted into
-selected transformer linear layers.
-
-If a frozen weight matrix is \(W\), LoRA learns a low-rank update:
-
-\[
-W' = W + \frac{\alpha}{r}BA
-\]
-
-where \(A\) and \(B\) are trainable and \(r\) is much smaller than the original matrix dimensions.
-
-The checked-in configuration uses:
-
-- all transformer linear modules selected by the maintained resolver;
-- rank \(r=24\);
-- scaling parameter \(\alpha=24\);
-- dropout `0.1`.
-
-The result is one compact adapter per crop/part surface, plus its classifier, fusion state and OOD calibration. LoRA
-reduces trainable and distributable task-specific state; it does not make the frozen DINOv3 backbone unnecessary at
-inference time.
+Each crop/part target gets a LoRA adapter: the frozen weight \(W\) is updated as \(W' = W + \frac{\alpha}{r}BA\) with
+trainable low-rank \(A, B\). The checked-in configuration ([`config/base.json`](../config/base.json)) applies LoRA to
+all transformer linear modules with \(r=24\), \(\alpha=24\) and dropout `0.1`. An adapter bundle holds the LoRA
+weights, classifier, fusion state and OOD calibration. LoRA shrinks what is trained and distributed per target; the
+backbone is still needed at inference time.
 
 ### Terminology note
 
 Module, class, notebook and artifact names use `continual_sd_lora` (for example `ContinualSDLoRATrainer` and the
-`continual_sd_lora_adapter/` bundle directory). These names are kept because the released bundles and their loaders
-depend on them. They overstate the method:
+`continual_sd_lora_adapter/` bundle directory) because the released bundles and their loaders depend on them. The
+names overstate the method:
 
-- the adapter is a standard PEFT `LoraConfig` (`r`, `alpha`, dropout, target modules); it does not implement SD-LoRA's
-  magnitude/direction decomposition;
-- "continual" refers to the training split name and to the trainer's ability to grow the classifier head with new
-  classes; there is no replay, regularization against forgetting, or forgetting evaluation;
+- the adapter is a standard PEFT `LoraConfig`; it does not implement SD-LoRA's magnitude/direction decomposition;
+- "continual" is the training split name and the trainer's ability to grow the classifier head; there is no replay,
+  forgetting regularization or forgetting evaluation;
 - each crop/part adapter is trained independently on its own data.
 
 The accurate description is **independent per-target LoRA adapters on a frozen DINOv3 backbone**.
 
 ## Crop and plant-part routing
 
-The router is object-centric rather than a single whole-image crop classifier.
-
 1. SAM3 proposes plant and plant-part regions from text prompts.
-2. BioCLIP-2.5 scores crop/part prompt ensembles on regions and whole-image context.
-3. A taxonomy restricts impossible crop/part combinations.
-4. A prototype reconciler can compare image embeddings with reviewed target/class prototypes.
+2. BioCLIP-2.5 scores crop/part prompt ensembles on the regions and on the whole image.
+3. A taxonomy rules out impossible crop/part combinations.
+4. An optional prototype reconciler compares image embeddings with reviewed target/class prototypes.
 5. Confidence, margin and compatibility gates decide whether an adapter handoff is safe.
 
-The current public configuration uses a `0.65` router confidence floor and a `0.10` margin floor. Whole-image crop
-context is combined with region evidence at weight `0.65`. These are calibrated engineering thresholds, not claims
-that model scores are probabilities.
+The public configuration uses a `0.65` router confidence floor, a `0.10` margin floor and weight `0.65` for whole-image
+crop context. These are calibrated engineering thresholds, not probabilities.
 
-Why combine local and global evidence? Disease symptoms are often local, while crop identity and plant-part context
-can be global. Plant-vision studies such as LGNet and glocal plant-anomaly work support treating those signals as
-complementary. Open-vocabulary localization work such as GLIP and Grounding DINO supports using language-conditioned
-regions rather than depending only on a fixed detector label set.
+Symptoms are often local while crop identity is global, which is why region and whole-image evidence are fused (LGNet,
+glocal plant-anomaly work). Promptable localization (SAM3; GLIP and Grounding DINO as context) avoids depending on a
+fixed detector label set. Following selective-prediction reasoning, a router that forces weak handoffs to raise
+apparent accuracy is worse than a conservative one with lower coverage.
 
-The project also follows selective-prediction reasoning: a router that increases apparent accuracy by forcing weak
-handoffs may be worse than a more conservative router with lower coverage.
+## Training and data roles
 
-Implementation:
+Defaults in `config/base.json`: 16 epochs, batch size 8 with gradient accumulation 4, learning rate `1.5e-4`, weight
+decay `0.01`, cosine schedule with 10% warmup, seed 42, LogitNorm loss, RandAugment (2 operations, magnitude 7) and
+early stopping on validation loss. [`config/colab.json`](../config/colab.json) overrides these to 12 epochs, batch size
+96 without accumulation, learning rate `2e-4`, bf16 and non-deterministic kernels.
 
-- [`src/router/router_pipeline.py`](../src/router/router_pipeline.py)
-- [`src/router/sam3_runtime.py`](../src/router/sam3_runtime.py)
-- [`src/router/roi_pipeline.py`](../src/router/roi_pipeline.py)
-- [`src/router/prototype_reconciler.py`](../src/router/prototype_reconciler.py)
-- [`src/router/surface_calibration.py`](../src/router/surface_calibration.py)
+LogitNorm was chosen because overconfident logits hurt a system that needs a review path; it was not ablated against
+cross-entropy.
 
-## Training objective and data policy
-
-The defaults in [`config/base.json`](../config/base.json) are:
-
-- 16 epochs;
-- batch size 8 with gradient accumulation 4;
-- learning rate `1.5e-4`;
-- Adam-compatible weight decay `0.01`;
-- cosine schedule with 10% warmup;
-- deterministic seed 42;
-- LogitNorm loss;
-- RandAugment with two operations at magnitude 7;
-- early stopping on validation loss.
-
-The Colab environment ([`config/colab.json`](../config/colab.json)) overrides these to 12 epochs, batch size 96
-without gradient accumulation, learning rate `2e-4`, bf16 mixed precision and non-deterministic kernels.
-
-LogitNorm was chosen because overconfident logits are harmful when the product needs an abstain/review path. It is not
-treated as universally superior: cross-entropy and other controlled ablations remain possible.
-
-Runtime data is separated by role:
-
-```text
-data/prepared_runtime_datasets/<crop>__<part>/
-  continual/<supported class>/*
-  val/<supported class>/*
-  test/<supported class>/*
-  ood/<unsupported evidence>/*
-  oe/<auxiliary outliers>/*
-```
-
-The roles are intentionally different:
-
-- `continual/` fits the adapter;
-- `val/` selects ordinary training behavior;
-- `test/` measures held-out supported-class behavior;
-- OOD dev evidence may select score/threshold candidates;
-- locked OOD test evidence is used once for the frozen candidate;
-- `oe/` is auxiliary training evidence and must remain disjoint from final OOD evaluation.
-
-This separation follows a basic model-selection rule: final evidence cannot also be free threshold-tuning data.
-Exact hashes, source families and near-duplicate review are used to reduce train/dev/test/OOD leakage.
+Each runtime dataset separates roles: `continual/` fits the adapter, `val/` drives ordinary training decisions,
+`test/` measures held-out supported classes, OOD dev evidence may select score methods and thresholds, locked OOD test
+evidence is used once for the frozen candidate, and `oe/` is auxiliary training data that must stay disjoint from final
+OOD evaluation. Exact hashes, source families and near-duplicate review reduce leakage between them.
 
 ## OOD and unknown-disease rejection
 
-The hardest rejection case is not a random non-plant image. It is a visually plausible disease of the correct crop
-and plant part that the adapter was never trained to diagnose.
+The hardest case is a plausible disease of the correct crop and part that the adapter was never trained on. Three
+score families are maintained:
 
-AADS maintains three primary score families.
+- **Energy**: \(E(x) = -T \log \sum_k \exp(z_k(x)/T)\), using the full logit vector; the temperature is calibrated on
+  allowed development evidence.
+- **Mahalanobis-style distance**: the nearest standardized distance to a class mean with diagonal variance,
+  \(d_M(x) = \min_k \sqrt{\sum_j (f_j(x)-\mu_{k,j})^2 / (\sigma_{k,j}^2+\epsilon)}\).
+- **Deep kNN**: distance to stored in-distribution feature banks, without a Gaussian assumption.
 
-### Energy score
+`primary_score_method: "auto"` compares candidates on development evidence only, never on the locked OOD test slice.
+The OOD development target false-positive rate is `0.05`.
 
-For class logits \(z_k(x)\) and temperature \(T\):
+Outlier Exposure is enabled with weight `0.5` and a uniform target. RAPS conformal prediction is enabled with
+\(\alpha=0.05\), \(\lambda=0.2\) and `k_reg=1`; it reports set-valued uncertainty and coverage, but does not replace
+testing on unknown diseases. BER regularization, ReAct clipping, the classifier rebalance stage and the plantness
+input guard exist in code but are disabled, and nothing here claims they helped.
 
-\[
-E(x) = -T \log \sum_k \exp(z_k(x)/T)
-\]
+The pipeline is an engineering synthesis of the cited methods, not a paper-faithful reproduction of any one of them.
+Selective classification is implemented as post-hoc gates, not a trained SelectiveNet head.
 
-Energy uses the full logit vector rather than only the largest softmax probability. The implementation calibrates
-temperature candidates on allowed development evidence.
+## Results
 
-### Mahalanobis-style feature distance
+### 1. Fixed regression replay
 
-For feature vector \(f(x)\), class mean \(\mu_k\) and diagonal class variance \(\sigma_k^2\), the detector measures the
-nearest standardized class distance:
-
-\[
-d_M(x) = \min_k \sqrt{\sum_j \frac{(f_j(x)-\mu_{k,j})^2}{\sigma_{k,j}^2+\epsilon}}
-\]
-
-This asks whether the feature lies near any supported class cluster.
-
-### Deep k-nearest-neighbor distance
-
-The kNN score measures distance from the input embedding to stored in-distribution feature banks. It is
-non-parametric and avoids assuming that every class embedding is Gaussian.
-
-### Ensemble and thresholding
-
-The maintained ensemble combines normalized feature-distance and energy evidence. `primary_score_method: "auto"`
-means candidate methods can be compared on permitted development evidence. It does not authorize selecting the method
-on the same locked OOD test slice later used for the final claim.
-
-The configured OOD development target false-positive rate is `0.05`.
-
-## Outlier Exposure, conformal prediction and optional methods
-
-Outlier Exposure (OE) trains with auxiliary examples that should not map to supported classes. The checked-in
-configuration enables an OE objective with weight `0.5` and a uniform target. OE data is not counted as final OOD
-evidence.
-
-RAPS conformal prediction is enabled with \(\alpha=0.05\), regularization \(\lambda=0.2\) and `k_reg=1`. Conformal sets
-are useful for uncertainty presentation and coverage diagnostics, but they do not remove the need to test semantic
-unknown diseases.
-
-Several research mechanisms exist in code or configuration without being active defaults:
-
-- BER regularization: disabled;
-- ReAct feature clipping: disabled;
-- classifier rebalance stage: disabled;
-- plantness input guard: disabled.
-
-Their presence should not be confused with evidence that they improved the published run.
-
-## How the literature influenced the implementation
-
-| Literature signal | Project decision | Status in this repository |
-|---|---|---|
-| DINOv3: strong self-supervised dense visual features | use a pretrained DINOv3 ViT as the shared backbone | implemented |
-| LoRA: low-rank updates on frozen transformer weights | maintain one compact adapter per crop/part target | implemented |
-| BioCLIP: biology-aware image/text embeddings | score crop/part prompts and build optional prototypes | implemented |
-| SAM3, GLIP and Grounding DINO: promptable/open-vocabulary localization | keep routing object-centric and text-conditioned | implemented with SAM3; GLIP/Grounding DINO are literature context and alternative surfaces |
-| local/global plant-vision models | fuse region evidence with whole-image crop context | implemented |
-| energy-based OOD detection | keep energy as a first-class score candidate | implemented |
-| Mahalanobis feature scoring | model distance from supported class feature statistics | implemented |
-| deep kNN OOD detection | keep a non-parametric distance candidate | implemented |
-| Outlier Exposure | train against a disjoint auxiliary unknown pool | implemented and configurable |
-| LogitNorm | reduce classifier overconfidence | active training default |
-| SelectiveNet/selective classification | prefer explicit review over weak forced answers | implemented as post-hoc gates, not a trained SelectiveNet head |
-| conformal prediction/RAPS | expose set-valued uncertainty and coverage diagnostics | implemented |
-| OOD benchmark criticism | separate realistic near-OOD slices and lock final evidence | implemented in data and acceptance contracts |
-
-The pipeline is an engineering synthesis. It is not claimed as a paper-faithful reproduction of any one cited method.
-
-## Current results
-
-### 1. Fixed regression replay ("controlled demo")
-
-The accepted controlled run is `20260706T153334Z` on a checksum-pinned 48-row manifest.
-
-**How the rows were chosen.** The manifest was built by
+Accepted run `20260706T153334Z` on a checksum-pinned 48-row manifest, built by
 [`scripts/build_controlled_demo_manifest.py`](../scripts/build_controlled_demo_manifest.py) from an earlier internal
-stress run (`20260706T140135Z`). Only rows whose result was `pass` in that run were eligible, and two known
-regressions (`demo_236`, `demo_432`) were excluded explicitly. Per-target quotas then fixed the row count. The stress
-run's full results and images are in the private workspace and are not published here.
-
-Consequences:
-
-- the 48/48 pass rate follows from the selection rule and is not an accuracy estimate;
-- the replay is a regression check: it shows that the frozen code, adapters and router reproduce known-good
-  decisions end to end;
-- the 36 supported rows cover 12 disease classes; some targets contribute a single class;
-- all 12 non-answer rows are router-level rejections (`router_uncertain`), so the replay does not exercise
-  adapter-level unknown-disease rejection, which the gate in section 2 measures;
-- in Notebook 8's default (non-problem-only) path, the prototype-reconciler calibration manifest is the same manifest
-  that is graded (`scripts/notebook_cells/nb8_cell06_m2_full_demo_run.py`). The public record does not show which
-  calibration manifest the frozen run used, so calibration on the graded rows cannot be ruled out.
+stress run (`20260706T140135Z`). Only rows that passed that run were eligible, and two known regressions (`demo_236`,
+`demo_432`) were excluded. The stress run's images and results are private.
 
 | Metric | Result |
 |---|---:|
-| total rows | 48 |
-| passed | 48 |
-| failed | 0 |
+| total / passed / failed | 48 / 48 / 0 |
 | answered disease rows | 36 |
 | reviewed or abstained rows | 12 |
 | negative false accepts | 0 |
 | wrong-part disease labels | 0 |
-| runtime | CUDA |
-| recorded elapsed time | 7m 1s |
 
-All eight supported crop/part adapter surfaces appear in the demo. The twelve non-answer rows cover unknown crop,
-unknown part and non-plant/review behavior.
+- The 48/48 pass rate follows from the selection rule; this is a regression check, not an accuracy estimate.
+- The 36 supported rows cover 12 disease classes; some targets contribute a single class.
+- All 12 non-answer rows are router-level rejections (`router_uncertain`), so adapter-level unknown-disease rejection
+  is not exercised here.
+- In Notebook 8's default path the prototype-reconciler calibration manifest is the graded manifest
+  (`scripts/notebook_cells/nb8_cell06_m2_full_demo_run.py`). The public record does not show which calibration
+  manifest the frozen run used, so calibration on the graded rows cannot be ruled out.
 
-Source:
+Source: [`evidence/controlled_demo_summary.json`](../evidence/controlled_demo_summary.json),
+[`evidence/controlled_demo_rows.json`](../evidence/controlled_demo_rows.json).
 
-- [`evidence/controlled_demo_summary.json`](../evidence/controlled_demo_summary.json)
-- [`evidence/controlled_demo_rows.json`](../evidence/controlled_demo_rows.json)
+### 2. Per-adapter behavioral acceptance
 
-This is strong evidence that the frozen pipeline reproduced the recorded decisions on that one pre-selected manifest.
-It is not an estimate of accuracy, field or otherwise.
-
-### 2. Latest tracked per-adapter behavioral acceptance
-
-The production-oriented adapter gate is deliberately stricter than the controlled demo. Each adapter must satisfy all
-of the following:
-
-| Gate | Required value |
-|---|---:|
-| accuracy | at least 0.93 |
-| balanced accuracy | at least 0.90 |
-| macro-F1 | at least 0.90 |
-| ID test samples | at least 30 |
-| ID false-rejection rate | at most 0.05 |
-| same-crop unsupported-disease test samples | at least 30 |
-| forced supported answers on that OOD slice | exactly 0 |
-| same-crop OOD rejection rate | 1.00 |
-
-The latest tracked acceptance artifact per target at source commit
-`539397bb72bde59e4b092ac1286b5415fe78dbac` gives:
+Each adapter must reach accuracy ≥ 0.93, balanced accuracy ≥ 0.90, macro-F1 ≥ 0.90, at least 30 ID test samples, ID
+false-rejection rate ≤ 0.05, at least 30 same-crop unsupported-disease test samples, zero forced supported answers on
+that slice, and a same-crop OOD rejection rate of 1.00. Latest tracked artifact per target at source commit
+`539397bb72bde59e4b092ac1286b5415fe78dbac`:
 
 | Target | Accuracy | Balanced acc. | Macro-F1 | ID FRR | Same-crop OOD n | OOD rejection | Forced answers | Pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -358,34 +149,19 @@ The latest tracked acceptance artifact per target at source commit
 | `tomato__fruit` | 0.899 | 0.932 | 0.878 | 0.092 | 64 | 0.563 | 28 | no |
 | `tomato__leaf` | 0.900 | 0.913 | 0.902 | 0.050 | 18 | 0.611 | 7 | no |
 
-Machine-readable values, source paths, source Git blobs and failure reasons are recorded in
-[`evidence/latest_behavioral_acceptance_summary.json`](../evidence/latest_behavioral_acceptance_summary.json).
-The eight source records are also checked in under
-[`evidence/behavioral_acceptance/targets/`](../evidence/behavioral_acceptance/targets/). The
-[`build_behavioral_acceptance_summary.py`](../scripts/build_behavioral_acceptance_summary.py) maintainer tool and CI
-verify the public summary without access to the private experiment tree.
+`apricot__leaf` passes the three classification metrics but forces a supported answer on 47 of 59 same-crop
+unsupported-disease images; `strawberry__leaf` classifies well but has no eligible same-crop OOD slice and narrowly
+misses the false-rejection limit. The result is **0/8 passed**.
 
-The builder verifies that each record's internal crop/part identity matches its filename before aggregation. This
-prevents a checksum-valid but misattributed readiness record from being accepted as evidence for another target.
+The summary [`evidence/latest_behavioral_acceptance_summary.json`](../evidence/latest_behavioral_acceptance_summary.json)
+is rebuilt from the eight records in [`evidence/behavioral_acceptance/targets/`](../evidence/behavioral_acceptance/targets/)
+by [`scripts/build_behavioral_acceptance_summary.py`](../scripts/build_behavioral_acceptance_summary.py) (`--check`),
+which also rejects a record whose internal crop/part does not match its filename. A unit test runs the same check.
 
-The table explains why a single “accuracy” number is not enough:
+### 3. Pooled OOD metrics (three re-evaluated targets)
 
-- `strawberry__leaf` has excellent closed-set classification but lacks an eligible same-crop OOD test slice in the
-  selected artifact and narrowly misses the ID false-rejection gate;
-- `apricot__leaf` passes the three classification metrics but forces a supported answer on 47 of 59 same-crop
-  unsupported-disease cases;
-- `tomato__leaf` is close on ID metrics but rejects only 11 of 18 same-crop unsupported-disease cases;
-- three targets have no eligible same-crop OOD rows in their latest tracked artifact, so no rejection rate is reported.
-
-The aggregate production-oriented result is therefore **0/8 passed**, not “nearly production-ready.” Because the
-project is frozen, this is the final gate result for the released adapters.
-
-### 2b. Pooled OOD detection metrics (three re-evaluated targets)
-
-Three targets have a corrected readiness record with threshold-free OOD metrics on their locked OOD test pool. The
-pool mixes every OOD type (off-crop, non-plant, same-crop unsupported disease and others), so it is easier than the
-same-crop slice in the gate table above. FPR@95 is the fraction of in-distribution test images scored as OOD when
-95% of OOD images are caught.
+These pools mix every OOD type, so they are easier than the same-crop slice above. FPR@95 is the fraction of ID test
+images scored as OOD when 95% of OOD images are caught.
 
 | Target | OOD n | ID n | AUROC | FPR@95 | Conformal coverage (target 0.95) | Avg. set size |
 |---|---:|---:|---:|---:|---:|---:|
@@ -393,98 +169,63 @@ same-crop slice in the gate table above. FPR@95 is the fraction of in-distributi
 | `strawberry__leaf` | 81 | 491 | 0.986 | 0.057 | 0.994 | 1.00 |
 | `tomato__leaf` | 103 | 1204 | 0.920 | 0.264 | 0.934 | 1.17 |
 
-The maintained readiness targets are AUROC ≥ 0.92 and FPR@95 ≤ 0.05. Only `strawberry__leaf` comes close, and its pool
-contains no same-crop unsupported-disease images. `tomato__leaf` misses the conformal coverage target. The other five
-targets have no comparable record in the public evidence. Source:
+The readiness targets are AUROC ≥ 0.92 and FPR@95 ≤ 0.05. Only `strawberry__leaf` comes close, and its pool contains
+no same-crop unsupported-disease images. The other five targets have no comparable public record. Source:
 [`evidence/release_inputs/corrected_readiness/`](../evidence/release_inputs/corrected_readiness/).
 
-### 3. Public adapter release
+### 4. Public adapter release
 
-The public Release contains 64 checksum-pinned files for eight adapter bundles and is about 518 MB in total. Each
-bundle includes LoRA weights, classifier/fusion state, configuration, metadata, a readiness record and the required
-DINOv3 license notice.
+The [release](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2) holds 64
+checksum-pinned files for eight adapter bundles, about 518 MB in total, each with the DINOv3 license notice. Its
+manifest records `production_ready: false`. Source:
+[`evidence/public_asset_manifest.json`](../evidence/public_asset_manifest.json),
+[`docs/evidence/current/demo_release/release_manifest.json`](evidence/current/demo_release/release_manifest.json).
 
-[Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb)
-retrieves the public bundles and checks their SHA-256 values before materializing the Colab runtime layout.
+## What the evidence supports
 
-Source:
-
-- [`evidence/public_asset_manifest.json`](../evidence/public_asset_manifest.json)
-- [`docs/evidence/current/demo_release/release_manifest.json`](evidence/current/demo_release/release_manifest.json)
-- [public Release](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2)
-
-The release is for code review and controlled experiments. Its manifest explicitly records
-`production_ready: false`.
-
-## Evidence strength
-
-| Claim | Evidence strength | Why |
-|---|---|---|
-| the repository contains the real implementation | strong | complete `src/`, notebook, script and test surfaces are present and exercised by CI |
-| the fixed 48-row replay reproduces the recorded decisions | strong for that manifest | row-level decisions, manifest hash and summary are checked in; rows were pre-selected from passing stress-run rows |
-| the pipeline is accurate on the replay rows | not established | 100% follows from the selection rule |
-| the system generalizes to arbitrary field images | not established | no representative external field trial or confidence interval is published |
-| adapters are production-ready | false under the maintained gate | 0/8 latest tracked acceptance artifacts pass |
-| the system is suitable for autonomous diagnosis | not supported | same-crop unknown-disease rejection remains inadequate or under-sampled |
-
-The main achievement is the system design and evidence discipline: typed failure states, reproducible adapter
-packages, explicit unknown handling, disjoint evidence roles and a testable end-to-end pipeline. The main research gap
-is robust semantic near-OOD rejection under representative field conditions.
+| Claim | Status |
+|---|---|
+| the frozen pipeline reproduces the recorded replay decisions | supported for that manifest |
+| the pipeline is accurate on the replay rows | not established; follows from selection |
+| the system generalizes to arbitrary field images | not established; no external field trial |
+| adapters are production-ready | false under the maintained gate (0/8) |
+| suitable for autonomous diagnosis | not supported |
 
 ## Known limitations
 
-The project is frozen, so these are recorded as limitations of the final system rather than as planned work.
+- **Near-OOD rejection is weak.** Same-crop unsupported-disease rejection ranges from 0.20 to 0.61 where measured.
+- **Under-sampled OOD evidence.** Three targets have no same-crop OOD test rows; `grape__leaf` (16) and `tomato__leaf`
+  (18) are below the gate's minimum of 30.
+- **Thresholds do not transfer exactly.** OOD thresholds target 5% false rejection on validation data; test ID false
+  rejection ranges from 3.4% to 14.4%.
+- **Validation data has several roles.** The `val` split drives early stopping, OOD statistics, threshold selection
+  and conformal calibration, and the code falls back to training data if `val` is empty.
+- **OOD dev/test split is not family-grouped.** It is per-image random within each slice (`src/data/ood_splits.py`), so
+  near-duplicates can sit on both sides.
+- **Single seed, no ablations.** Seed 42, no confidence intervals; LogitNorm, Outlier Exposure, multi-scale fusion and
+  LoRA rank were not ablated, and no linear-probe baseline is reported.
+- **Not reproducible from public data.** Training images are private and DINOv3 is gated; the evidence can be
+  inspected and cross-checked but not regenerated from this repository alone.
 
-- **Near-OOD rejection is weak.** Same-crop unsupported-disease rejection ranges from 0.20 to 0.61 where it is
-  measured; `apricot__leaf` forces a supported answer on 47 of 59 such images.
-- **Under-sampled OOD evidence.** Three targets have no same-crop OOD test rows, and `grape__leaf` (16) and
-  `tomato__leaf` (18) are below the gate's own minimum of 30.
-- **Thresholds do not transfer exactly.** OOD thresholds are set for a 5% false-rejection target on validation data;
-  test ID false-rejection ranges from 3.4% to 14.4%.
-- **Validation data has several roles.** The same `val` split is used for early stopping, OOD statistics, threshold
-  selection and conformal calibration, and the code falls back to training data if `val` is empty.
-- **OOD dev/test split is not family-grouped.** ID splits group near-duplicate families, but the OOD dev/test split is
-  per-image random within each slice (`src/data/ood_splits.py`), so near-duplicates can sit on both sides.
-- **Single seed, no ablations.** Results come from seed 42 with no confidence intervals. LogitNorm, Outlier Exposure,
-  multi-scale fusion and LoRA rank were not ablated, and no frozen-backbone linear-probe baseline is reported.
-- **Not reproducible from public data.** Training images are private, and DINOv3 is a gated model. The public
-  evidence can be inspected and cross-checked, but the numbers cannot be regenerated from this repository alone.
-- **Replay selection.** The 48-row replay was drawn from passing rows only (see section 1).
-
-## References used in the project
-
-### Representation and adaptation
+## References
 
 - Siméoni et al. (2025), [DINOv3](https://arxiv.org/abs/2508.10104).
-- Hu et al. (2021), [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685).
-- Stevens et al. (2024), [BioCLIP](https://arxiv.org/abs/2311.18803).
-- Gu et al. (2025), [BioCLIP 2](https://arxiv.org/abs/2505.23883).
-- Radford et al. (2021), [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020).
-
-### Routing and plant vision
-
-- Carion et al. (2025), [SAM 3: Segment Anything with Concepts](https://arxiv.org/abs/2511.16719).
-- Li et al. (2022), [Grounded Language-Image Pre-Training](https://openaccess.thecvf.com/content/CVPR2022/html/Li_Grounded_Language-Image_Pre-Training_CVPR_2022_paper.html).
-- Liu et al. (2023), [Grounding DINO](https://arxiv.org/abs/2303.05499).
-- Lin et al. (2024), [Local and Global Feature-Aware Dual-Branch Networks for Plant Disease Recognition](https://pubmed.ncbi.nlm.nih.gov/39130161/).
+- Hu et al. (2021), [LoRA](https://arxiv.org/abs/2106.09685).
+- Stevens et al. (2024), [BioCLIP](https://arxiv.org/abs/2311.18803); Gu et al. (2025), [BioCLIP 2](https://arxiv.org/abs/2505.23883).
+- Radford et al. (2021), [CLIP](https://arxiv.org/abs/2103.00020).
+- Carion et al. (2025), [SAM 3](https://arxiv.org/abs/2511.16719).
+- Li et al. (2022), [GLIP](https://openaccess.thecvf.com/content/CVPR2022/html/Li_Grounded_Language-Image_Pre-Training_CVPR_2022_paper.html); Liu et al. (2023), [Grounding DINO](https://arxiv.org/abs/2303.05499).
+- Lin et al. (2024), [LGNet: Local and Global Feature-Aware Dual-Branch Networks for Plant Disease Recognition](https://pubmed.ncbi.nlm.nih.gov/39130161/).
 - Fuentes et al. (2019), [Glocal Description of Plant Anomalies and Symptoms](https://www.frontiersin.org/articles/10.3389/fpls.2019.01321/full).
-
-### OOD, open set and uncertainty
-
 - Hendrycks and Gimpel (2017), [A Baseline for Detecting Misclassified and OOD Examples](https://openreview.net/forum?id=Hkg4TI9xl).
-- Lee et al. (2018), [A Simple Unified Framework for OOD Samples and Adversarial Attacks](https://proceedings.neurips.cc/paper/2018/hash/abdeb6f575ac5c6676b747bca8d09cc2-Abstract.html).
-- Liu et al. (2020), [Energy-based Out-of-distribution Detection](https://arxiv.org/abs/2010.03759).
-- Sun et al. (2022), [Out-of-Distribution Detection with Deep Nearest Neighbors](https://proceedings.mlr.press/v162/sun22d.html).
-- Hendrycks, Mazeika and Dietterich (2019), [Deep Anomaly Detection with Outlier Exposure](https://openreview.net/forum?id=HyxCxhRcY7).
+- Lee et al. (2018), [Mahalanobis OOD detection](https://proceedings.neurips.cc/paper/2018/hash/abdeb6f575ac5c6676b747bca8d09cc2-Abstract.html).
+- Liu et al. (2020), [Energy-based OOD Detection](https://arxiv.org/abs/2010.03759).
+- Sun et al. (2022), [OOD Detection with Deep Nearest Neighbors](https://proceedings.mlr.press/v162/sun22d.html).
+- Hendrycks, Mazeika and Dietterich (2019), [Outlier Exposure](https://openreview.net/forum?id=HyxCxhRcY7).
 - Vaze et al. (2022), [Open-Set Recognition: a Good Closed-Set Classifier is All You Need?](https://openreview.net/forum?id=5hLP5JY9S2d).
 - Bitterwolf et al. (2023), [In or Out? Fixing ImageNet OOD Detection Evaluation](https://proceedings.mlr.press/v202/bitterwolf23a.html).
-- Wei et al. (2022), [Mitigating Neural Network Overconfidence with Logit Normalization](https://proceedings.mlr.press/v162/wei22d.html).
-- Dong et al. (2024), [The impact of fine-tuning paradigms on unknown plant diseases recognition](https://www.nature.com/articles/s41598-024-66958-2).
-
-### Selective and conformal prediction
-
+- Wei et al. (2022), [LogitNorm](https://proceedings.mlr.press/v162/wei22d.html).
+- Dong et al. (2024), [Fine-tuning paradigms and unknown plant disease recognition](https://www.nature.com/articles/s41598-024-66958-2).
 - Geifman and El-Yaniv (2019), [SelectiveNet](https://proceedings.mlr.press/v97/geifman19a.html).
 - Guo et al. (2017), [On Calibration of Modern Neural Networks](https://proceedings.mlr.press/v70/guo17a.html).
-- Angelopoulos and Bates (2021), [A Gentle Introduction to Conformal Prediction](https://arxiv.org/abs/2107.07511).
 - Angelopoulos et al. (2021), [Uncertainty Sets for Image Classifiers using Conformal Prediction](https://openreview.net/forum?id=eNdiU_DbM9).
-- Bates et al. (2021), [Distribution-Free, Risk-Controlling Prediction Sets](https://arxiv.org/abs/2101.02703).

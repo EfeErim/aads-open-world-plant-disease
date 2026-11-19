@@ -210,7 +210,7 @@ def load_external_taxonomy_cache(path: Path | None) -> dict[str, Any]:
 
 def _gbif_match_crop(crop: str, *, timeout_sec: float = 10.0) -> dict[str, Any]:
     query = urlencode({"name": crop, "rank": "SPECIES", "kingdom": "Plantae"})
-    with urlopen(f"{GBIF_SPECIES_MATCH_URL}?{query}", timeout=timeout_sec) as response:  # noqa: S310
+    with urlopen(f"{GBIF_SPECIES_MATCH_URL}?{query}", timeout=timeout_sec) as response:
         payload = read_json_from_bytes(response.read())
     if not isinstance(payload, dict) or not payload.get("usageKey"):
         return {}

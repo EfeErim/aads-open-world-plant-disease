@@ -50,9 +50,9 @@ from scripts.demo_checklist.rows import (  # noqa: E402
     resolve_image_path,
     resolve_prototype_thresholds_from_calibration,
 )
-from scripts.demo_checklist.rows import _path_fingerprint as _path_fingerprint  # noqa: E402,F401
-from scripts.demo_checklist.rows import classify_failure as classify_failure  # noqa: E402,F401
-from scripts.demo_checklist.rows import evaluate_pass as evaluate_pass  # noqa: E402,F401
+from scripts.demo_checklist.rows import _path_fingerprint as _path_fingerprint  # noqa: E402
+from scripts.demo_checklist.rows import classify_failure as classify_failure  # noqa: E402
+from scripts.demo_checklist.rows import evaluate_pass as evaluate_pass  # noqa: E402
 from src.colab.auto_router_adapter_prediction import (  # noqa: E402
     resolve_router_adapter_handoff,
     router_handoff_skip_result,

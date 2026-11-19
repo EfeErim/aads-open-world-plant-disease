@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from scripts import evaluate_router_part_surface as eval_script
+from src.shared.coercion import coerce_float
+from src.shared.contracts import RouterAnalysisResult
 
 
 def test_discover_eval_samples_normalizes_part_alias_and_filters_images(tmp_path: Path):
@@ -96,3 +98,28 @@ def test_summarize_predictions_marks_crop_mismatch_outside_part_confusion():
             "leaf": {"crop_mismatch": 1},
         },
     }
+
+
+def test_coerce_float_falls_back_to_default_for_missing_or_invalid_values():
+    assert coerce_float(None) == 0.0
+    assert coerce_float(None, 0.25) == 0.25
+    assert coerce_float("not-a-number", 1.5) == 1.5
+    assert coerce_float("0.75", 0.0) == 0.75
+
+
+def test_sample_from_analysis_handles_image_without_detection():
+    analysis = RouterAnalysisResult(status="ok", message="no detection")
+
+    sample = eval_script.sample_from_analysis(
+        image_path=Path("tomato/leaf/img.png"),
+        expected_crop="tomato",
+        expected_part="leaf",
+        analysis=analysis,
+        compatible_parts=["leaf"],
+    )
+
+    assert sample["predicted_crop"] == "unknown"
+    assert sample["crop_correct"] is False
+    assert sample["raw_part_confidence"] == 0.0
+    assert sample["raw_part_margin"] == 0.0
+    assert sample["part_unknown_confidence"] == 0.0

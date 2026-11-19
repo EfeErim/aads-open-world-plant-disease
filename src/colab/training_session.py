@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import contextlib
 import gc
-import os
+import logging
 import time
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import matplotlib
 
+from src.shared.artifacts import ensure_artifact_dir
 from src.shared.json_utils import deep_merge, read_json, write_json
 from src.shared.string_utils import slug_label_component
 from src.training.services.reporting import (
@@ -42,6 +43,7 @@ from src.training.services.traceability import (
 
 matplotlib.use("Agg")
 
+logger = logging.getLogger(__name__)
 
 _EXPECTED_REPO_EXPORTS = ("outputs", "telemetry", "checkpoint_state")
 
@@ -64,7 +66,6 @@ def merge_training_summary_fields(
     root: Path,
     payload: Dict[str, Any],
     telemetry: Any = None,
-    extra_entries: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     summary_path = _artifact_dir(root, "training") / "summary.json"
     current = read_json(summary_path, default={}, expect_type=dict)
@@ -132,33 +133,11 @@ def _refresh_traceability_records(*, root: Path, summary_payload: Dict[str, Any]
 
 
 def _artifact_dir(root: Path, *parts: str) -> Path:
-    target = root / "outputs" / "colab_notebook_training" / "artifacts"
-    for part in parts:
-        target /= part
-    target.mkdir(parents=True, exist_ok=True)
-    return target
+    return ensure_artifact_dir(Path(root) / "outputs" / "colab_notebook_training" / "artifacts", *parts)
 
 
 def notebook_artifact_root(root: Path) -> Path:
     return _artifact_dir(root)
-
-
-def ensure_notebook_checkpoint_manager(
-    checkpoint_manager: Any = None,
-    *,
-    run_id: Optional[str] = None,
-    drive_root: Optional[str | Path] = None,
-    retention: int = 3,
-    now_fn: Optional[Callable[[], datetime]] = None,
-) -> Any:
-    if checkpoint_manager is not None:
-        return checkpoint_manager
-
-    from src.colab.checkpointing import TrainingCheckpointManager
-
-    resolved_run_id = str(run_id or (now_fn or datetime.now)().strftime("%Y%m%d_%H%M%S_%f"))
-    resolved_drive_root = Path(drive_root or os.environ.get("AADS_DRIVE_LOG_ROOT", "/content/drive/MyDrive/aads_ulora"))
-    return TrainingCheckpointManager(resolved_drive_root / "telemetry" / resolved_run_id, retention=retention)
 
 
 def _path_exists(path_like: Optional[str | Path]) -> bool:
@@ -171,11 +150,8 @@ def _call_if_present(target: Any, method_name: str, *args, **kwargs) -> None:
         return
     try:
         method(*args, **kwargs)
-    except Exception:
-        import logging
-
-        logging.exception("Unhandled exception")
-        raise
+    except (OSError, TypeError, ValueError) as exc:
+        logger.warning("Telemetry call %s failed: %s", method_name, exc)
 
 
 def build_history_snapshot(
@@ -380,11 +356,8 @@ def persist_behavioral_dev_report_artifact(
 def _resolve_colab_runtime_api() -> Any:
     try:
         from google.colab import runtime
-    except Exception:
-        import logging
-
-        logging.exception("Unhandled exception")
-        raise
+    except ImportError:
+        return None
     return runtime
 
 

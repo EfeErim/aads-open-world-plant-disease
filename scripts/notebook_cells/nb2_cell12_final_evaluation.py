@@ -25,7 +25,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     from src.training.validation import evaluate_model_with_artifact_metrics
 
     if STATE.get("adapter") is None or STATE.get("loaders") is None:
-        raise RuntimeError("Once engine init hucresi calistirilmali.")
+        raise RuntimeError("Run the engine init cell first.")
 
     adapter = STATE["adapter"]
     loaders = STATE["loaders"]
@@ -37,11 +37,11 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     selection_only = bool(globals().get("RECOVERY_SELECTION_ONLY", False))
     test_loader = loaders.get("test")
     if not selection_only and (test_loader is None or len(test_loader.dataset) == 0):
-        raise RuntimeError("Test loader bos. Final degerlendirme held-out test split ile yapilmali.")
+        raise RuntimeError("Test loader is empty. Final evaluation must use the held-out test split.")
 
     trainer = adapter._trainer
     if trainer is None:
-        raise RuntimeError("Trainer hazir degil.")
+        raise RuntimeError("Trainer is not ready.")
 
     notebook_config = json.loads(json.dumps(BASE_CONFIG))
     notebook_config.setdefault("training", {})["continual"] = json.loads(json.dumps(STATE["continual_config"]))
@@ -94,7 +94,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
     def _evaluate_split(split_name: str, loader, ood_evidence_loader, *, artifact_subdir: str, label: str):
         evaluation = evaluate_model_with_artifact_metrics(trainer, loader, ood_loader=ood_evidence_loader)
         if evaluation is None:
-            raise RuntimeError("Degerlendirme ornegi bulunamadi.")
+            raise RuntimeError("No evaluation samples found.")
         evaluation = apply_primary_score_method_to_evaluation(
             evaluation,
             selected_primary_score_method,
@@ -136,7 +136,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
             extras.append(f"conformal_cov={float(metrics['conformal_empirical_coverage']):.4f}")
         suffix = " " + " ".join(extras) if extras else ""
         accuracy = float(artifacts["report_dict"].get("accuracy", 0.0))
-        print(f"[{label}] ornek={len(evaluation.y_true)} sinif={len(classes)} accuracy={accuracy:.4f}{suffix}")
+        print(f"[{label}] samples={len(evaluation.y_true)} classes={len(classes)} accuracy={accuracy:.4f}{suffix}")
         return artifacts
 
     results = {}
@@ -151,7 +151,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
             val_loader,
             ood_dev_loader,
             artifact_subdir="validation",
-            label="DOGRULAMA (referans)",
+            label="VALIDATION (reference)",
         )
 
     if selection_only:
@@ -206,7 +206,7 @@ with TELEMETRY.capture_cell_output("Cell 9: Final Evaluation"):
             and str(evaluation_cfg.get("ood_fallback_strategy", "held_out_benchmark")) == "held_out_benchmark"
             and bool(evaluation_cfg.get("ood_benchmark_auto_run", True))
         ):
-            print("[OOD] Gercek OOD split bulunamadi; held-out benchmark fallback calisiyor...")
+            print("[OOD] No real OOD split found; running the held-out fallback benchmark...")
             benchmark_summary = run_leave_one_class_out_benchmark(
                 crop_name=CROP_NAME,
                 class_names=classes,
@@ -313,107 +313,6 @@ if resolved_dataset_key:
     print_notebook_optimization_campaign_status(STATE["optimization_campaign"], print_fn=print)
 notebook_export_result = export_current_colab_notebook(REPO_NOTEBOOK_OUTPUT_PATH)
 
-extra_entries = [
-    {
-        "path": build_adapter_bundle_root(REPO_OUTPUT_DIR, CROP_NAME, PART_NAME) / "continual_sd_lora_adapter",
-        "category": "adapter_export",
-        "priority": "high",
-        "title_tr": "Repo mirror adapter export klasoru",
-        "description_tr": "Repo mirror icindeki adapter export klasoru.",
-        "reader_goal": "Export edilen adapter klasorunu bulmak",
-        "generated_by": "notebook_2",
-        "decision_importance": "deploy_handoff",
-        "read_order": 70,
-    },
-    {
-        "path": REPO_NOTEBOOK_OUTPUT_PATH,
-        "category": "adapter_export",
-        "priority": "medium",
-        "title_tr": "Calistirilmis notebook exportu",
-        "description_tr": "Bu kosuda calisan notebook'un kaydedilmis kopyasi.",
-        "reader_goal": "Notebook'u ayni ciktiyla tekrar incelemek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 71,
-    },
-    {
-        "path": REPO_TELEMETRY_DIR / "events.jsonl",
-        "category": "logs_and_checkpoints",
-        "priority": "medium",
-        "title_tr": "Telemetry event logu",
-        "description_tr": "Notebook olayi bazli telemetry kaydi.",
-        "reader_goal": "Notebook akisini olay bazinda incelemek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 80,
-    },
-    {
-        "path": REPO_TELEMETRY_DIR / "runtime.log",
-        "category": "logs_and_checkpoints",
-        "priority": "medium",
-        "title_tr": "Runtime logu",
-        "description_tr": "Notebook runtime boyunca yazilan metin logu.",
-        "reader_goal": "Calisma sirasindaki log ciktilarini okumak",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 81,
-    },
-    {
-        "path": REPO_TELEMETRY_DIR / "latest_status.json",
-        "category": "logs_and_checkpoints",
-        "priority": "low",
-        "title_tr": "Son durum ozeti",
-        "description_tr": "Notebook'un son durum snapshot'i.",
-        "reader_goal": "Kosunun son durumunu hizli kontrol etmek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 82,
-    },
-    {
-        "path": REPO_TELEMETRY_DIR / "summary.json",
-        "category": "logs_and_checkpoints",
-        "priority": "high",
-        "title_tr": "Telemetry ozeti",
-        "description_tr": "Notebook final ozet dosyasi.",
-        "reader_goal": "Notebook final ozetini okumak",
-        "generated_by": "notebook_2",
-        "decision_importance": "run_overview",
-        "read_order": 83,
-    },
-    {
-        "path": REPO_CHECKPOINT_STATE_DIR / "best_checkpoint.json",
-        "category": "logs_and_checkpoints",
-        "priority": "medium",
-        "title_tr": "Best checkpoint manifesti",
-        "description_tr": "En iyi checkpoint'in repo mirror manifesti.",
-        "reader_goal": "Hangi checkpoint secildigini gormek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 84,
-    },
-    {
-        "path": REPO_CHECKPOINT_STATE_DIR / "latest_checkpoint.json",
-        "category": "logs_and_checkpoints",
-        "priority": "medium",
-        "title_tr": "Latest checkpoint manifesti",
-        "description_tr": "Son checkpoint manifesti.",
-        "reader_goal": "Checkpoint akisini gormek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 85,
-    },
-    {
-        "path": REPO_CHECKPOINT_STATE_DIR / "checkpoint_index.json",
-        "category": "logs_and_checkpoints",
-        "priority": "low",
-        "title_tr": "Checkpoint indexi",
-        "description_tr": "Mirror edilen checkpoint manifest listesi.",
-        "reader_goal": "Checkpoint kayitlarini toplu gormek",
-        "generated_by": "notebook_2",
-        "decision_importance": "runtime_diagnostic",
-        "read_order": 86,
-    },
-]
 summary_payload = merge_training_summary_fields(
     root=ROOT,
     telemetry=TELEMETRY,
@@ -467,7 +366,6 @@ summary_payload = merge_training_summary_fields(
         "production_readiness_compatibility": STATE.get("production_readiness") or {},
         "created_at": datetime.now(timezone.utc).isoformat(),
     },
-    extra_entries=extra_entries,
 )
 TELEMETRY.merge_summary_metadata(
     {

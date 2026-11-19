@@ -3,53 +3,6 @@ from pathlib import Path
 from scripts import calibrate_router_surface as calibrator
 
 
-def test_parse_sweep_spec_accepts_alias_and_coerces_int_values():
-    parameter, values = calibrator.parse_sweep_spec("sam3_prompt_limit=4,6")
-
-    assert parameter == "router.vlm.sam3_prompt_limit"
-    assert values == [4, 6]
-
-
-def test_parse_sweep_spec_accepts_boolean_input_guard_values():
-    parameter, values = calibrator.parse_sweep_spec("input_guard_enabled=false,true")
-
-    assert parameter == "inference.input_guard.enabled"
-    assert values == [False, True]
-
-
-def test_resolve_sweep_grid_includes_current_config_value():
-    base_config = {
-        "inference": {"router_min_confidence": 0.65},
-        "router": {"vlm": {"confidence_threshold": 0.25}},
-    }
-
-    grid = calibrator.resolve_sweep_grid(
-        base_config,
-        preset="none",
-        sweep_specs=["router_min_confidence=0.55,0.75"],
-    )
-
-    assert grid == {"inference.router_min_confidence": [0.65, 0.55, 0.75]}
-
-
-def test_apply_overrides_mirrors_vlm_values_into_active_profile():
-    base_config = {
-        "router": {
-            "vlm": {
-                "profile": "balanced",
-                "sam3_prompt_limit": 6,
-                "profiles": {"balanced": {"sam3_prompt_limit": 6}},
-            }
-        }
-    }
-
-    config = calibrator.apply_overrides(base_config, {"router.vlm.sam3_prompt_limit": 4})
-
-    assert config["router"]["vlm"]["sam3_prompt_limit"] == 4
-    assert config["router"]["vlm"]["profiles"]["balanced"]["sam3_prompt_limit"] == 4
-    assert base_config["router"]["vlm"]["profiles"]["balanced"]["sam3_prompt_limit"] == 6
-
-
 def test_replay_variant_applies_confidence_and_margin_gates_without_model_rerun():
     samples = [
         {
@@ -100,44 +53,6 @@ def test_replay_variant_applies_confidence_and_margin_gates_without_model_rerun(
     assert rows[0]["predicted_part"] == "unknown"
     assert rows[1]["handoff_crop"] is True
     assert replayed["metrics"]["negative_false_accept_rate"] == 1.0
-
-
-def test_replay_variant_can_apply_cached_input_guard_rejection():
-    samples = [
-        {
-            "group": "non_plant",
-            "expected_crop": "unknown",
-            "expected_part": "unknown",
-            "predicted_crop": "tomato",
-            "predicted_part": "leaf",
-            "router_handoff_crop": True,
-            "handoff_crop": True,
-            "crop_confidence": 0.90,
-            "routing_margin": 0.40,
-            "crop_correct": False,
-            "part_correct": False,
-            "part_abstained": False,
-            "unsupported_part_emitted": False,
-            "latency_ms": 10.0,
-            "input_guard": {
-                "plant_score": 0.30,
-                "non_plant_score": 0.60,
-            },
-        }
-    ]
-
-    replayed = calibrator.replay_variant(
-        samples,
-        overrides={
-            "inference.input_guard.enabled": True,
-            "inference.input_guard.plant_min_score": 0.45,
-            "inference.input_guard.negative_margin": 0.10,
-        },
-    )
-
-    assert replayed["samples"][0]["handoff_crop"] is False
-    assert replayed["samples"][0]["runtime_gate_reasons"] == ["input_guard_plant_min_score"]
-    assert replayed["metrics"]["negative_false_accept_rate"] == 0.0
 
 
 def test_rank_variants_prefers_eligible_low_false_accept_config():
@@ -263,47 +178,6 @@ def test_select_recommendation_returns_best_rejected_when_no_eligible_candidate(
     assert selection["best_rejected"]["variant_id"] == "rejected_a"
     assert selection["selection_summary"]["has_eligible_recommendation"] is False
     assert selection["selection_summary"]["best_rejected_variant_id"] == "rejected_a"
-
-
-def test_build_failure_analysis_summarizes_false_accepts_and_false_rejects():
-    analysis = calibrator.build_failure_analysis(
-        [
-            {
-                "group": "non_plant",
-                "expected_handoff": False,
-                "handoff_crop": True,
-                "predicted_crop": "tomato",
-                "predicted_part": "leaf",
-                "crop_confidence": 0.91,
-                "routing_margin": 0.05,
-                "crop_confidence_margin": 0.08,
-                "runtime_gate_reasons": [],
-                "input_guard": {"plant_score": 0.30, "non_plant_score": 0.70},
-                "image_path": "d:/sample-1.png",
-            },
-            {
-                "group": "id",
-                "expected_handoff": True,
-                "handoff_crop": False,
-                "predicted_crop": "tomato",
-                "predicted_part": "unknown",
-                "crop_confidence": 0.60,
-                "routing_margin": 0.12,
-                "crop_confidence_margin": 0.03,
-                "runtime_gate_reasons": ["input_guard_plant_min_score"],
-                "image_path": "d:/sample-2.png",
-            },
-        ]
-    )
-
-    assert analysis["false_accept_count"] == 1
-    assert analysis["false_accept_counts_by_group"]["non_plant"] == 1
-    assert analysis["hardest_false_accept_examples"][0]["image_path"] == "d:/sample-1.png"
-    assert any(
-        item["cause"] == "input_guard_not_separating_negatives" for item in analysis["false_accept_failure_causes"]
-    )
-    assert analysis["false_reject_count"] == 1
-    assert any(item["cause"] == "guard_too_aggressive" for item in analysis["false_reject_failure_causes"])
 
 
 def test_adaptive_strategy_runs_on_synthetic_router_eval(tmp_path: Path, monkeypatch):

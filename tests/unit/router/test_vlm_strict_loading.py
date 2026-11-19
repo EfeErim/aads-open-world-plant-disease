@@ -70,7 +70,11 @@ class _FakeModel:
         return _FakeModelOutput(self._logits)
 
 
-def test_strict_loading_requires_model_ids():
+def _failing_loader(runtime):
+    raise ValueError('bad sam id')
+
+
+def test_strict_loading_requires_model_ids(monkeypatch):
     config = {
         'vlm_enabled': True,
         'vlm_strict_model_loading': True,
@@ -90,13 +94,13 @@ def test_strict_loading_requires_model_ids():
     with patch('torch.cuda.is_available', return_value=False):
         pipeline = RouterPipeline(config=config, device='cpu')
 
-    pipeline._load_sam = lambda model_id: (_ for _ in ()).throw(ValueError('bad sam id'))
+    monkeypatch.setattr('src.router.vlm_stages.load_sam3_bioclip25', _failing_loader)
 
     with pytest.raises(RuntimeError, match='Strict VLM model loading failed'):
         pipeline.load_models()
 
 
-def test_non_strict_loading_falls_back_to_placeholder():
+def test_non_strict_loading_falls_back_to_placeholder(monkeypatch):
     """Test that non-strict mode leaves models as None instead of using placeholder strings."""
     config = {
         'vlm_enabled': True,
@@ -117,7 +121,7 @@ def test_non_strict_loading_falls_back_to_placeholder():
     with patch('torch.cuda.is_available', return_value=False):
         pipeline = RouterPipeline(config=config, device='cpu')
 
-    pipeline._load_sam = lambda model_id: (_ for _ in ()).throw(ValueError('bad sam id'))
+    monkeypatch.setattr('src.router.vlm_stages.load_sam3_bioclip25', _failing_loader)
 
     pipeline.load_models()
 
@@ -147,7 +151,7 @@ def test_analyzer_resolution_is_sam3_only():
     assert pipeline._resolve_analyzer_for_active_pipeline() == pipeline._analyze_image_sam3
 
 
-def test_strict_loading_with_models_runs_inference():
+def test_strict_loading_with_models_runs_inference(monkeypatch):
     config = {
         'vlm_enabled': True,
         'vlm_strict_model_loading': True,
@@ -161,8 +165,8 @@ def test_strict_loading_with_models_runs_inference():
                 'strict_model_loading': True,
                 'model_source': 'huggingface',
                 'model_ids': {
-                    'sam': 'fake-sam',
-                    'bioclip': 'fake-bioclip'
+                    'sam': 'test/sam',
+                    'bioclip': 'test/bioclip'
                 },
                 'crop_labels': ['tomato', 'potato'],
                 'part_labels': ['leaf', 'whole']
@@ -176,8 +180,11 @@ def test_strict_loading_with_models_runs_inference():
     with patch('torch.cuda.is_available', return_value=False):
         pipeline = RouterPipeline(config=config, device='cpu')
 
-    pipeline._load_sam = lambda model_id: (fake_processor, fake_model)
-    pipeline._load_clip_like_model = lambda model_id: (fake_processor, fake_model)
+    def _fake_loader(runtime):
+        runtime._set_sam_runtime(fake_processor, fake_model, backend='sam3')
+        runtime._set_bioclip_runtime(fake_processor, fake_model, backend='transformers')
+
+    monkeypatch.setattr('src.router.vlm_stages.load_sam3_bioclip25', _fake_loader)
     pipeline.load_models()
 
     pipeline._analyze_image_sam3 = lambda pil_image, image_size, confidence_threshold=0.8, max_detections=None: {

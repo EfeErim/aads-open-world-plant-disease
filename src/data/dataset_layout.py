@@ -255,19 +255,19 @@ def resolve_dataset_directory_from_parent(
             )
     elif len(dataset_names) == 1:
         selected_name = dataset_names[0]
-        print_fn(f"[DATASET] Only one {prompt_label} bulundu, otomatik secildi: {selected_name}")
+        print_fn(f"[DATASET] Only one {prompt_label} found, selected automatically: {selected_name}")
     else:
-        print_fn(f"[DATASET] Kullanilabilir {prompt_label} secenekleri ({parent}):")
+        print_fn(f"[DATASET] Available {prompt_label} options ({parent}):")
         for index, dataset_name in enumerate(dataset_names, start=1):
             print_fn(f"  [{index}] {dataset_name}")
         raw_choice = str(
             input_fn(
-                f"Kullanilacak {prompt_label} icin isim ya da numara girin "
+                f"Enter the name or number of the {prompt_label} to use "
                 f"(1-{len(dataset_names)}): "
             )
         ).strip()
         if not raw_choice:
-            raise RuntimeError(f"{prompt_label.capitalize()} secimi bos birakilamaz.")
+            raise RuntimeError(f"{prompt_label.capitalize()} selection cannot be empty.")
         return resolve_dataset_directory_from_parent(
             dataset_parent=parent,
             requested_name=raw_choice,
@@ -314,7 +314,7 @@ def resolve_repo_dataset_directory(
             raise RuntimeError(
                 f"Requested {prompt_label} '{requested}' does not match the explicit dataset root {selected_path}."
             )
-        print_fn(f"[DATASET] Repo {prompt_label} dogrudan kok olarak kullaniliyor: {selected_path}")
+        print_fn(f"[DATASET] Using repo {prompt_label} directly as the root: {selected_path}")
         return selected_name, selected_path, [selected_name]
 
     dataset_dirs = list_repo_dataset_directories(
@@ -347,22 +347,22 @@ def resolve_repo_dataset_directory(
             )
     elif len(dataset_names) == 1:
         selected_name = dataset_names[0]
-        print_fn(f"[DATASET] Only one repo {prompt_label} bulundu, otomatik secildi: {selected_name}")
+        print_fn(f"[DATASET] Only one repo {prompt_label} found, selected automatically: {selected_name}")
     else:
         print_fn(
-            f"[DATASET] Repo icinde kullanilabilir {prompt_label} secenekleri "
+            f"[DATASET] Available {prompt_label} options in the repo "
             f"({resolve_repo_relative_root(repo_root=repo_root, repo_relative_root=repo_relative_root)}):"
         )
         for index, dataset_name in enumerate(dataset_names, start=1):
             print_fn(f"  [{index}] {dataset_name}")
         raw_choice = str(
             input_fn(
-                f"Kullanilacak {prompt_label} icin isim ya da numara girin "
+                f"Enter the name or number of the {prompt_label} to use "
                 f"(1-{len(dataset_names)}): "
             )
         ).strip()
         if not raw_choice:
-            raise RuntimeError(f"{prompt_label.capitalize()} secimi bos birakilamaz.")
+            raise RuntimeError(f"{prompt_label.capitalize()} selection cannot be empty.")
         return resolve_repo_dataset_directory(
             repo_root=repo_root,
             repo_relative_root=repo_relative_root,

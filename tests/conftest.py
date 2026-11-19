@@ -1,4 +1,4 @@
-"""Minimal pytest configuration for the slimmed repo."""
+"""Keep pytest temp files under .runtime_tmp and gate integration tests behind --runintegration."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ os.environ.setdefault("WANDB_DIR", str(RUNTIME_TMP_ROOT / "wandb"))
 def pytest_configure(config):
     if not getattr(config.option, "basetemp", None):
         config.option.basetemp = str(RUNTIME_TMP_ROOT / f"p{uuid.uuid4().hex[:6]}")
-    config.addinivalue_line("markers", "integration: integration tests")
 
 
 def pytest_addoption(parser):

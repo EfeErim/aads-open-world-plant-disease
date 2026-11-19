@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from src.colab.router_adapter_inference import ensure_router_ready
 from src.router.prototype_reconciler import reconcile_router_handoff
+from src.shared.coercion import coerce_float
 from src.workflows.inference import InferenceWorkflow
 
 StatusPrinter = Callable[[str], None]
@@ -44,13 +45,6 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     if text in {"0", "false", "no", "off"}:
         return False
     return default
-
-
-def _coerce_float(value: Any, *, default: float) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
 
 
 def _norm_label(value: Any) -> str:
@@ -205,15 +199,15 @@ def resolve_router_adapter_handoff(
                     router_status=status,
                     prototype_payload=resolved_prototype_path,
                     registry_payload=resolved_registry_path,
-                    min_similarity=_coerce_float(
+                    min_similarity=coerce_float(
                         prototype_min_similarity or os.getenv("AADS_PROTOTYPE_MIN_SIMILARITY"),
                         default=0.20,
                     ),
-                    min_margin=_coerce_float(
+                    min_margin=coerce_float(
                         prototype_min_margin or os.getenv("AADS_PROTOTYPE_MIN_MARGIN"),
                         default=0.03,
                     ),
-                    min_negative_gap=_coerce_float(
+                    min_negative_gap=coerce_float(
                         prototype_min_negative_gap or os.getenv("AADS_PROTOTYPE_MIN_NEGATIVE_GAP"),
                         default=0.0,
                     ),

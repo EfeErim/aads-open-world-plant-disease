@@ -10,13 +10,8 @@ try:
 except Exception:
     repo_root_for_update_check = None
 
-def _build_repo_access_url(base: str, params: dict) -> str:
-    """Build repo access URL for freshness check (validation contract)."""
-    from urllib.parse import urlencode
-    return f"{base}?{urlencode(params)}"
-
-# [KONTROL] Ilk hucre: Bootstrap kontrati
+# [CHECK] First cell: bootstrap contract
 from scripts.notebook_helpers.nb2_training_helpers import run_bootstrap_notebook_nb2
 BOOTSTRAP = run_bootstrap_notebook_nb2()
 ROOT = BOOTSTRAP["ROOT"]
-print("[SONRAKI] Parametre ve adapter secimi hucresine gecin; model erisimi ayrica access-check hucresinde dogrulanacak.")
+print("[NEXT] Go to the parameter and adapter selection cell; model access is verified separately in the access-check cell.")

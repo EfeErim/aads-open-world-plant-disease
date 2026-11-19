@@ -131,17 +131,17 @@ def import_dataset_from_drive(source_path: str | Path, destination_path: str | P
     import shutil
     if target.exists():
         if not overwrite:
-            print(f"[DRIVE] Hedef klasor zaten var: {target}")
+            print(f"[DRIVE] Target folder already exists: {target}")
             return False
         shutil.rmtree(target)
-        print(f"[DRIVE] Mevcut klasor silindi: {target}")
+        print(f"[DRIVE] Removed existing folder: {target}")
     try:
-        print(f"[DRIVE] Kopyalama baslatildi: {source_path} -> {target}")
+        print(f"[DRIVE] Copy started: {source_path} -> {target}")
         shutil.copytree(source_path, target, dirs_exist_ok=False)
-        print(f"[DRIVE] Basariyla kopyalandi: {target}")
+        print(f"[DRIVE] Copied: {target}")
         return True
     except Exception as e:
-        print(f"[DRIVE] Kopyalama basarisiz: {e}")
+        print(f"[DRIVE] Copy failed: {e}")
         return False
 
 
@@ -178,7 +178,7 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
     def _resolve_repo_dataset_root(repo_relative_root: str) -> Path:
         raw_repo_relative_root = str(repo_relative_root or "").strip()
         if not raw_repo_relative_root:
-            raise RuntimeError("REPO_DATASET_ROOT bos birakilamaz.")
+            raise RuntimeError("REPO_DATASET_ROOT cannot be empty.")
         candidate = Path(raw_repo_relative_root).expanduser()
         if candidate.is_absolute():
             resolved = candidate.resolve()
@@ -187,7 +187,7 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
             try:
                 resolved.relative_to(ROOT)
             except ValueError as exc:
-                raise RuntimeError(f"REPO_DATASET_ROOT repo disina cikamaz: {raw_repo_relative_root}") from exc
+                raise RuntimeError(f"REPO_DATASET_ROOT must stay inside the repo: {raw_repo_relative_root}") from exc
         return resolved
 
     def _normalize_token(value: str) -> str:
@@ -226,7 +226,7 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
 
     dataset_source = "drive" if IMPORT_FROM_DRIVE and str(DRIVE_DATASET_PATH).strip() and str(DATASET_ROOT).strip() else "repo"
     if not dataset_root.is_dir():
-        raise RuntimeError(f"Dataset root bulunamadi: {dataset_root}")
+        raise RuntimeError(f"Dataset root not found: {dataset_root}")
 
     layout_report = evaluate_layout(root=dataset_root)
     print(
@@ -237,19 +237,19 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
     )
 
     if not layout_report.get("ok"):
-        raise RuntimeError("Dataset layout hatali: " + "; ".join(layout_report.get("errors", [])))
+        raise RuntimeError("Invalid dataset layout: " + "; ".join(layout_report.get("errors", [])))
 
     inferred_crop_name, inferred_part_name = _infer_crop_and_part_from_dataset_name(dataset_name)
     resolved_crop_name = str(CROP_NAME).strip()
     if not resolved_crop_name:
-        resolved_crop_name = _prompt_text(f"CROP_NAME bos. '{dataset_name}' dataseti icin crop anahtarini girin [{inferred_crop_name or 'crop'}]: ", inferred_crop_name or "crop")
+        resolved_crop_name = _prompt_text(f"CROP_NAME is empty. Enter the crop key for dataset '{dataset_name}' [{inferred_crop_name or 'crop'}]: ", inferred_crop_name or "crop")
 
     resolved_part_name = str(PART_NAME).strip()
     if not resolved_part_name:
-        resolved_part_name = _prompt_text(f"PART_NAME bos. '{dataset_name}' dataseti icin part adini girin [{inferred_part_name or 'unspecified'}]: ", inferred_part_name or "unspecified") or "unspecified"
+        resolved_part_name = _prompt_text(f"PART_NAME is empty. Enter the part name for dataset '{dataset_name}' [{inferred_part_name or 'unspecified'}]: ", inferred_part_name or "unspecified") or "unspecified"
     CROP_NAME = resolved_crop_name
     PART_NAME = resolved_part_name
-    print(f"[PREP] secilen crop={CROP_NAME} part={PART_NAME}")
+    print(f"[PREP] selected crop={CROP_NAME} part={PART_NAME}")
 
     artifact_root = Path(PREP_ARTIFACT_ROOT).expanduser()
     if not artifact_root.is_absolute():
@@ -293,15 +293,15 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
     print(format_human_review_packet(review_packet))
 
     if summary.get("blocking_issues"):
-        print("[PREP] Bloklayici sorunlar:")
+        print("[PREP] Blocking issues:")
         for item in summary["blocking_issues"]:
             print(f"  - {item}")
     if INTERACTIVE_AUDIT_REVIEW and review_packet.get("pause_recommended"):
-        print("[PREP] Human review gate: artifactleri inceleyebilirsiniz; Enter guvenli varsayilani uygular.")
-        if not _prompt_yes_no("Audit gate kararini kabul edip guvenli varsayilan routing ile devam edilsin mi?", True):
+        print("[PREP] Human review gate: review the artifacts; Enter applies the safe default.")
+        if not _prompt_yes_no("Accept the audit gate decision and continue with the safe default routing?", True):
             STATE["human_review_stop_requested"] = True
             STATE["human_review_approved"] = False
-            raise RuntimeError("Human review tarafindan durduruldu. Artifactleri inceleyip hucreyi yeniden calistirin.")
+            raise RuntimeError("Stopped by human review. Review the artifacts and re-run the cell.")
         STATE["human_review_stop_requested"] = False
         STATE["human_review_approved"] = True
     else:
@@ -326,11 +326,11 @@ def run_prepare_dataset(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, 
     from src.data.grouped_runtime_dataset_preparation import build_prepared_dataset_key
 
     if not STATE.get("validated") or STATE.get("audit_summary") is None:
-        raise RuntimeError("Once dataset audit hucresini calistirin.")
+        raise RuntimeError("Run the dataset audit cell first.")
 
     summary = STATE["audit_summary"]
     if not PREPARE_DATASET_FROM_REPORTS:
-        print("[PREP] PREPARE_DATASET_FROM_REPORTS=False. Audit raporlari pasif birakildi.")
+        print("[PREP] PREPARE_DATASET_FROM_REPORTS=False. Audit reports left unused.")
     else:
         dataset_key = build_prepared_dataset_key(CROP_NAME, PART_NAME)
         prepared_class_root_parent = Path(PREPARED_CLASS_ROOT).expanduser()
@@ -340,7 +340,7 @@ def run_prepare_dataset(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, 
         prepared_artifact_root = STATE["artifact_root"].parent / f"{STATE['artifact_root'].name}_prepared"
         prep_counts = dict(summary.get("summary", {}))
 
-        print("[PREP] Rapor tabanli hazirlik ozeti:")
+        print("[PREP] Report-based preparation summary:")
         print(f"  dataset_key={dataset_key} total_images={prep_counts.get('total_images', 0)} cross_class_conflicts={prep_counts.get('cross_class_conflicts', 0)} same_class_high_risk_clusters={prep_counts.get('same_class_high_risk_clusters', 0)}")
         print(f"  source_dataset_root={STATE['dataset_root']}")
         print(f"  source_artifact_root={STATE['artifact_root']}")
@@ -376,7 +376,7 @@ def run_prepare_dataset(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, 
         summary = STATE["audit_summary"]
 
         print(f"[PREP] prepared_runtime_ready={prep_result.get('prepared_runtime_ready')} dataset_key={prep_result.get('dataset_key')} prepared_class_root={STATE['dataset_root']}")
-        print(f"[PREP] Hazirlik sonrasi artifact_root={STATE['artifact_root']}")
+        print(f"[PREP] Post-preparation artifact_root={STATE['artifact_root']}")
 
         TELEMETRY.update_latest({
             "phase": "data_prep_prepared",
@@ -416,13 +416,13 @@ def run_materialize_runtime_dataset(
     )
 
     if not STATE.get("validated") or STATE.get("audit_summary") is None:
-        raise RuntimeError("Once dataset audit hucresini calistirin.")
+        raise RuntimeError("Run the dataset audit cell first.")
 
     def _resolve_optional_ood_root() -> Path | None:
         explicit_ood_root = str(OOD_ROOT).strip()
         requested_ood_dataset = str(OOD_DATASET_NAME).strip()
         if explicit_ood_root and requested_ood_dataset:
-            raise RuntimeError("OOD_ROOT ve OOD_DATASET_NAME ayni anda kullanilamaz.")
+            raise RuntimeError("OOD_ROOT and OOD_DATASET_NAME cannot be used together.")
         if explicit_ood_root:
             resolved_ood_root = Path(explicit_ood_root).expanduser()
             if not resolved_ood_root.is_absolute():
@@ -444,7 +444,7 @@ def run_materialize_runtime_dataset(
         if not ASK_FOR_OOD_ROOT:
             STATE["selected_ood_dataset_name"] = None
             return None
-        requested_ood_root = str(input("OOD klasoru yolu girin (bos birak: OOD kopyalama): ")).strip()
+        requested_ood_root = str(input("Enter the OOD folder path (leave empty to skip copying OOD): ")).strip()
         if requested_ood_root:
             resolved_ood_root = Path(requested_ood_root).expanduser()
             if not resolved_ood_root.is_absolute():
@@ -460,7 +460,7 @@ def run_materialize_runtime_dataset(
         counts = dict(summary.get("summary", {}) or {})
         blocking_issues = list(summary.get("blocking_issues") or [])
         lines = [
-            "Audit sonucu bloklayici sorunlar iceriyor. Materyalizasyon once temizlenmeli.",
+            "The audit found blocking issues. Resolve them before materialization.",
             f"artifact_root={artifact_root}",
             f"dataset_root={STATE.get('dataset_root')}",
             (
@@ -516,16 +516,16 @@ def run_materialize_runtime_dataset(
 
     summary = STATE["audit_summary"]
     if STATE.get("human_review_stop_requested"):
-        raise RuntimeError("Human review durdurma karari aktif. Audit artifactlerini inceleyip audit/prep hucrelerini yeniden calistirin.")
+        raise RuntimeError("Human review stop decision is active. Review the audit artifacts and re-run the audit/prep cells.")
     review_packet = STATE.get("human_review_packet")
     if INTERACTIVE_AUDIT_REVIEW and review_packet and review_packet.get("pause_recommended") and not STATE.get("human_review_approved"):
         print(format_human_review_packet(review_packet))
-        if not _prompt_yes_no("Bu audit karariyla runtime dataset materyalize edilsin mi?", True):
+        if not _prompt_yes_no("Materialize the runtime dataset with this audit decision?", True):
             STATE["human_review_stop_requested"] = True
-            raise RuntimeError("Runtime materialization human review tarafindan durduruldu.")
+            raise RuntimeError("Runtime materialization stopped by human review.")
         STATE["human_review_approved"] = True
     if not MATERIALIZE_AFTER_REVIEW:
-        print("[PREP] MATERIALIZE_AFTER_REVIEW=False. Audit dosyalari incelemeye hazir.")
+        print("[PREP] MATERIALIZE_AFTER_REVIEW=False. Audit files are ready for review.")
     else:
         if not summary.get("runtime_ready"):
             raise RuntimeError(_format_runtime_blockers(summary, Path(STATE["artifact_root"])))
@@ -548,7 +548,7 @@ def run_materialize_runtime_dataset(
 
         STATE["runtime_dataset_root"] = runtime_dataset_root
         STATE["resolved_ood_root"] = str(ood_root) if ood_root is not None else ""
-        print(f"[PREP] Hazir runtime dataset su klasore yazildi: {runtime_dataset_root / dataset_key}")
+        print(f"[PREP] Runtime dataset written to: {runtime_dataset_root / dataset_key}")
 
         TELEMETRY.update_latest({
             "phase": "data_prep_materialized",

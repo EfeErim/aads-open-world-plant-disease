@@ -5,22 +5,15 @@ from __future__ import annotations
 import json
 import random
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from src.shared.coercion import utc_now_iso
 from src.shared.hash_utils import sha256_file
 
 OOD_SPLIT_MANIFEST_SCHEMA = "v1_real_ood_split_manifest"
 FROZEN_OOD_SPLIT_MANIFEST_SCHEMA = "v2_family_frozen_ood_split_manifest"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-
 
 
 def _image_paths(root: Path) -> List[Path]:
@@ -255,7 +248,7 @@ def ensure_ood_split_manifest(
 
     manifest = {
         "schema_version": OOD_SPLIT_MANIFEST_SCHEMA,
-        "created_at": _utc_now_iso(),
+        "created_at": utc_now_iso(),
         "source_root": str(root.resolve()),
         "split_policy": "phase1_real_ood_dev_test_if_large_enough",
         "assignment_policy": assignment_policy,

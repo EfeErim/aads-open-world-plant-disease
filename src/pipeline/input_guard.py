@@ -13,7 +13,8 @@ from src.router.prompt_clip_utils import (
     canonicalize_crop_prompt_label,
     crop_prompt_aliases,
 )
-from src.router.runtime_surface import coerce_bool, coerce_float
+from src.router.runtime_surface import coerce_bool
+from src.shared.coercion import coerce_float
 from src.shared.contracts import InputGuardAnalysis
 
 METHOD_NAME = "bioclip_prompt_plantness"

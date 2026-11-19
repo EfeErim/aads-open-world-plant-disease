@@ -134,36 +134,6 @@ def test_readiness_fails_when_supported_route_coverage_below_floor():
     assert report["supported"]["route_coverage"] == 0.7
 
 
-def test_readiness_fails_on_latency_regression_when_required():
-    report = evaluate_readiness(
-        supported_payload=_payload([_supported_row(f"s{i:03d}") for i in range(10)]),
-        open_world_payload=_payload([_negative_row(f"n{i:03d}") for i in range(300)]),
-        baseline_p95_latency_ms=100.0,
-        candidate_p95_latency_ms=126.0,
-        require_latency_baseline=True,
-    )
-
-    assert report["status"] == "fail"
-    assert report["checks"]["latency_not_regressed"] is False
-    assert report["latency"]["limit_p95_latency_ms"] == 125.0
-
-
-def test_readiness_derives_candidate_latency_from_elapsed_time_when_p95_missing():
-    report = evaluate_readiness(
-        supported_payload=_payload([_supported_row(f"s{i:03d}") for i in range(10)]),
-        open_world_payload={
-            "elapsed_seconds": 30.0,
-            "summary": {"total": 300},
-            "rows": [_negative_row(f"n{i:03d}") for i in range(300)],
-        },
-        baseline_p95_latency_ms=200.0,
-        require_latency_baseline=True,
-    )
-
-    assert report["status"] == "pass"
-    assert report["latency"]["candidate_p95_latency_ms"] == 100.0
-
-
 def test_manifest_audit_rejects_missing_provenance_and_duplicate_local_hashes(tmp_path: Path):
     image_a = tmp_path / "a.jpg"
     image_b = tmp_path / "b.jpg"

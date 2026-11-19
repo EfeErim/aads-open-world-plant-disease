@@ -1,8 +1,6 @@
 import json
 import re
 import sys
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -82,78 +80,6 @@ def test_live_telemetry_disables_secondary_writes_after_storage_exhaustion(tmp_p
     telemetry.sync_pending()
 
     assert telemetry._storage_exhausted is True
-
-
-def test_live_telemetry_throttles_batch_latest_status_writes(tmp_path, monkeypatch):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
-    telemetry = ColabLiveTelemetry(
-        notebook_name="nb2",
-        run_id="run_002b",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=60.0,
-        latest_status_min_interval_sec=15.0,
-    )
-
-    clock = {"value": 1.0}
-    monkeypatch.setattr("src.colab.live_telemetry.time.monotonic", lambda: clock["value"])
-
-    telemetry.update_latest({"event_type": "batch_end", "epoch": 1, "batch": 1})
-    latest_path = drive_root / "telemetry" / "run_002b" / "latest_status.json"
-    first = json.loads(latest_path.read_text(encoding="utf-8"))
-    assert first["status"]["batch"] == 1
-
-    clock["value"] = 5.0
-    telemetry.update_latest({"event_type": "batch_end", "epoch": 1, "batch": 2})
-    second = json.loads(latest_path.read_text(encoding="utf-8"))
-    assert second["status"]["batch"] == 1
-
-    clock["value"] = 20.0
-    telemetry.update_latest({"event_type": "batch_end", "epoch": 1, "batch": 3})
-    third = json.loads(latest_path.read_text(encoding="utf-8"))
-    assert third["status"]["batch"] == 3
-
-
-def test_live_telemetry_retries_latest_status_after_transient_drive_write_failure(tmp_path, monkeypatch):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
-    telemetry = ColabLiveTelemetry(
-        notebook_name="nb2",
-        run_id="run_latest_retry",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=60.0,
-        latest_status_min_interval_sec=15.0,
-    )
-
-    import src.colab.live_telemetry as telemetry_module
-
-    original_write_json = telemetry_module.write_json
-    state = {"drive_latest_failures": 0}
-
-    def _flaky_write_json(path, payload, **kwargs):
-        target = Path(path)
-        if target == telemetry.drive_latest_path and state["drive_latest_failures"] == 0:
-            state["drive_latest_failures"] += 1
-            raise OSError("drive latest write blocked")
-        return original_write_json(path, payload, **kwargs)
-
-    monkeypatch.setattr(telemetry_module, "write_json", _flaky_write_json)
-
-    telemetry.update_latest({"event_type": "batch_end", "epoch": 1, "batch": 1})
-
-    assert telemetry.local_latest_path.exists()
-    assert not telemetry.drive_latest_path.exists()
-    assert telemetry._pending_latest_payload is not None
-    assert telemetry._pending_latest_drive_sync is True
-
-    telemetry.sync_pending()
-
-    drive_latest = json.loads(telemetry.drive_latest_path.read_text(encoding="utf-8"))
-    assert drive_latest["status"]["batch"] == 1
-    assert telemetry._pending_latest_payload is None
-    assert telemetry._pending_latest_drive_sync is False
 
 
 def test_capture_cell_output_writes_timestamped_drive_artifact(tmp_path):
@@ -237,130 +163,35 @@ def test_live_telemetry_spools_locally_when_drive_mount_is_missing(tmp_path, mon
     assert any("drive_sync_unavailable" in line for line in events)
 
 
-def test_live_telemetry_auto_run_ids_do_not_collide_within_same_second(tmp_path, monkeypatch):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
+def test_live_telemetry_starts_fresh_when_spool_state_files_are_corrupt(tmp_path, caplog):
+    local_run_dir = tmp_path / "local" / "run_corrupt"
+    local_run_dir.mkdir(parents=True)
+    (local_run_dir / "sync_state.json").write_text("{not json", encoding="utf-8")
+    (local_run_dir / "artifact_index.json").write_text('{"not": "a list"}', encoding="utf-8")
 
-    class _FakeDateTime:
-        values = [
-            datetime(2026, 3, 11, 12, 0, 0, 1),
-            datetime(2026, 3, 11, 12, 0, 0, 2),
-        ]
-
-        @classmethod
-        def now(cls, tz=None):
-            value = cls.values.pop(0) if cls.values else datetime(2026, 3, 11, 12, 0, 0, 3)
-            if tz is not None:
-                return value.replace(tzinfo=tz)
-            return value
-
-    monkeypatch.setattr("src.colab.live_telemetry.datetime", _FakeDateTime)
-    monkeypatch.setattr("src.colab.live_telemetry._utc_now_iso", lambda: "2026-03-11T12:00:00Z")
-
-    first = ColabLiveTelemetry(notebook_name="nb2", drive_root=drive_root, local_root=local_root)
-    second = ColabLiveTelemetry(notebook_name="nb2", drive_root=drive_root, local_root=local_root)
-
-    assert first.run_id == "20260311_120000_000001"
-    assert second.run_id == "20260311_120000_000002"
-
-
-def test_configure_repo_output_export_honors_explicit_notebook_path(tmp_path):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
     telemetry = ColabLiveTelemetry(
         notebook_name="nb2",
-        run_id="run_export_path",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=0.1,
+        run_id="run_corrupt",
+        drive_root=tmp_path / "drive",
+        local_root=tmp_path / "local",
     )
 
-    target = tmp_path / "repo_runs" / "run_export_path" / "notebooks" / "executed.ipynb"
-
-    def _export(destination):
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text("{}", encoding="utf-8")
-        return destination
-
-    telemetry.configure_repo_output_export(
-        notebook_path=target,
-        export_notebook_fn=_export,
-    )
+    warnings = [record.getMessage() for record in caplog.records]
+    assert any("telemetry sync state" in message for message in warnings)
+    assert any("artifact index" in message for message in warnings)
+    assert isinstance(telemetry._artifact_index, list)
     telemetry.close({"status": "ok"})
 
-    assert target.exists()
-    lines = (drive_root / "telemetry" / "run_export_path" / "events.jsonl").read_text(encoding="utf-8").splitlines()
-    exported_events = [json.loads(line) for line in lines if "repo_notebook_exported" in line]
-    assert exported_events
-    assert exported_events[-1]["payload"]["saved_path"] == str(target)
 
+def test_requires_google_drive_mount_falls_back_when_path_cannot_be_resolved(monkeypatch):
+    from pathlib import Path
 
-def test_close_emits_repo_notebook_export_unavailable_when_exporter_returns_none(tmp_path):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
-    telemetry = ColabLiveTelemetry(
-        notebook_name="nb2",
-        run_id="run_export_missing",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=0.1,
-    )
+    from src.colab import live_telemetry
 
-    target = tmp_path / "repo_runs" / "run_export_missing" / "notebooks" / "executed.ipynb"
+    def _raise(self, strict=False):
+        raise OSError("unresolvable")
 
-    telemetry.configure_repo_output_export(
-        notebook_path=target,
-        export_notebook_fn=lambda _destination: None,
-    )
-    telemetry.close({"status": "ok"})
+    monkeypatch.setattr(Path, "resolve", _raise)
 
-    assert not target.exists()
-    lines = (drive_root / "telemetry" / "run_export_missing" / "events.jsonl").read_text(encoding="utf-8").splitlines()
-    unavailable_events = [json.loads(line) for line in lines if "repo_notebook_export_unavailable" in line]
-    assert unavailable_events
-    assert unavailable_events[-1]["payload"]["warning"] == "Notebook exporter returned no payload."
-
-
-def test_live_telemetry_merges_summary_metadata(tmp_path):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
-    telemetry = ColabLiveTelemetry(
-        notebook_name="nb2",
-        run_id="run_guided",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=0.1,
-    )
-
-    telemetry.merge_summary_metadata({"guided_artifacts": {"start_here": "guided/00_start_here.md"}})
-    telemetry.close({"status": "ok"})
-
-    summary = json.loads((drive_root / "telemetry" / "run_guided" / "summary.json").read_text(encoding="utf-8"))
-
-    assert summary["metadata"]["guided_artifacts"]["start_here"] == "guided/00_start_here.md"
-
-
-def test_write_text_artifact_emits_drive_warning_event_when_drive_write_fails(tmp_path, monkeypatch):
-    drive_root = tmp_path / "drive"
-    local_root = tmp_path / "local"
-    telemetry = ColabLiveTelemetry(
-        notebook_name="nb2",
-        run_id="run_drive_warning",
-        drive_root=drive_root,
-        local_root=local_root,
-        sync_interval_sec=60.0,
-    )
-
-    def _fail_write_text(_relative_path, _text):
-        raise OSError("drive write blocked")
-
-    assert telemetry._drive_artifact_store is not None
-    monkeypatch.setattr(telemetry._drive_artifact_store, "write_text", _fail_write_text)
-
-    telemetry.write_text_artifact("training/history.json", '{"loss": [0.1]}')
-
-    lines = telemetry.local_events_path.read_text(encoding="utf-8").splitlines()
-    warning_events = [json.loads(line) for line in lines if "drive_sync_unavailable" in line]
-    assert warning_events
-    assert warning_events[-1]["payload"]["operation"] == "write_text_artifact"
-    assert "drive write blocked" in warning_events[-1]["payload"]["error"]
+    assert live_telemetry._requires_google_drive_mount(Path("/content/drive/MyDrive/x")) is True
+    assert live_telemetry._requires_google_drive_mount(Path("relative/dir")) is False

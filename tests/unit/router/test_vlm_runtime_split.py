@@ -6,78 +6,8 @@ import torch
 from PIL import Image
 
 from src.router import clip_runtime, sam3_runtime
-from src.router.router_pipeline import RouterPipeline, normalize_sam3_results, sam3_error_result
-from src.router.vlm_stages import analysis_to_batch_item
+from src.router.router_pipeline import RouterPipeline
 
-
-def test_analysis_to_batch_item_uses_first_detection():
-    analysis = {
-        'detections': [
-            {'crop': 'tomato', 'part': 'leaf', 'bbox': [1, 2, 3, 4], 'crop_confidence': 0.91},
-            {'crop': 'potato', 'part': 'stem', 'bbox': [0, 0, 1, 1], 'crop_confidence': 0.12},
-        ]
-    }
-
-    item, conf = analysis_to_batch_item(analysis)
-
-    assert item == {'crop': 'tomato', 'part': 'leaf', 'bbox': [1, 2, 3, 4]}
-    assert conf == 0.91
-
-
-def test_analysis_to_batch_item_defaults_when_missing_detection_keys():
-    analysis = {'detections': [{}]}
-
-    item, conf = analysis_to_batch_item(analysis)
-
-    assert item == {'crop': 'unknown', 'part': 'unknown', 'bbox': [0, 0, 0, 0]}
-    assert conf == 0.0
-
-
-def test_analysis_to_batch_item_defaults_for_empty_or_invalid_payload():
-    item_empty, conf_empty = analysis_to_batch_item({'detections': []})
-    item_invalid, conf_invalid = analysis_to_batch_item(None)
-
-    expected = {'crop': 'unknown', 'part': 'unknown', 'bbox': [0, 0, 0, 0]}
-    assert item_empty == expected
-    assert conf_empty == 0.0
-    assert item_invalid == expected
-    assert conf_invalid == 0.0
-
-class _TensorLike:
-    def __init__(self, shape):
-        self.shape = shape
-
-
-def test_normalize_sam3_results_keeps_non_empty_tensors():
-    results = {
-        'masks': _TensorLike((1, 32, 32)),
-        'boxes': _TensorLike((1, 4)),
-        'scores': _TensorLike((1,)),
-    }
-
-    normalized = normalize_sam3_results(results, empty_tensor_factory=lambda: _TensorLike((0,)))
-
-    assert normalized['masks'] is results['masks']
-    assert normalized['boxes'] is results['boxes']
-    assert normalized['scores'] is results['scores']
-
-
-def test_normalize_sam3_results_returns_empty_lists_for_empty_shapes():
-    results = {
-        'masks': _TensorLike(()),
-        'boxes': _TensorLike(()),
-        'scores': _TensorLike(()),
-    }
-
-    normalized = normalize_sam3_results(results, empty_tensor_factory=lambda: _TensorLike((0,)))
-
-    assert normalized == {'masks': [], 'boxes': [], 'scores': []}
-
-
-def test_sam3_error_result_contains_error_message():
-    err = RuntimeError('boom')
-    payload = sam3_error_result(err)
-    assert payload == {'masks': [], 'boxes': [], 'scores': [], 'error': 'boom'}
 
 class FakeTokenizer:
     def __call__(self, prompts):
@@ -137,27 +67,6 @@ def _attach_open_clip_runtime(pipeline: RouterPipeline) -> FakeOpenClipModel:
         "tokenizer": FakeTokenizer(),
     }
     return model
-
-
-def test_pipeline_parses_string_boolean_taxonomy_flags():
-    pipeline = RouterPipeline(
-        config={
-            "router": {
-                "crop_mapping": {"tomato": {"parts": ["leaf"]}},
-                "vlm": {
-                    "enabled": True,
-                    "use_dynamic_taxonomy": "false",
-                    "strict_taxonomy_loading": "false",
-                    "crop_labels": ["tomato"],
-                    "part_labels": ["leaf"],
-                },
-            },
-        },
-        device="cpu",
-    )
-
-    assert pipeline.use_dynamic_taxonomy is False
-    assert pipeline.strict_taxonomy_loading is False
 
 
 def test_pipeline_keeps_configured_crop_part_surface_when_dynamic_taxonomy_is_enabled(tmp_path):
@@ -309,47 +218,6 @@ def test_clip_score_labels_ensemble_uses_crop_alias_prompts(monkeypatch):
     assert any("tomato leaf" in prompt for prompt in captured_prompts)
 
 
-def test_encode_and_score_batch_returns_zeros_when_non_strict(monkeypatch):
-    pipeline = _build_pipeline()
-    pipeline.bioclip_backend = "transformers"
-    pipeline.bioclip = object()
-    pipeline.bioclip_processor = object()
-    pipeline.strict_scoring_errors = False
-
-    monkeypatch.setattr(
-        clip_runtime,
-        "_score_processor_batch",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
-    )
-
-    output = clip_runtime.encode_and_score_batch(
-        pipeline,
-        [Image.new("RGB", (8, 8), color="green") for _ in range(2)],
-        ["tomato", "potato"],
-    )
-
-    assert tuple(output.shape) == (2, 2)
-    assert float(output.sum().item()) == 0.0
-
-
-def test_clip_score_labels_ensemble_batch_reuses_open_clip_image_embeddings():
-    pipeline = _build_pipeline()
-    model = _attach_open_clip_runtime(pipeline)
-
-    results = clip_runtime.clip_score_labels_ensemble_batch(
-        pipeline,
-        [Image.new("RGB", (8, 8), color="green") for _ in range(3)],
-        ["tomato", "potato"],
-        label_type="crop",
-        num_prompts=2,
-        image_batch_size=8,
-    )
-
-    assert len(results) == 3
-    assert all(result[0] in {"tomato", "potato"} for result in results)
-    assert model.encode_image_calls == 1
-
-
 def test_analyze_image_sam3_delegates_to_runtime_helpers(monkeypatch):
     pipeline = _build_pipeline()
     expected = {"detections": [{"crop": "tomato"}], "image_size": (3, 8, 8)}
@@ -366,22 +234,6 @@ def test_analyze_image_sam3_delegates_to_runtime_helpers(monkeypatch):
     result = pipeline._analyze_image_sam3(Image.new("RGB", (8, 8), color="green"), (3, 8, 8))
 
     assert result == expected
-
-
-def test_build_request_context_parses_string_runtime_booleans():
-    pipeline = _build_pipeline()
-    pipeline.vlm_config["timing_logs_enabled"] = "false"
-    pipeline.vlm_config["sam3_expand_with_supported_parts"] = "false"
-    context = sam3_runtime.build_request_context(
-        pipeline,
-        pil_image=Image.new("RGB", (8, 8), color="green"),
-        image_size=(3, 8, 8),
-        confidence_threshold=0.25,
-        max_detections=7,
-    )
-
-    assert context.timing_logs_enabled is False
-    assert context.sam3_prompts == ("plant",)
 
 
 def test_run_sam3_merges_results_across_prompt_sequence():
@@ -448,7 +300,7 @@ def test_analyze_image_reports_empty_sam3_diagnostics_with_prompt_sequence():
     assert result.message == "No SAM3 instances for prompts=plant,leaf,fruit,whole plant threshold=0.60."
 
 
-def test_route_batch_preserves_order_and_uses_batched_runtime(monkeypatch):
+def test_analyze_batch_result_preserves_order_and_uses_batched_runtime(monkeypatch):
     pipeline = _build_pipeline()
     pipeline.models_loaded = True
     pipeline.actual_pipeline = "sam3"
@@ -470,10 +322,10 @@ def test_route_batch_preserves_order_and_uses_batched_runtime(monkeypatch):
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("per-image path should not run")),
     )
 
-    crops_out, confs = pipeline.route_batch(torch.zeros(3, 3, 8, 8))
+    results = pipeline.analyze_batch_result(torch.zeros(3, 3, 8, 8))
 
-    assert [item["crop"] for item in crops_out] == ["tomato", "potato", "pepper"]
-    assert confs == [0.9, 0.8, 0.7]
+    assert [result.primary_detection.crop for result in results] == ["tomato", "potato", "pepper"]
+    assert [result.primary_detection.crop_confidence for result in results] == [0.9, 0.8, 0.7]
 
 
 def test_analyze_image_uses_config_default_request_options_when_omitted():
@@ -496,53 +348,6 @@ def test_analyze_image_uses_config_default_request_options_when_omitted():
     assert captured == {"confidence_threshold": 0.25, "max_detections": 7}
     assert payload["primary_detection"]["crop"] == "tomato"
     assert payload["detections_count"] == 1
-
-
-def test_process_image_uses_config_default_request_options_when_omitted():
-    pipeline = _build_pipeline()
-    pipeline.models_loaded = True
-    pipeline.actual_pipeline = "sam3"
-
-    captured = {}
-
-    def fake_analyze(pil_image, image_size, confidence_threshold=0.8, max_detections=None):
-        del pil_image, image_size
-        captured["confidence_threshold"] = confidence_threshold
-        captured["max_detections"] = max_detections
-        return {"detections": [{"crop": "tomato", "part": "leaf", "crop_confidence": 0.88}]}
-
-    pipeline._analyze_image_sam3 = fake_analyze
-
-    payload = pipeline.process_image(torch.zeros(3, 8, 8))
-
-    assert captured == {"confidence_threshold": 0.25, "max_detections": 7}
-    assert payload["analysis"]["primary_detection"]["crop"] == "tomato"
-    assert payload["scenario"] == "diagnostic_scouting"
-
-
-def test_route_batch_uses_config_default_request_options_when_omitted(monkeypatch):
-    pipeline = _build_pipeline()
-    pipeline.models_loaded = True
-    pipeline.actual_pipeline = "sam3"
-
-    captured = {}
-
-    def fake_batch(runtime, batch, confidence_threshold=0.8, max_detections=None):
-        del runtime, batch
-        captured["confidence_threshold"] = confidence_threshold
-        captured["max_detections"] = max_detections
-        return [
-            {"detections": [{"crop": "tomato", "part": "leaf", "crop_confidence": 0.9}]},
-            {"detections": [{"crop": "potato", "part": "leaf", "crop_confidence": 0.8}]},
-        ]
-
-    monkeypatch.setattr(sam3_runtime, "analyze_sam3_batch", fake_batch)
-
-    crops_out, confs = pipeline.route_batch(torch.zeros(2, 3, 8, 8))
-
-    assert captured == {"confidence_threshold": 0.25, "max_detections": 7}
-    assert [item["crop"] for item in crops_out] == ["tomato", "potato"]
-    assert confs == [0.9, 0.8]
 
 
 def test_analyze_sam3_batch_reduces_sam_call_count_under_batch_support(monkeypatch):
@@ -608,30 +413,3 @@ def test_analyze_sam3_batch_falls_back_per_chunk_when_batched_sam3_is_unsupporte
     assert len(results) == 3
     assert [result["detections"][0]["crop"] for result in results] == ["crop_0", "crop_1", "crop_2"]
     assert calls["count"] == 3
-
-
-def test_set_runtime_profile_refreshes_profile_derived_controls():
-    pipeline = RouterPipeline(
-        config={
-            "router": {
-                "vlm": {
-                    "enabled": True,
-                    "open_set_enabled": False,
-                    "profiles": {
-                        "disabled": {"enabled": False},
-                        "open_set": {"open_set_enabled": True},
-                    },
-                },
-            },
-        },
-        device="cpu",
-    )
-
-    assert pipeline.enabled is True
-    assert pipeline.open_set_enabled is False
-
-    assert pipeline.set_runtime_profile("disabled") is True
-    assert pipeline.enabled is False
-
-    assert pipeline.set_runtime_profile("open_set") is True
-    assert pipeline.open_set_enabled is True

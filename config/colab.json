@@ -1,29 +1,16 @@
 {
   "colab": {
-    "enabled": true,
-    "drive_mount_path": "/content/drive/MyDrive/aads_ulora",
-    "workspace_path": "/content/aads_ulora",
-    "paths": {
-      "data_dir": "./data",
-      "models_dir": "./models",
-      "checkpoints_dir": "./checkpoints",
-      "outputs_dir": "./outputs"
-    },
     "training": {
-      "pin_memory": true,
       "num_workers": 12,
       "validation_every_n_epochs": 2,
       "checkpoint_every_n_steps": 250,
-      "checkpoint_on_exception": true,
-      "stdout_progress_batch_interval": 12,
-      "stdout_progress_min_interval_sec": 15.0
+      "stdout_progress_batch_interval": 12
     }
   },
   "training": {
     "continual": {
       "num_epochs": 12,
       "batch_size": 96,
-      "enable_torch_compile": false,
       "learning_rate": 0.0002,
       "strict_model_loading": true,
       "deterministic": false,

@@ -12,10 +12,10 @@ from typing import Any
 
 import torch
 
-from scripts.demo_checklist.handoff_cache import (  # noqa: E402
+from scripts.demo_checklist.handoff_cache import (
     _handoff_cache_key as _build_handoff_cache_key,
 )
-from scripts.demo_checklist.handoff_cache import (  # noqa: E402
+from scripts.demo_checklist.handoff_cache import (
     _path_fingerprint as _build_path_fingerprint,
 )
 

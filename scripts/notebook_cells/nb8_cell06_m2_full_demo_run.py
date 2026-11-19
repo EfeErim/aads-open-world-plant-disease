@@ -1,6 +1,5 @@
 # Auto-extracted from colab_notebooks/8_auto_router_adapter_prediction.ipynb cell 6.
 # Keep notebook execute-only cells thin; edit behavior here.
-# ruff: noqa: F821
 
 import json
 import shutil

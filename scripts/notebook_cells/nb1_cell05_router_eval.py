@@ -40,4 +40,4 @@ if RUN_ROUTER_EVAL and ROUTER_EVAL_ROOT:
             f"abstention={float(recommended.get('abstention_rate', 0.0) or 0.0):.4f}"
         )
 else:
-    print('[EVAL] RUN_ROUTER_EVAL kapali veya ROUTER_EVAL_ROOT ayarlanmadi.')
+    print('[EVAL] RUN_ROUTER_EVAL is off or ROUTER_EVAL_ROOT is not set.')

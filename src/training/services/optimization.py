@@ -7,10 +7,11 @@ import json
 import math
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, cast
 
 import numpy as np
+
+from src.shared.coercion import optional_float, utc_now_iso
 
 JsonDict = Dict[str, Any]
 
@@ -30,21 +31,8 @@ DEFAULT_OBJECTIVE_WEIGHTS: JsonDict = {
 }
 
 
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
 def _canonical_text(value: Any) -> str:
     return str(value or "").strip().lower()
-
-
-def _coerce_float(value: Any) -> Optional[float]:
-    if value in (None, ""):
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _objective_direction(
@@ -148,7 +136,7 @@ class SearchDimension:
 
     def encode(self, value: Any) -> Optional[List[float]]:
         if self.kind == "float":
-            raw = _coerce_float(value)
+            raw = optional_float(value)
             if raw is None or self.low is None or self.high is None:
                 return None
             if self.high <= self.low:
@@ -163,7 +151,7 @@ class SearchDimension:
                 scaled = (raw - self.low) / max(1e-12, self.high - self.low)
             return [float(min(1.0, max(0.0, scaled)))]
         if self.kind == "int":
-            raw = _coerce_float(value)
+            raw = optional_float(value)
             if raw is None or self.low is None or self.high is None:
                 return None
             if self.high <= self.low:
@@ -211,8 +199,8 @@ def resolve_search_space(
                 raise ValueError(f"Categorical search-space parameter {name} must define values.")
             dimensions.append(SearchDimension(name=name, kind=kind, values=values))
             continue
-        low = _coerce_float(raw_dimension.get("low"))
-        high = _coerce_float(raw_dimension.get("high"))
+        low = optional_float(raw_dimension.get("low"))
+        high = optional_float(raw_dimension.get("high"))
         if low is None or high is None:
             raise ValueError(f"Search-space parameter {name} must define numeric low/high bounds.")
         dimensions.append(
@@ -351,7 +339,7 @@ def _collect_trial_objective_values(
     resolved: JsonDict = {}
     missing: List[str] = []
     for name in objective_names:
-        value = _coerce_float(objectives_payload.get(name))
+        value = optional_float(objectives_payload.get(name))
         if value is None:
             missing.append(name)
         else:
@@ -460,7 +448,7 @@ def build_pareto_frontiers(
 
     return {
         "schema_version": PARETO_FRONTIERS_SCHEMA,
-        "generated_at": _utc_now_iso(),
+        "generated_at": utc_now_iso(),
         "optimization_profile": OPTIMIZATION_PROFILE,
         "objective_names": list(objective_names),
         "cohort_count": len(cohorts),
@@ -637,7 +625,7 @@ def _generate_anchor_neighbors(
             high = float(dimension.high)
             if high <= low:
                 continue
-            base = _coerce_float(current_value)
+            base = optional_float(current_value)
             if base is None:
                 base = (low + high) / 2.0
             if dimension.scale == "log" and low > 0.0 and high > 0.0 and base > 0.0:
@@ -665,7 +653,7 @@ def _generate_anchor_neighbors(
             step = max(1, int(dimension.step or 1))
             low_i = int(dimension.low)
             high_i = int(dimension.high)
-            base = _coerce_float(current_value)
+            base = optional_float(current_value)
             if base is None:
                 base_i = int((low_i + high_i) // 2)
             else:
@@ -908,7 +896,7 @@ def build_bayesian_recommendations(
 
     return {
         "schema_version": BAYESIAN_RECOMMENDATIONS_SCHEMA,
-        "generated_at": _utc_now_iso(),
+        "generated_at": utc_now_iso(),
         "optimization_profile": OPTIMIZATION_PROFILE,
         "objective_names": list(objective_names),
         "objective_weights": weights,

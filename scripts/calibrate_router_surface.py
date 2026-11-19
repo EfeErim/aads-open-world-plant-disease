@@ -36,7 +36,6 @@ from src.router.surface_calibration import (  # noqa: E402
     build_failure_analysis,
     is_replay_safe_overrides,
     iter_sweep_overrides,
-    parse_sweep_spec,  # noqa: F401 - compatibility export
     replay_variant as _replay_variant,
     resolve_sweep_grid,
     select_recommendation,

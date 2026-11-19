@@ -10,64 +10,48 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license = {text = "MIT"}
 authors = [{name = "Efe Erim"}]
-keywords = ["computer-vision", "lora", "open-set-recognition", "ood", "plant-disease"]
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "ruff==0.17.3"]
 
 [project.urls]
-Homepage = "https://github.com/EfeErim/aads-open-world-plant-disease"
 Repository = "https://github.com/EfeErim/aads-open-world-plant-disease"
-Releases = "https://github.com/EfeErim/aads-open-world-plant-disease/releases"
 
 [project.scripts]
 aads = "src.app.cli:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.packages.find]
 include = ["src*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 cache_dir = ".runtime_tmp/.pytest_cache"
-norecursedirs = ["__pycache__", ".runtime_tmp", ".venv"]
 addopts = ["--tb=short", "--strict-markers"]
 markers = ["integration: integration tests"]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
 
 [tool.ruff]
-target-version = "py311"
 line-length = 120
 exclude = [".runtime_tmp", ".venv", "colab_notebooks"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
-extend-select = ["BLE", "S110", "S112", "TID251"]
+select = ["E", "F", "I", "BLE", "S110", "S112", "TID251", "RUF100"]
 ignore = ["E501"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "scripts".msg = "Application code must not depend on scripts."
 "tests".msg = "Application code must not depend on tests."
-"experiments".msg = "Application code must not depend on research workflows."
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/**" = ["TID251"]
 "tests/**" = ["TID251"]
-# Colab/notebook layer: cells report failures to the notebook user and keep the runtime alive, so broad
-# excepts are allowed here during the transition. Everything else must catch specific exception types.
+# Notebook-facing code reports failures to the notebook user and keeps the runtime alive, so broad
+# excepts are allowed here. Everything else must catch specific exception types.
 "scripts/notebook_cells/*.py" = ["E402", "F401", "F821", "I001", "BLE001"]
 "scripts/notebook_helpers/*.py" = ["BLE001"]
 "src/colab/*.py" = ["BLE001"]
 "scripts/evaluate_router_surface.py" = ["E402"]
-
-[tool.mypy]
-python_version = "3.11"
-ignore_missing_imports = true
-exclude = ["^colab_notebooks/", "^\\.runtime_tmp/", "^tests/"]
-
-[tool.coverage.run]
-branch = true
-source = ["src"]
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = true

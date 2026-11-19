@@ -13,16 +13,16 @@ with TELEMETRY.capture_cell_output("Cell 5: Engine Init"):
         return normalized.strip("_")
 
     if not STATE.get("validated"):
-        raise RuntimeError("Once dataset validation hucresini calistirin.")
+        raise RuntimeError("Run the dataset validation cell first.")
 
     effective_params = dict(STATE.get("effective_params") or {})
     if not effective_params:
-        raise RuntimeError("Effective notebook parameters cozulmedi. Once dataset validation hucresini yeniden calistirin.")
+        raise RuntimeError("Effective notebook parameters are not resolved. Re-run the dataset validation cell first.")
 
     crop_name = CROP_NAME.strip().lower()
     dataset_key = str(STATE.get("runtime_dataset_key") or DATASET_NAME).strip()
     if not dataset_key:
-        raise RuntimeError("Runtime dataset key cozulmedi. Once dataset validation hucresini calistirin.")
+        raise RuntimeError("Runtime dataset key is not resolved. Run the dataset validation cell first.")
     runtime_data_root = Path(STATE.get("runtime_dataset_root") or RUNTIME_DATASET_ROOT).expanduser()
     if not runtime_data_root.is_absolute():
         runtime_data_root = (ROOT / runtime_data_root).resolve()
@@ -237,7 +237,7 @@ with TELEMETRY.capture_cell_output("Cell 5: Engine Init"):
     STATE["continual_config"] = continual_cfg
 
     trainable = sum(parameter.numel() for parameter in adapter.parameters() if parameter.requires_grad)
-    print(f"[ENGINE] Hazir. trainable_params={trainable:,}  classes={len(final_class_names)}")
+    print(f"[ENGINE] Ready. trainable_params={trainable:,}  classes={len(final_class_names)}")
     TELEMETRY.update_latest(
         {
             "phase": "engine_ready",

@@ -51,8 +51,8 @@ try:
 except Exception:
     repo_root_for_update_check = None
 
-# [KONTROL] Ilk hucre: Bootstrap kontrati
-from scripts.notebook_helpers.nb3_smoke_test_helpers import (  # noqa: E402
+# [CHECK] First cell: bootstrap contract
+from scripts.notebook_helpers.nb3_smoke_test_helpers import (
     run_access_check_nb3,
     run_bootstrap_notebook_nb3,
 )

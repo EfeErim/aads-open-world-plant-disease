@@ -1,26 +1,7 @@
 from src.router.pipeline_flow_utils import (
-    build_process_image_response,
     resolve_active_analyzer,
     resolve_effective_max_detections,
 )
-
-
-def test_build_process_image_response_uses_diagnostic_scouting_when_enabled():
-    analysis = {'detections': []}
-    payload = build_process_image_response(analysis, enabled=True)
-
-    assert payload == {
-        'status': 'ok',
-        'scenario': 'diagnostic_scouting',
-        'analysis': analysis,
-    }
-
-
-def test_build_process_image_response_uses_single_detection_when_disabled():
-    analysis = {'detections': [{'crop': 'tomato'}]}
-    payload = build_process_image_response(analysis, enabled=False)
-
-    assert payload['scenario'] == 'single_detection'
 
 
 def test_resolve_active_analyzer_normalizes_pipeline_name():

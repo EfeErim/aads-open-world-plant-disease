@@ -3,7 +3,7 @@
 
 with TELEMETRY.capture_cell_output("Cell 5b: OOD Config Verify"):
     if "continual_config" not in STATE:
-        raise RuntimeError("Once Cell 5 calistirilmali ki continual_config hazir olsun.")
+        raise RuntimeError("Run Cell 5 first so continual_config is ready.")
 
     effective_params = dict(STATE.get("effective_params") or {})
     resolved_ood_cfg = dict(STATE["continual_config"].get("ood", {}))
@@ -37,4 +37,4 @@ with TELEMETRY.capture_cell_output("Cell 5b: OOD Config Verify"):
     if mismatches:
         raise RuntimeError("OOD config mismatch:\n - " + "\n - ".join(mismatches))
 
-    print("[VERIFY][OOD] OK: cozulmus OOD ayari istenen parametrelerle eslesiyor.")
+    print("[VERIFY][OOD] OK: resolved OOD config matches the requested parameters.")

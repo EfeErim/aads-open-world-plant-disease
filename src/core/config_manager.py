@@ -57,9 +57,9 @@ def _raise_if_unsupported_config_keys_present(payload: Dict[str, Any]) -> None:
             )
 
 
-def migrate_config_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    migrated = dict(payload or {})
-    version = _read_config_schema_version(migrated)
+def validate_config_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    validated = dict(payload or {})
+    version = _read_config_schema_version(validated)
     if version > CURRENT_CONFIG_SCHEMA_VERSION:
         raise ValueError(
             f"Unsupported {CONFIG_SCHEMA_VERSION_KEY}={version}; "
@@ -71,9 +71,9 @@ def migrate_config_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
             f"Config files must declare {CONFIG_SCHEMA_VERSION_KEY}={CURRENT_CONFIG_SCHEMA_VERSION}."
         )
 
-    _raise_if_unsupported_config_keys_present(migrated)
-    migrated[CONFIG_SCHEMA_VERSION_KEY] = CURRENT_CONFIG_SCHEMA_VERSION
-    return migrated
+    _raise_if_unsupported_config_keys_present(validated)
+    validated[CONFIG_SCHEMA_VERSION_KEY] = CURRENT_CONFIG_SCHEMA_VERSION
+    return validated
 
 #!/usr/bin/env python3
 
@@ -105,7 +105,7 @@ class ConfigurationManager:
         if self._base_config is not None:
             return copy.deepcopy(self._base_config)
         base_path = self.config_dir / "base.json"
-        self._base_config = migrate_config_payload(_read_json(base_path))
+        self._base_config = validate_config_payload(_read_json(base_path))
         return copy.deepcopy(self._base_config)
 
     def _available_environment_names(self) -> list[str]:
@@ -133,7 +133,7 @@ class ConfigurationManager:
                 f"Config environment '{env}' was not found under {self.config_dir}. "
                 f"Available environments: {available_text}"
             )
-        return migrate_config_payload(_read_json(env_path))
+        return validate_config_payload(_read_json(env_path))
 
     def load_all_configs(self) -> Dict[str, Any]:
         if self._merged_config is not None:
@@ -145,15 +145,6 @@ class ConfigurationManager:
         merged[CONFIG_SCHEMA_VERSION_KEY] = CURRENT_CONFIG_SCHEMA_VERSION
         self._merged_config = merged
         return copy.deepcopy(merged)
-
-    def get_config(self, key: str, default: Any = None) -> Any:
-        config = self._merged_config if self._merged_config is not None else self.load_all_configs()
-        current: Any = config
-        for part in key.split("."):
-            if not isinstance(current, dict) or part not in current:
-                return default
-            current = current[part]
-        return current
 
     def _normalize_training_surface(self, merged_config: Dict[str, Any]) -> None:
         training = merged_config.setdefault("training", {})

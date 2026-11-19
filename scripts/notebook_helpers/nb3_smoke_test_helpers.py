@@ -13,7 +13,7 @@ def run_bootstrap_notebook_nb3(notebook_name: str = "Notebook 3: Adapter Smoke T
         # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
         pass
 
-    # [KONTROL] Ilk hucre: Bootstrap kontrati
+    # [CHECK] First cell: bootstrap contract
     BOOTSTRAP = bootstrap_notebook(
         notebook_name=notebook_name,
         require_colab_requirements=require_colab_requirements,
@@ -29,14 +29,10 @@ def run_access_check_nb3(ROOT: Path, print_fn=print) -> dict:
     from src.core.config_manager import get_config
 
     CONFIG = get_config(environment='colab')
-    MODEL_IDS = [
-        str(m).strip()
-        for m in [
-            CONFIG.get('training', {}).get('continual', {}).get('base_model_id', ''),
-            CONFIG.get('router', {}).get('vlm', {}).get('model_ids', {}).get('fallback', ''),
-        ]
-        if str(m).strip()
-    ]
+    backbone_model = str(
+        dict(CONFIG.get('training', {}).get('continual', {})).get('backbone', {}).get('model_name', '')
+    ).strip()
+    MODEL_IDS = [backbone_model] if backbone_model else []
 
     print_fn("[SETUP] Checking model access for smoke test...")
     ACCESS_REPORT = collect_notebook_access_report(repo_root=ROOT, hf_model_ids=MODEL_IDS)

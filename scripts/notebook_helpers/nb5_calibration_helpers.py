@@ -79,7 +79,7 @@ def run_bootstrap_notebook_nb5(notebook_name: str = "Notebook 5: Router Calibrat
         # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
         pass
 
-    # [KONTROL] Ilk hucre: Bootstrap kontrati
+    # [CHECK] First cell: bootstrap contract
     BOOTSTRAP = bootstrap_notebook(
         notebook_name=notebook_name,
         require_colab_requirements=require_colab_requirements,

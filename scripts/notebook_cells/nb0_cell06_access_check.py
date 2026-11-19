@@ -1,7 +1,7 @@
 # Auto-extracted from colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb cell 6.
 # Keep notebook execute-only cells thin; edit behavior here.
 
-with TELEMETRY.capture_cell_output("Cell 3b: Guncelleme ve Erisim Kontrolu"):
+with TELEMETRY.capture_cell_output("Cell 3b: Update and Access Check"):
     from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
     from scripts.notebook_helpers.nb0_grouped_dataset_prep_helpers import DatasetReleaseAccessBlocker
     from src.pipeline.adapter_release import resolve_token

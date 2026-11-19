@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from src.colab.checkpointing import TrainingCheckpointManager
@@ -116,3 +117,23 @@ def test_checkpoint_manager_skips_prune_when_best_manifest_is_corrupt(tmp_path: 
     assert Path(first["path"]).exists()
     assert Path(third["path"]).exists()
     assert len(rows) == 3
+
+
+def test_checkpoint_manager_prune_tolerates_already_removed_paths(tmp_path: Path):
+    manager = TrainingCheckpointManager(tmp_path / "telemetry" / "run_4", retention=1)
+    first = manager.save_checkpoint(
+        adapter=_FakeAdapter(),
+        session=_FakeSession(),
+        run_id="run_4",
+        reason="epoch_end",
+    )
+    shutil.rmtree(first["path"])
+
+    manager.save_checkpoint(
+        adapter=_FakeAdapter(),
+        session=_FakeSession(),
+        run_id="run_4",
+        reason="epoch_end",
+    )
+
+    assert len(manager._load_index()) == 1

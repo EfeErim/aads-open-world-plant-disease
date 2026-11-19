@@ -5,18 +5,16 @@ from __future__ import annotations
 
 import logging
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.shared.coercion import utc_now_iso
 from src.shared.contracts import CheckpointRecord
 from src.shared.json_utils import read_json, write_json
 
 logger = logging.getLogger(__name__)
 
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 class TrainingCheckpointManager:
     """Manage rolling training checkpoints with latest/best manifests."""
@@ -85,7 +83,7 @@ class TrainingCheckpointManager:
         record = CheckpointRecord(
             name=name,
             path=checkpoint_dir,
-            created_at=_utc_now_iso(),
+            created_at=utc_now_iso(),
             global_step=global_step,
             epoch=epoch,
             reason=str(reason),
@@ -140,13 +138,9 @@ class TrainingCheckpointManager:
 
         for row in removed:
             row_path = Path(str(row.get("path", "")))
-            try:
-                if row_path.exists():
-                    shutil.rmtree(row_path, ignore_errors=True)
-            except Exception:
-                import logging
-                logging.exception('Unhandled exception')
-                raise
+            if row_path.exists():
+                shutil.rmtree(row_path, ignore_errors=True)
+            if row_path.exists():
                 logger.warning("Failed to prune checkpoint path: %s", row_path)
         self._store_index(kept)
 

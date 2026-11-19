@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from src.shared.artifacts import ArtifactStore
+from src.shared.artifacts import ArtifactStore, copy_to_telemetry, ensure_artifact_dir
+from src.shared.coercion import optional_float, utc_now_iso
 from src.shared.json_utils import nested_dict as _nested_dict
 from src.shared.json_utils import read_json
 
@@ -18,16 +18,6 @@ EXPERIMENT_MANIFEST_SCHEMA = "v1_training_experiment_manifest"
 OPTIMIZATION_RECORD_SCHEMA = "v1_training_optimization_record"
 OPTIMIZATION_PROFILE = "accuracy_plus_ood"
 TRAINING_ENGINE = "continual_sd_lora"
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _copy_to_telemetry(telemetry: Any, source_path: Path, relative_path: str) -> None:
-    if telemetry is None or not hasattr(telemetry, "copy_artifact_file"):
-        return
-    telemetry.copy_artifact_file(source_path, relative_path)
 
 
 def _merge_registry_to_telemetry(telemetry: Any, registry_result: Mapping[str, Any] | None) -> None:
@@ -44,15 +34,7 @@ def _merge_registry_to_telemetry(telemetry: Any, registry_result: Mapping[str, A
     for key, relative_path in paths.items():
         source_path = registry_result.get(key)
         if source_path:
-            _copy_to_telemetry(telemetry, Path(str(source_path)), relative_path)
-
-
-def _artifact_dir(root: Path, *parts: str) -> Path:
-    target = Path(root)
-    for part in parts:
-        target /= part
-    target.mkdir(parents=True, exist_ok=True)
-    return target
+            copy_to_telemetry(telemetry, Path(str(source_path)), relative_path)
 
 
 def _resolve_runs_root_for_registry(artifact_root: str | Path) -> Path | None:
@@ -114,15 +96,6 @@ def _coerce_int(value: Any) -> Optional[int]:
         return None
     try:
         return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _coerce_float(value: Any) -> Optional[float]:
-    if value in (None, ""):
-        return None
-    try:
-        return float(value)
     except (TypeError, ValueError):
         return None
 
@@ -317,7 +290,7 @@ def build_experiment_manifest(
     manifest_oe = dict(dataset_manifest.get("oe", {})) if isinstance(dataset_manifest.get("oe"), Mapping) else {}
     model_family = _resolve_model_family(run_context)
     surface = _resolve_surface(summary, explicit_surface)
-    resolved_created_at = str(_value_from_candidates(created_at, summary.get("created_at"), run_context.get("created_at")) or _utc_now_iso())
+    resolved_created_at = str(_value_from_candidates(created_at, summary.get("created_at"), run_context.get("created_at")) or utc_now_iso())
     payload: JsonDict = {
         "schema_version": EXPERIMENT_MANIFEST_SCHEMA,
         "record_quality": str(record_quality),
@@ -369,24 +342,24 @@ def build_experiment_manifest(
 
 
 _NOTEBOOK_PARAMETER_MAP: dict[str, tuple[str, Any]] = {
-    "learning_rate": ("training.learning_rate", _coerce_float),
-    "weight_decay": ("training.weight_decay", _coerce_float),
+    "learning_rate": ("training.learning_rate", optional_float),
+    "weight_decay": ("training.weight_decay", optional_float),
     "epochs": ("training.num_epochs", _coerce_int),
     "batch_size": ("training.batch_size", _coerce_int),
     "lora_r": ("training.adapter.lora_r", _coerce_int),
     "lora_alpha": ("training.adapter.lora_alpha", _coerce_int),
-    "lora_dropout": ("training.adapter.lora_dropout", _coerce_float),
-    "fusion_dropout": ("training.fusion.dropout", _coerce_float),
-    "ood_factor": ("training.ood.threshold_factor", _coerce_float),
-    "oe_loss_weight": ("training.ood.oe_loss_weight", _coerce_float),
+    "lora_dropout": ("training.adapter.lora_dropout", optional_float),
+    "fusion_dropout": ("training.fusion.dropout", optional_float),
+    "ood_factor": ("training.ood.threshold_factor", optional_float),
+    "oe_loss_weight": ("training.ood.oe_loss_weight", optional_float),
     "react_enabled": ("training.ood.react_enabled", _coerce_bool),
-    "react_percentile": ("training.ood.react_percentile", _coerce_float),
+    "react_percentile": ("training.ood.react_percentile", optional_float),
     "loss_name": ("training.optimization.loss_name", str),
-    "logitnorm_tau": ("training.optimization.logitnorm_tau", _coerce_float),
-    "label_smoothing": ("training.optimization.label_smoothing", _coerce_float),
+    "logitnorm_tau": ("training.optimization.logitnorm_tau", optional_float),
+    "label_smoothing": ("training.optimization.label_smoothing", optional_float),
     "grad_accum_steps": ("training.optimization.grad_accumulation_steps", _coerce_int),
     "mixed_precision": ("training.optimization.mixed_precision", str),
-    "max_grad_norm": ("training.optimization.max_grad_norm", _coerce_float),
+    "max_grad_norm": ("training.optimization.max_grad_norm", optional_float),
     "augmentation_policy": ("training.data.augmentation_policy", str),
     "randaugment_num_ops": ("training.data.randaugment_num_ops", _coerce_int),
     "randaugment_magnitude": ("training.data.randaugment_magnitude", _coerce_int),
@@ -394,7 +367,7 @@ _NOTEBOOK_PARAMETER_MAP: dict[str, tuple[str, Any]] = {
     "classifier_rebalance_enabled": ("training.classifier_rebalance.enabled", _coerce_bool),
     "classifier_rebalance_logit_adjustment_tau": (
         "training.classifier_rebalance.logit_adjustment_tau",
-        _coerce_float,
+        optional_float,
     ),
 }
 
@@ -432,53 +405,53 @@ def _extract_parameter_block(
     data_cfg = _nested_dict(training_cfg, "data")
     sampler_runtime = _nested_dict(run_context, "training_runtime", "train_sampler")
     parameters: JsonDict = {
-        "training.learning_rate": _coerce_float(training_cfg.get("learning_rate")),
-        "training.weight_decay": _coerce_float(training_cfg.get("weight_decay")),
+        "training.learning_rate": optional_float(training_cfg.get("learning_rate")),
+        "training.weight_decay": optional_float(training_cfg.get("weight_decay")),
         "training.num_epochs": _coerce_int(training_cfg.get("num_epochs")),
         "training.batch_size": _coerce_int(training_cfg.get("batch_size")),
         "training.seed": _coerce_int(training_cfg.get("seed")),
         "training.adapter.lora_r": _coerce_int(adapter_cfg.get("lora_r")),
         "training.adapter.lora_alpha": _coerce_int(adapter_cfg.get("lora_alpha")),
-        "training.adapter.lora_dropout": _coerce_float(adapter_cfg.get("lora_dropout")),
+        "training.adapter.lora_dropout": optional_float(adapter_cfg.get("lora_dropout")),
         "training.fusion.layers": list(fusion_cfg.get("layers", [])) if isinstance(fusion_cfg.get("layers"), list) else [],
         "training.fusion.output_dim": _coerce_int(fusion_cfg.get("output_dim")),
-        "training.fusion.dropout": _coerce_float(fusion_cfg.get("dropout")),
+        "training.fusion.dropout": optional_float(fusion_cfg.get("dropout")),
         "training.fusion.gating": fusion_cfg.get("gating"),
         "training.optimization.loss_name": optimization_cfg.get("loss_name"),
-        "training.optimization.logitnorm_tau": _coerce_float(optimization_cfg.get("logitnorm_tau")),
-        "training.optimization.label_smoothing": _coerce_float(optimization_cfg.get("label_smoothing")),
+        "training.optimization.logitnorm_tau": optional_float(optimization_cfg.get("logitnorm_tau")),
+        "training.optimization.label_smoothing": optional_float(optimization_cfg.get("label_smoothing")),
         "training.optimization.grad_accumulation_steps": _coerce_int(optimization_cfg.get("grad_accumulation_steps")),
         "training.optimization.mixed_precision": optimization_cfg.get("mixed_precision"),
-        "training.optimization.max_grad_norm": _coerce_float(optimization_cfg.get("max_grad_norm")),
+        "training.optimization.max_grad_norm": optional_float(optimization_cfg.get("max_grad_norm")),
         "training.optimization.scheduler.name": scheduler_cfg.get("name"),
-        "training.optimization.scheduler.warmup_ratio": _coerce_float(scheduler_cfg.get("warmup_ratio")),
-        "training.optimization.scheduler.min_lr": _coerce_float(scheduler_cfg.get("min_lr")),
+        "training.optimization.scheduler.warmup_ratio": optional_float(scheduler_cfg.get("warmup_ratio")),
+        "training.optimization.scheduler.min_lr": optional_float(scheduler_cfg.get("min_lr")),
         "training.optimization.scheduler.step_on": scheduler_cfg.get("step_on"),
-        "training.ood.threshold_factor": _coerce_float(ood_cfg.get("threshold_factor")),
+        "training.ood.threshold_factor": optional_float(ood_cfg.get("threshold_factor")),
         "training.ood.primary_score_method": ood_cfg.get("primary_score_method"),
         "training.ood.energy_temperature_mode": ood_cfg.get("energy_temperature_mode"),
-        "training.ood.energy_temperature": _coerce_float(ood_cfg.get("energy_temperature")),
+        "training.ood.energy_temperature": optional_float(ood_cfg.get("energy_temperature")),
         "training.ood.react_enabled": bool(ood_cfg.get("react_enabled", False)),
-        "training.ood.react_percentile": _coerce_float(ood_cfg.get("react_percentile")),
+        "training.ood.react_percentile": optional_float(ood_cfg.get("react_percentile")),
         "training.ood.oe_enabled": bool(ood_cfg.get("oe_enabled", False)),
-        "training.ood.oe_loss_weight": _coerce_float(ood_cfg.get("oe_loss_weight")),
+        "training.ood.oe_loss_weight": optional_float(ood_cfg.get("oe_loss_weight")),
         "training.ood.oe_target": ood_cfg.get("oe_target"),
         "training.ood.radial_l2_enabled": bool(ood_cfg.get("radial_l2_enabled", False)),
         "training.ood.radial_beta_range": list(ood_cfg.get("radial_beta_range", [])) if isinstance(ood_cfg.get("radial_beta_range"), list) else [],
         "training.ood.radial_beta_steps": _coerce_int(ood_cfg.get("radial_beta_steps")),
         "training.ood.real_split_enabled": bool(ood_cfg.get("real_split_enabled", False)),
-        "training.ood.real_split_dev_fraction": _coerce_float(ood_cfg.get("real_split_dev_fraction")),
+        "training.ood.real_split_dev_fraction": optional_float(ood_cfg.get("real_split_dev_fraction")),
         "training.ood.real_split_min_per_slice": _coerce_int(ood_cfg.get("real_split_min_per_slice")),
         "training.ood.real_split_min_total": _coerce_int(ood_cfg.get("real_split_min_total")),
         "training.ood.real_split_manifest_name": ood_cfg.get("real_split_manifest_name"),
         "training.ood.enforce_oe_disjoint": bool(ood_cfg.get("enforce_oe_disjoint", True)),
         "training.ood.sure_enabled": bool(ood_cfg.get("sure_enabled", False)),
-        "training.ood.sure_semantic_percentile": _coerce_float(ood_cfg.get("sure_semantic_percentile")),
-        "training.ood.sure_confidence_percentile": _coerce_float(ood_cfg.get("sure_confidence_percentile")),
+        "training.ood.sure_semantic_percentile": optional_float(ood_cfg.get("sure_semantic_percentile")),
+        "training.ood.sure_confidence_percentile": optional_float(ood_cfg.get("sure_confidence_percentile")),
         "training.ood.conformal_enabled": bool(ood_cfg.get("conformal_enabled", False)),
-        "training.ood.conformal_alpha": _coerce_float(ood_cfg.get("conformal_alpha")),
+        "training.ood.conformal_alpha": optional_float(ood_cfg.get("conformal_alpha")),
         "training.ood.conformal_method": ood_cfg.get("conformal_method"),
-        "training.ood.conformal_raps_lambda": _coerce_float(ood_cfg.get("conformal_raps_lambda")),
+        "training.ood.conformal_raps_lambda": optional_float(ood_cfg.get("conformal_raps_lambda")),
         "training.ood.conformal_raps_k_reg": _coerce_int(ood_cfg.get("conformal_raps_k_reg")),
         "training.data.sampler": data_cfg.get("sampler"),
         "training.data.resolved_sampler": sampler_runtime.get("resolved_sampler"),
@@ -488,14 +461,14 @@ def _extract_parameter_block(
         "training.data.augmix_severity": _coerce_int(data_cfg.get("augmix_severity")),
         "training.data.augmix_width": _coerce_int(data_cfg.get("augmix_width")),
         "training.data.augmix_depth": _coerce_int(data_cfg.get("augmix_depth")),
-        "training.data.augmix_alpha": _coerce_float(data_cfg.get("augmix_alpha")),
+        "training.data.augmix_alpha": optional_float(data_cfg.get("augmix_alpha")),
         "training.classifier_rebalance.enabled": bool(classifier_rebalance_cfg.get("enabled", False)),
         "training.classifier_rebalance.epochs": _coerce_int(classifier_rebalance_cfg.get("epochs")),
-        "training.classifier_rebalance.learning_rate": _coerce_float(classifier_rebalance_cfg.get("learning_rate")),
-        "training.classifier_rebalance.weight_decay": _coerce_float(classifier_rebalance_cfg.get("weight_decay")),
+        "training.classifier_rebalance.learning_rate": optional_float(classifier_rebalance_cfg.get("learning_rate")),
+        "training.classifier_rebalance.weight_decay": optional_float(classifier_rebalance_cfg.get("weight_decay")),
         "training.classifier_rebalance.sampler": classifier_rebalance_cfg.get("sampler"),
         "training.classifier_rebalance.objective": classifier_rebalance_cfg.get("objective"),
-        "training.classifier_rebalance.logit_adjustment_tau": _coerce_float(
+        "training.classifier_rebalance.logit_adjustment_tau": optional_float(
             classifier_rebalance_cfg.get("logit_adjustment_tau")
         ),
     }
@@ -509,7 +482,7 @@ def _weighted_f1_from_report(report_dict: Mapping[str, Any] | None) -> Optional[
     weighted_avg = report_dict.get("weighted avg")
     if not isinstance(weighted_avg, Mapping):
         return None
-    return _coerce_float(weighted_avg.get("f1-score"))
+    return optional_float(weighted_avg.get("f1-score"))
 
 
 def _macro_f1_from_report(report_dict: Mapping[str, Any] | None) -> Optional[float]:
@@ -518,7 +491,7 @@ def _macro_f1_from_report(report_dict: Mapping[str, Any] | None) -> Optional[flo
     macro_avg = report_dict.get("macro avg")
     if not isinstance(macro_avg, Mapping):
         return None
-    return _coerce_float(macro_avg.get("f1-score"))
+    return optional_float(macro_avg.get("f1-score"))
 
 
 def _resolve_classification_metrics(
@@ -532,9 +505,9 @@ def _resolve_classification_metrics(
     metric_gate = dict(authoritative.get("metric_gate", {})) if isinstance(authoritative.get("metric_gate"), Mapping) else {}
     gate_metrics = _nested_dict(metric_gate, "metrics")
     report_dict = dict(authoritative.get("report_dict", {})) if isinstance(authoritative.get("report_dict"), Mapping) else {}
-    accuracy = _coerce_float(_value_from_candidates(classification.get("metrics", {}).get("accuracy") if isinstance(classification.get("metrics"), Mapping) else None, gate_metrics.get("accuracy"), report_dict.get("accuracy")))
-    balanced_accuracy = _coerce_float(_value_from_candidates(classification.get("metrics", {}).get("balanced_accuracy") if isinstance(classification.get("metrics"), Mapping) else None, gate_metrics.get("balanced_accuracy")))
-    macro_f1 = _coerce_float(
+    accuracy = optional_float(_value_from_candidates(classification.get("metrics", {}).get("accuracy") if isinstance(classification.get("metrics"), Mapping) else None, gate_metrics.get("accuracy"), report_dict.get("accuracy")))
+    balanced_accuracy = optional_float(_value_from_candidates(classification.get("metrics", {}).get("balanced_accuracy") if isinstance(classification.get("metrics"), Mapping) else None, gate_metrics.get("balanced_accuracy")))
+    macro_f1 = optional_float(
         _value_from_candidates(
             classification.get("metrics", {}).get("macro_f1") if isinstance(classification.get("metrics"), Mapping) else None,
             gate_metrics.get("macro_f1"),
@@ -569,7 +542,7 @@ def build_optimization_record(
     dataset_identity = _resolve_dataset_identity(summary_payload=summary, run_context_payload=run_context)
     model_family = _resolve_model_family(run_context)
     surface = _resolve_surface(summary, explicit_surface)
-    resolved_created_at = str(_value_from_candidates(created_at, summary.get("created_at"), run_context.get("created_at")) or _utc_now_iso())
+    resolved_created_at = str(_value_from_candidates(created_at, summary.get("created_at"), run_context.get("created_at")) or utc_now_iso())
     authoritative_split = str(
         _value_from_candidates(
             _nested_dict(production_readiness, "classification_evidence").get("split_name"),
@@ -602,11 +575,11 @@ def build_optimization_record(
     }
     objectives: JsonDict = {
         **classification_metrics,
-        "ood.ood_auroc": _coerce_float(ood_metrics.get("ood_auroc")),
-        "ood.ood_false_positive_rate": _coerce_float(ood_metrics.get("ood_false_positive_rate")),
-        "ood.sure_ds_f1": _coerce_float(ood_metrics.get("sure_ds_f1")),
-        "ood.conformal_empirical_coverage": _coerce_float(ood_metrics.get("conformal_empirical_coverage")),
-        "ood.conformal_avg_set_size": _coerce_float(ood_metrics.get("conformal_avg_set_size")),
+        "ood.ood_auroc": optional_float(ood_metrics.get("ood_auroc")),
+        "ood.ood_false_positive_rate": optional_float(ood_metrics.get("ood_false_positive_rate")),
+        "ood.sure_ds_f1": optional_float(ood_metrics.get("sure_ds_f1")),
+        "ood.conformal_empirical_coverage": optional_float(ood_metrics.get("conformal_empirical_coverage")),
+        "ood.conformal_avg_set_size": optional_float(ood_metrics.get("conformal_avg_set_size")),
         "ood.ood_samples": _coerce_int(ood_metrics.get("ood_samples")),
         "ood.in_distribution_samples": _coerce_int(ood_metrics.get("in_distribution_samples")),
         "context.class_count": _coerce_int(summary.get("class_count")),
@@ -680,12 +653,12 @@ def persist_traceability_artifacts(
     enable_bayesian_proposals: bool = True,
 ) -> Dict[str, Any]:
     root = Path(artifact_root)
-    training_dir = _artifact_dir(root, "training")
+    training_dir = ensure_artifact_dir(root, "training")
     store = ArtifactStore(training_dir)
     manifest_json = store.write_json("experiment_manifest.json", dict(experiment_manifest))
     optimization_json = store.write_json("optimization_record.json", dict(optimization_record))
-    _copy_to_telemetry(telemetry, manifest_json, "training/experiment_manifest.json")
-    _copy_to_telemetry(telemetry, optimization_json, "training/optimization_record.json")
+    copy_to_telemetry(telemetry, manifest_json, "training/experiment_manifest.json")
+    copy_to_telemetry(telemetry, optimization_json, "training/optimization_record.json")
     result: Dict[str, Any] = {
         "experiment_manifest_json": manifest_json,
         "optimization_record_json": optimization_json,

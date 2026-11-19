@@ -16,6 +16,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, RandomSampler, WeightedRandomSampler
 
 from src.shared.artifacts import ArtifactStore
+from src.shared.coercion import optional_float
 from src.training.services.metrics import (
     compute_plan_metrics,
     load_plan_targets,
@@ -1090,22 +1091,13 @@ def _collect_fold_target_failures(
     return failures
 
 
-def _coerce_float(value: Any) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _build_worst_fold_summary(folds: Sequence[Dict[str, Any]], method_name: str) -> Dict[str, Any]:
     candidates: List[Dict[str, Any]] = []
     for fold_payload in folds:
         method_metrics = dict(fold_payload.get("method_metrics", {})).get(method_name, {})
         metrics = dict(method_metrics or {}) if isinstance(method_metrics, dict) else {}
-        fpr = _coerce_float(metrics.get("ood_false_positive_rate"))
-        auroc = _coerce_float(metrics.get("ood_auroc"))
+        fpr = optional_float(metrics.get("ood_false_positive_rate"))
+        auroc = optional_float(metrics.get("ood_auroc"))
         if fpr is None and auroc is None:
             continue
         candidates.append(

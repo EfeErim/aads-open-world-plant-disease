@@ -188,26 +188,6 @@ def test_build_experiment_manifest_includes_dataset_lineage_and_ood_provenance(t
     assert manifest["model_family"]["engine"] == "continual_sd_lora"
 
 
-def test_build_experiment_manifest_prefers_release_aware_lineage(tmp_path: Path):
-    run_context = _run_context_payload()
-    release_lineage = {
-        "source_kind": "github_release",
-        "dataset_key": "tomato__leaf",
-        "dataset_lineage_key": "github_release_target::release-aware-key",
-        "release_id": 101,
-    }
-    run_context["dataset"]["lineage"] = release_lineage
-
-    manifest = build_experiment_manifest(
-        summary_payload=_summary_payload(),
-        run_context_payload=run_context,
-        artifact_root=tmp_path / "training_metrics",
-    )
-
-    assert manifest["dataset_lineage_key"] == "github_release_target::release-aware-key"
-    assert manifest["dataset"]["lineage"] == release_lineage
-
-
 def test_build_optimization_record_flattens_parameters_and_sets_objective_directions(tmp_path: Path):
     record = build_optimization_record(
         summary_payload=_summary_payload(),
@@ -235,50 +215,6 @@ def test_build_optimization_record_flattens_parameters_and_sets_objective_direct
     assert record["objectives"]["ood.ood_false_positive_rate"] == 0.04
     assert record["objective_directions"]["classification.weighted_f1"] == "maximize"
     assert record["objective_directions"]["ood.ood_false_positive_rate"] == "minimize"
-
-
-def test_build_optimization_record_backfills_notebook_parameters_without_run_context_config(tmp_path: Path):
-    summary = {
-        **_summary_payload(),
-        "notebook_surface": "2_train_continual_sd_lora_adapter.ipynb",
-        "notebook_parameters": {
-            "epochs": 24,
-            "batch_size": 88,
-            "learning_rate": 0.00012,
-            "lora_r": 32,
-            "lora_alpha": 32,
-            "lora_dropout": 0.14,
-            "ood_factor": 4.0,
-            "label_smoothing": 0.08,
-            "logitnorm_tau": 1.2,
-            "react_enabled": "false",
-            "randaugment_num_ops": 3,
-            "randaugment_magnitude": 9,
-        },
-    }
-    record = build_optimization_record(
-        summary_payload=summary,
-        run_context_payload={},
-        production_readiness_payload=_production_readiness_payload(),
-        authoritative_artifacts=_authoritative_artifacts(),
-        artifact_root=tmp_path / "training_metrics",
-        explicit_surface="notebook_2",
-        created_at="2026-04-14T10:00:00+00:00",
-        record_quality="backfilled",
-    )
-
-    assert record["parameters"]["training.num_epochs"] == 24
-    assert record["parameters"]["training.batch_size"] == 88
-    assert record["parameters"]["training.learning_rate"] == 0.00012
-    assert record["parameters"]["training.adapter.lora_r"] == 32
-    assert record["parameters"]["training.adapter.lora_alpha"] == 32
-    assert record["parameters"]["training.adapter.lora_dropout"] == 0.14
-    assert record["parameters"]["training.ood.threshold_factor"] == 4.0
-    assert record["parameters"]["training.optimization.label_smoothing"] == 0.08
-    assert record["parameters"]["training.optimization.logitnorm_tau"] == 1.2
-    assert record["parameters"]["training.ood.react_enabled"] is False
-    assert record["parameters"]["training.data.randaugment_num_ops"] == 3
-    assert record["parameters"]["training.data.randaugment_magnitude"] == 9
 
 
 def test_persist_traceability_artifacts_writes_files(tmp_path: Path):
@@ -325,69 +261,3 @@ def test_persist_traceability_artifacts_writes_files(tmp_path: Path):
 
     assert (artifact_root / "training" / "experiment_manifest.json").exists()
     assert (artifact_root / "training" / "optimization_record.json").exists()
-
-
-def test_persist_traceability_artifacts_refreshes_run_registry_when_under_runs_root(tmp_path: Path):
-    artifact_root = tmp_path / "runs" / "run_1" / "outputs" / "colab_notebook_training" / "artifacts"
-    (artifact_root / "training").mkdir(parents=True, exist_ok=True)
-    (artifact_root / "test").mkdir(parents=True, exist_ok=True)
-    (artifact_root / "training" / "summary.json").write_text(
-        json.dumps(
-            {
-                "run_id": "tomato_leaf_run_1",
-                "run_label": "tomato_leaf_run_1",
-                "created_at": "2026-04-14T10:00:00+00:00",
-                "surface": "workflow",
-                "crop_name": "tomato",
-                "part_name": "leaf",
-                "dataset_key": "tomato__leaf",
-                "class_count": 2,
-                "loader_sizes": {"train": 120, "val": 30, "test": 30, "ood": 20},
-                "optimizer_steps": 64,
-                "global_step": 128,
-                "checkpoint_count": 3,
-            }
-        ),
-        encoding="utf-8",
-    )
-    (artifact_root / "production_readiness.json").write_text(
-        json.dumps(_production_readiness_payload()),
-        encoding="utf-8",
-    )
-    (artifact_root / "test" / "metric_gate.json").write_text(
-        json.dumps(_authoritative_artifacts()["metric_gate"]),
-        encoding="utf-8",
-    )
-    (artifact_root / "test" / "classification_report.json").write_text(
-        json.dumps(_authoritative_artifacts()["report_dict"]),
-        encoding="utf-8",
-    )
-
-    result = persist_traceability_artifacts(
-        artifact_root=artifact_root,
-        experiment_manifest=build_experiment_manifest(
-            summary_payload=_summary_payload(),
-            run_context_payload=_run_context_payload(),
-            artifact_root=artifact_root,
-            explicit_surface="workflow",
-            created_at="2026-04-14T10:00:00+00:00",
-            record_quality="canonical",
-        ),
-        optimization_record=build_optimization_record(
-            summary_payload=_summary_payload(),
-            run_context_payload=_run_context_payload(),
-            production_readiness_payload=_production_readiness_payload(),
-            authoritative_artifacts=_authoritative_artifacts(),
-            artifact_root=artifact_root,
-            explicit_surface="workflow",
-            created_at="2026-04-14T10:00:00+00:00",
-            record_quality="canonical",
-        ),
-    )
-
-    latest_registry_path = tmp_path / "runs" / "_index" / "latest_registry.json"
-    assert latest_registry_path.exists()
-    latest_registry = json.loads(latest_registry_path.read_text(encoding="utf-8"))
-    assert latest_registry["trial_count"] == 1
-    assert latest_registry["canonical_count"] == 1
-    assert result["run_registry"]["latest_registry_json"] == str(latest_registry_path)

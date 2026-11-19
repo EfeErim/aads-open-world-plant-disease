@@ -52,8 +52,8 @@ if not CLONE_TARGET.exists():
 else:
     print('[BOOTSTRAP] clone target already exists.', flush=True)
 
-# [KONTROL] Ilk hucre: Bootstrap kontrati
-from scripts.notebook_helpers.nb5_calibration_helpers import (  # noqa: E402
+# [CHECK] First cell: bootstrap contract
+from scripts.notebook_helpers.nb5_calibration_helpers import (
     run_access_check_nb5,
     run_bootstrap_notebook_nb5,
 )

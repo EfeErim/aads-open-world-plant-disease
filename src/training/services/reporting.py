@@ -12,7 +12,8 @@ import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 
 from src.ood.behavioral_acceptance import build_behavioral_acceptance, build_behavioral_dev_report
-from src.shared.artifacts import ArtifactStore
+from src.shared.artifacts import ArtifactStore, copy_to_telemetry, ensure_artifact_dir
+from src.shared.coercion import optional_float
 from src.shared.csv_utils import write_csv, write_csv_rows_with_order
 from src.training.services.metrics import (
     build_production_readiness,
@@ -92,26 +93,12 @@ class _ValidationComputation:
     cm_norm: Any
 
 
-def _artifact_dir(root: Path, *parts: str) -> Path:
-    target = Path(root)
-    for part in parts:
-        target /= part
-    target.mkdir(parents=True, exist_ok=True)
-    return target
-
-
-def _copy_to_telemetry(telemetry: TelemetryArtifactSink | None, source_path: Path, relative_path: str) -> None:
-    if telemetry is None or not hasattr(telemetry, "copy_artifact_file"):
-        return
-    telemetry.copy_artifact_file(source_path, relative_path)
-
-
 def _copy_artifacts_to_telemetry(
     telemetry: TelemetryArtifactSink | None,
     artifacts: Iterable[tuple[Path, str]],
 ) -> None:
     for source_path, relative_path in artifacts:
-        _copy_to_telemetry(telemetry, source_path, relative_path)
+        copy_to_telemetry(telemetry, source_path, relative_path)
 
 
 
@@ -285,7 +272,7 @@ class BatchMetricsRecorder:
     """Append batch metrics to CSV in buffered chunks."""
 
     def __init__(self, *, artifact_root: Path, flush_interval: int = 64) -> None:
-        training_dir = _artifact_dir(Path(artifact_root), "training")
+        training_dir = ensure_artifact_dir(Path(artifact_root), "training")
         self.output_path = write_csv(training_dir / "batch_metrics.csv", _BATCH_KEYS, [])
         self._flush_interval = max(1, int(flush_interval))
         self._pending_rows: List[List[Any]] = []
@@ -314,15 +301,6 @@ def _resolve_context_metric(value: Any, context: Dict[str, Any], key: str) -> An
     return None if context_value is None else float(context_value)
 
 
-def _coerce_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _extract_worst_slice_summary(method_name: str, ood_type_breakdown: Dict[str, Any] | None) -> Dict[str, Any]:
     resolved_breakdown = dict(ood_type_breakdown or {})
     candidates: list[Dict[str, Any]] = []
@@ -332,8 +310,8 @@ def _extract_worst_slice_summary(method_name: str, ood_type_breakdown: Dict[str,
         metrics = dict(method_metrics.get(method_name, {})) if method_name in method_metrics else {}
         if not metrics:
             metrics = dict(row.get("metrics", {})) if str(row.get("primary_score_method", "")) == method_name else {}
-        fpr = _coerce_float(metrics.get("ood_false_positive_rate"))
-        auroc = _coerce_float(metrics.get("ood_auroc"))
+        fpr = optional_float(metrics.get("ood_false_positive_rate"))
+        auroc = optional_float(metrics.get("ood_auroc"))
         if fpr is None and auroc is None:
             continue
         candidates.append(
@@ -440,11 +418,11 @@ def _build_ood_evidence_summary(
         "primary_score_method": str(context.get("ood_primary_score_method", "ensemble") or "ensemble"),
         "score_methods": [str(name) for name in list(context.get("ood_score_methods", []))],
         "metrics": {
-            "ood_auroc": _coerce_float(metrics.get("ood_auroc")),
-            "ood_false_positive_rate": _coerce_float(metrics.get("ood_false_positive_rate")),
-            "sure_ds_f1": _coerce_float(metrics.get("sure_ds_f1")),
-            "conformal_empirical_coverage": _coerce_float(metrics.get("conformal_empirical_coverage")),
-            "conformal_avg_set_size": _coerce_float(metrics.get("conformal_avg_set_size")),
+            "ood_auroc": optional_float(metrics.get("ood_auroc")),
+            "ood_false_positive_rate": optional_float(metrics.get("ood_false_positive_rate")),
+            "sure_ds_f1": optional_float(metrics.get("sure_ds_f1")),
+            "conformal_empirical_coverage": optional_float(metrics.get("conformal_empirical_coverage")),
+            "conformal_avg_set_size": optional_float(metrics.get("conformal_avg_set_size")),
         },
         "sample_counts": sample_counts,
         "ood_types": ood_types,
@@ -506,7 +484,7 @@ def persist_training_history_artifacts(
     history_snapshot: Dict[str, Any],
     telemetry: Any = None,
 ) -> Dict[str, Path]:
-    training_dir = _artifact_dir(artifact_root, "training")
+    training_dir = ensure_artifact_dir(artifact_root, "training")
     store = ArtifactStore(training_dir)
     history_json = store.write_json("history.json", history_snapshot)
     epoch_rows = _epoch_rows(history_snapshot)
@@ -535,7 +513,7 @@ def persist_batch_metrics_artifacts(
     batch_metrics_csv: Path | str | None = None,
     telemetry: Any = None,
 ) -> Dict[str, Path]:
-    training_dir = _artifact_dir(artifact_root, "training")
+    training_dir = ensure_artifact_dir(artifact_root, "training")
     if batch_metrics_csv is not None:
         batch_csv = Path(batch_metrics_csv)
     else:
@@ -604,7 +582,7 @@ def persist_training_results_figure(
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    training_dir = _artifact_dir(artifact_root, "training")
+    training_dir = ensure_artifact_dir(artifact_root, "training")
     results_png = training_dir / "results.png"
 
     fig, axes = plt.subplots(3, 3, figsize=(18, 12))
@@ -638,7 +616,7 @@ def persist_training_summary_artifact(
     summary_payload: Dict[str, Any],
     telemetry: Any = None,
 ) -> Dict[str, Path]:
-    training_dir = _artifact_dir(artifact_root, "training")
+    training_dir = ensure_artifact_dir(artifact_root, "training")
     summary_json = ArtifactStore(training_dir).write_json("summary.json", summary_payload)
     _copy_artifacts_to_telemetry(telemetry, [(summary_json, "training/summary.json")])
     return {"summary_json": summary_json}
@@ -650,7 +628,7 @@ def persist_training_run_context_artifact(
     context_payload: Dict[str, Any],
     telemetry: Any = None,
 ) -> Dict[str, Path]:
-    training_dir = _artifact_dir(artifact_root, "training")
+    training_dir = ensure_artifact_dir(artifact_root, "training")
     run_context_json = ArtifactStore(training_dir).write_json("run_context.json", context_payload)
     _copy_artifacts_to_telemetry(telemetry, [(run_context_json, "training/run_context.json")])
     return {"run_context_json": run_context_json}
@@ -662,7 +640,7 @@ def persist_ood_benchmark_artifacts(
     summary_payload: Dict[str, Any],
     telemetry: Any = None,
 ) -> Dict[str, Path]:
-    benchmark_dir = _artifact_dir(artifact_root, "ood_benchmark")
+    benchmark_dir = ensure_artifact_dir(artifact_root, "ood_benchmark")
     store = ArtifactStore(benchmark_dir)
     summary_json = store.write_json("summary.json", summary_payload)
     folds = list(summary_payload.get("folds", [])) if isinstance(summary_payload, dict) else []
@@ -959,7 +937,7 @@ def persist_validation_artifacts(
         resolved_classes=resolved_classes,
     )
 
-    validation_dir = _artifact_dir(artifact_root, resolved_artifact_subdir)
+    validation_dir = ensure_artifact_dir(artifact_root, resolved_artifact_subdir)
     paths = _persist_validation_core_outputs(
         validation_dir=validation_dir,
         computation=computation,

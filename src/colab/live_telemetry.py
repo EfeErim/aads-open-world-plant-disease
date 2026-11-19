@@ -12,18 +12,15 @@ import time
 import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from src.shared.artifacts import ArtifactStore
+from src.shared.coercion import utc_now_iso
 from src.shared.json_utils import deep_merge, ensure_parent, read_json, write_json
 
 logger = logging.getLogger(__name__)
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _safe_json(value: Any) -> str:
@@ -50,10 +47,7 @@ def _requires_google_drive_mount(path: Path) -> bool:
     drive_mount = Path("/content/drive")
     try:
         resolved = Path(path).expanduser().resolve()
-    except Exception:
-        import logging
-        logging.exception('Unhandled exception')
-        raise
+    except (OSError, RuntimeError):
         resolved = Path(path).expanduser()
     try:
         resolved.relative_to(drive_mount)
@@ -126,10 +120,8 @@ class _SyncState:
                 logs_synced_bytes=int(payload.get("logs_synced_bytes", 0)),
                 last_sync_ts=str(payload.get("last_sync_ts", "")),
             )
-        except Exception:
-            import logging
-            logging.exception('Unhandled exception')
-            raise
+        except (OSError, TypeError, ValueError) as exc:
+            logger.warning("Ignoring unreadable telemetry sync state %s: %s", path, exc)
             return cls()
 
 
@@ -346,11 +338,8 @@ class ColabLiveTelemetry:
             payload = read_json(self.local_artifact_index_path, default=[], expect_type=list)
             if isinstance(payload, list):
                 return [dict(item) for item in payload if isinstance(item, dict)]
-        except Exception:
-            import logging
-            logging.exception('Unhandled exception')
-            raise
-            pass
+        except (OSError, TypeError, ValueError) as exc:
+            logger.warning("Ignoring unreadable artifact index %s: %s", self.local_artifact_index_path, exc)
         return []
 
     def _upsert_artifact_index_entry(self, payload: Dict[str, Any]) -> None:
@@ -375,7 +364,7 @@ class ColabLiveTelemetry:
         self._summary_metadata = deep_merge(self._summary_metadata, payload)
 
     def _store_sync_state(self) -> None:
-        self._sync_state.last_sync_ts = _utc_now_iso()
+        self._sync_state.last_sync_ts = utc_now_iso()
         write_json(self.local_sync_state_path, self._sync_state.to_dict(), sort_keys=True)
 
     def _store_artifact_index(self) -> None:
@@ -453,7 +442,7 @@ class ColabLiveTelemetry:
     ) -> Dict[str, Any]:
         self._sequence += 1
         record = {
-            "ts": _utc_now_iso(),
+            "ts": utc_now_iso(),
             "seq": int(self._sequence),
             "run_id": self.run_id,
             "notebook": self.notebook_name,
@@ -480,7 +469,7 @@ class ColabLiveTelemetry:
     def capture_cell_output(self, cell_name: str, *, phase: str = "notebook_cell") -> Iterator[Path]:
         label = str(cell_name or "cell")
         capture_ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        started_at = _utc_now_iso()
+        started_at = utc_now_iso()
         start_clock = time.time()
         relative_path = Path("cell_outputs") / f"{capture_ts}_{_slugify_capture_name(label)}.log"
         relative_path_text = str(relative_path).replace("\\", "/")
@@ -520,7 +509,7 @@ class ColabLiveTelemetry:
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             duration_sec = round(time.time() - start_clock, 3)
-            finished_at = _utc_now_iso()
+            finished_at = utc_now_iso()
             sections = [
                 f"[CELL_CAPTURE] cell={label}",
                 f"run_id={self.run_id}",
@@ -564,7 +553,7 @@ class ColabLiveTelemetry:
         if self._storage_exhausted:
             return
         payload = {
-            "ts": _utc_now_iso(),
+            "ts": utc_now_iso(),
             "run_id": self.run_id,
             "notebook": self.notebook_name,
             "status": dict(status_payload or {}),
@@ -590,32 +579,9 @@ class ColabLiveTelemetry:
                 )
         self._upsert_artifact_index_entry(
             {
-                "ts": _utc_now_iso(),
+                "ts": utc_now_iso(),
                 "relative_path": str(rel).replace("\\", "/"),
                 "type": "text",
-            }
-        )
-        self.emit_event("artifact_written", {"relative_path": str(rel)}, phase="artifact", force_sync=False)
-        return drive_path if drive_path.exists() else local_path
-
-    def write_binary_artifact(self, relative_path: str, content: bytes) -> Path:
-        rel = Path(relative_path)
-        local_path = self._local_artifact_store.write_bytes(rel, content)
-        drive_path = self.artifacts_dir / rel
-        if self._ensure_drive_surface() and self._drive_artifact_store is not None:
-            try:
-                drive_path = self._drive_artifact_store.write_bytes(rel, content)
-                self._record_drive_available(operation="write_binary_artifact")
-            except Exception as exc:
-                self._record_drive_unavailable(
-                    operation="write_binary_artifact",
-                    error=f"{exc.__class__.__name__}: {exc}",
-                )
-        self._upsert_artifact_index_entry(
-            {
-                "ts": _utc_now_iso(),
-                "relative_path": str(rel).replace("\\", "/"),
-                "type": "binary",
             }
         )
         self.emit_event("artifact_written", {"relative_path": str(rel)}, phase="artifact", force_sync=False)
@@ -636,7 +602,7 @@ class ColabLiveTelemetry:
                 self._record_drive_unavailable(operation="copy_artifact_file", error=f"{exc.__class__.__name__}: {exc}")
         self._upsert_artifact_index_entry(
             {
-                "ts": _utc_now_iso(),
+                "ts": utc_now_iso(),
                 "relative_path": str(rel).replace("\\", "/"),
                 "type": "file_copy",
             }
@@ -701,7 +667,7 @@ class ColabLiveTelemetry:
             self._write_latest_payload(pending)
         self._export_repo_notebook(reason="run_close")
         summary = {
-            "ts": _utc_now_iso(),
+            "ts": utc_now_iso(),
             "run_id": self.run_id,
             "notebook": self.notebook_name,
             "final_payload": dict(final_payload or {}),

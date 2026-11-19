@@ -3,14 +3,14 @@
 
 # User-facing Notebook 2 adapter/default surface lives in the notebook cell.
 # Keep behavior here aligned with visible ADAPTER_RECS and DEFAULT_RUNTIME_PARAMS.
-# Notebook 2 calisma kimligi
-# Bootstrap/validator defaultlari; ADAPTER_KEY secimi asagida bunlari kesin olarak ezer.
+# Notebook 2 run identity
+# Bootstrap/validator defaults; the ADAPTER_KEY selection below overrides them.
 CROP_NAME = "tomato"
 PART_NAME = "unspecified"
 DATASET_NAME = ""
 
-# Tek degistirilecek alan: egitmek istedigin adapter anahtari.
-# Bu anahtar crop/part, runtime dataset, OOD ve OE yollarini gorunur sekilde set eder.
+# The only field to change: the adapter key to train.
+# This key sets crop/part, the runtime dataset and the OOD and OE paths.
 ADAPTER_KEY = str(globals().get("ADAPTER_KEY", "grape__fruit")).strip()
 _USER_MANUAL_PARAM_OVERRIDES = dict(globals().get("MANUAL_PARAM_OVERRIDES") or {})
 _USER_DEFAULT_RUNTIME_PARAMS = dict(globals().get("DEFAULT_RUNTIME_PARAMS") or {})
@@ -88,7 +88,7 @@ CROP_NAME = _adapter_rec["crop"]
 PART_NAME = _adapter_rec["part"]
 DATASET_NAME = ADAPTER_KEY
 
-# Cell 3, bu parametre hucreden once calistigi icin run kimligini burada dogru adaptere yeniden bagla.
+# Cell 3 runs before this parameter cell, so rebind the run identity to the selected adapter here.
 if "ColabLiveTelemetry" in globals() and "TrainingCheckpointManager" in globals():
     RUN_ID = build_notebook_run_id(CROP_NAME, PART_NAME)
     NOTEBOOK_NAME = str(globals().get("NOTEBOOK_NAME", "2_train_continual_sd_lora_adapter.ipynb"))
@@ -117,9 +117,9 @@ if "ColabLiveTelemetry" in globals() and "TrainingCheckpointManager" in globals(
     )
     TELEMETRY.update_latest({"phase": "adapter_key_selected", "run_id": RUN_ID, "adapter_key": ADAPTER_KEY, "crop": CROP_NAME, "part": PART_NAME})
 
-# --- Notebook 2 parametreleri ---
-# Bu hucreyi duzenleyin, sonra kalan hucreleri sirayla calistirin.
-# Kosu kimligi icin CROP_NAME/PART_NAME degerlerini ustteki hucreden yonetin.
+# --- Notebook 2 parameters ---
+# Edit this cell, then run the remaining cells in order.
+# Set CROP_NAME/PART_NAME for the run identity in the cell above.
 
 # The public notebook defaults to a deterministic synthetic smoke dataset.
 # Maintainers can opt into the private immutable Release by setting DATASET_SOURCE_KIND="github_release".
@@ -144,45 +144,45 @@ DATASET_RELEASE_MANIFEST_PATH = str(
 ALLOW_LOCAL_LEGACY_DATASET = False
 DATASET_LEGACY_COMPATIBILITY_REASON = ""
 
-# DATASET_NAME: Notebook 0'un urettigi runtime dataset klasor adi. Bos ise notebook kullaniciya sorar.
+# DATASET_NAME: runtime dataset folder name produced by Notebook 0. If empty, the notebook asks.
 DATASET_NAME = ""
 
-# OOD_ROOT: Gercek OOD klasoru. Bos ise ASK_FOR_OOD_ROOT=True iken notebook yol sorar; Enter varsa runtime ood/ kullanir.
+# OOD_ROOT: real OOD folder. If empty and ASK_FOR_OOD_ROOT=True the notebook asks for a path; Enter uses the runtime ood/.
 OOD_ROOT = ""
 ASK_FOR_OOD_ROOT = True
 
-# OE_ROOT: Outlier Exposure egitim klasoru. OE_ENABLED=True ve bos ise ASK_FOR_OE_ROOT=True iken notebook yol sorar; Enter varsa runtime oe/ kullanir.
+# OE_ROOT: Outlier Exposure training folder. If OE_ENABLED=True, it is empty and ASK_FOR_OE_ROOT=True, the notebook asks for a path; Enter uses the runtime oe/.
 OE_ROOT = ""
 ASK_FOR_OE_ROOT = True
 OE_ENABLED = False
 OE_LOSS_WEIGHT = 0.5
 
-# CROP_NAME ve PART_NAME, kosu adlandirmasi ve metadata icin kullanilir.
+# CROP_NAME and PART_NAME are used for run naming and metadata.
 CROP_NAME = globals().get("CROP_NAME", "tomato")
 PART_NAME = globals().get("PART_NAME", "unspecified")
 ENABLE_BAYESIAN_OPTIMIZATION = bool(globals().get("ENABLE_BAYESIAN_OPTIMIZATION", True))
 
-# ALLOW_UNDER_MIN_TRAINING: True olursa 100 image/class production guardrail'i research kosulari icin bypass edilir.
+# ALLOW_UNDER_MIN_TRAINING: True bypasses the 100 images/class production guardrail for research runs.
 ALLOW_UNDER_MIN_TRAINING = False
 
-# EPOCHS: train split uzerinden kac tam gecis yapilacagi.
+# EPOCHS: number of full passes over the train split.
 EPOCHS = 12
 
-# BATCH_SIZE: optimizer adimi basina ornek sayisi. GPU limitine yakin olacak sekilde artirilabilir.
+# BATCH_SIZE: samples per optimizer step. Can be raised up to the GPU memory limit.
 BATCH_SIZE = 96
 
-# LEARNING_RATE: adapter/LoRA parametreleri icin optimizer adim buyuklugu.
+# LEARNING_RATE: optimizer step size for the adapter/LoRA parameters.
 LEARNING_RATE = 2e-4
-# LORA_R: LoRA rank degeri. Buyudukce kapasite ve VRAM/islem maliyeti artar.
+# LORA_R: LoRA rank. Higher values add capacity and VRAM/compute cost.
 LORA_R = 24
 
-# LORA_ALPHA: LoRA olcekleme katsayisi. Genelde LORA_R degerinin 2x-4x araliginda kullanilir.
+# LORA_ALPHA: LoRA scaling factor, usually 2x-4x LORA_R.
 LORA_ALPHA = 24
 
-# LORA_DROPOUT: LoRA katmanlarina uygulanan dropout. Buyudukce regularizasyon artar.
+# LORA_DROPOUT: dropout on the LoRA layers. Higher values regularize more.
 LORA_DROPOUT = 0.1
 
-# OOD_FACTOR: OOD esik hassasiyetini carpansal olarak ayarlar.
+# OOD_FACTOR: multiplicative scale on the OOD threshold.
 OOD_FACTOR = 3.0
 SURE_SEMANTIC_PERCENTILE = 90.0
 SURE_CONFIDENCE_PERCENTILE = 97.0
@@ -191,88 +191,88 @@ CONFORMAL_METHOD = "raps"
 CONFORMAL_RAPS_LAMBDA = 0.2
 CONFORMAL_RAPS_K_REG = 1
 
-# BER_ENABLED: eski/yeni sinif enerji ayrimi icin deneysel egitim regularizeri.
+# BER_ENABLED: experimental regularizer that separates old/new class energy.
 BER_ENABLED = False
-# BER_LAMBDA_OLD / BER_LAMBDA_NEW: eski ve yeni sinif kisimlari icin BER ceza agirliklari.
+# BER_LAMBDA_OLD / BER_LAMBDA_NEW: BER penalty weights for the old and new class terms.
 BER_LAMBDA_OLD = 0.1
 BER_LAMBDA_NEW = 0.1
 BER_WARMUP_STEPS = 50
 
 WEIGHT_DECAY = 0.01
 
-# MIXED_PRECISION: {'off', 'auto', 'fp16', 'bf16'} seceneklerinden biri.
+# MIXED_PRECISION: one of {'off', 'auto', 'fp16', 'bf16'}.
 MIXED_PRECISION = "bf16"
 
 GRAD_ACCUM_STEPS = 1
 
-# MAX_GRAD_NORM: gradient clipping esigi. 0 olursa clipping kapanir.
+# MAX_GRAD_NORM: gradient clipping threshold. 0 disables clipping.
 MAX_GRAD_NORM = 1.0
 
-# LABEL_SMOOTHING: CE label smoothing katsayisi.
+# LABEL_SMOOTHING: CE label smoothing factor.
 LABEL_SMOOTHING = 0.0
 
-# LOSS_NAME / LOGITNORM_TAU: varsayilan kayip LogitNorm'dur; CE icin loss_name='cross_entropy' secin.
+# LOSS_NAME / LOGITNORM_TAU: the default loss is LogitNorm; set loss_name='cross_entropy' for CE.
 LOSS_NAME = "logitnorm"
 LOGITNORM_TAU = 1.0
 
-# Scheduler ayarlari.
+# Scheduler settings.
 SCHEDULER_NAME = "cosine"
 SCHEDULER_WARMUP_RATIO = 0.1
 SCHEDULER_MIN_LR = 1e-6
 
-# Early stopping ayarlari.
+# Early stopping settings.
 EARLY_STOPPING_PATIENCE = 5
 EARLY_STOPPING_MIN_DELTA = 0.0
 
-# Tekrarlanabilirlik ve runtime ayarlari.
+# Reproducibility and runtime settings.
 DETERMINISTIC = False
 TF32_ENABLED = True
 SEED = 42
 
-# NUM_WORKERS: dataloader worker sayisi. CPU veri yukleme paralelligini belirler.
+# NUM_WORKERS: dataloader workers; sets CPU data-loading parallelism.
 NUM_WORKERS = 12
 
-# PREFETCH: NUM_WORKERS > 0 iken worker basina prefetch katsayisi.
+# PREFETCH: prefetch factor per worker when NUM_WORKERS > 0.
 PREFETCH = 8
 
-# PIN_MEMORY: host memory sabitleyerek host-to-GPU aktarimini hizlandirir.
+# PIN_MEMORY: pins host memory to speed up host-to-GPU copies.
 PIN_MEMORY = True
 
-# USE_CACHE: destekleniyorsa decode edilmis ornekleri RAM'de tutar.
+# USE_CACHE: keeps decoded samples in RAM when supported.
 USE_CACHE = True
 
-# CACHE_TRAIN_SPLIT: continual/train split'ini de cache'ler. Yuksek RAM'li Colab icin uygundur.
+# CACHE_TRAIN_SPLIT: also caches the continual/train split. Suited to high-RAM Colab runtimes.
 CACHE_TRAIN_SPLIT = True
 
-# VALIDATION_EVERY_N_EPOCHS: her N epoch'ta tam validation calistirir; final epoch her zaman dahildir.
+# VALIDATION_EVERY_N_EPOCHS: runs full validation every N epochs; the final epoch is always included.
 VALIDATION_EVERY_N_EPOCHS = 1
 
-# CHECKPOINT_EVERY_N_STEPS / CHECKPOINT_ON_EXCEPTION: notebook checkpoint sikligi ayarlari.
+# CHECKPOINT_EVERY_N_STEPS / CHECKPOINT_ON_EXCEPTION: notebook checkpoint frequency.
 CHECKPOINT_EVERY_N_STEPS = 250
 CHECKPOINT_ON_EXCEPTION = True
 
-# STDOUT_BATCH_INTERVAL: canli training ilerleme yazdirma araligi.
+# STDOUT_BATCH_INTERVAL: interval for live training progress output.
 STDOUT_BATCH_INTERVAL = 12
 
-# RESUME_MODE: "fresh" yeni kosu baslatir, "resume" son checkpointten devam eder.
+# RESUME_MODE: "fresh" starts a new run, "resume" continues from the latest checkpoint.
 RESUME_MODE = "fresh"  # "fresh" or "resume"
 
-# AUTO_DISCONNECT_RUNTIME: tum final exportlar basariliysa Colab runtime'i kapatir.
+# AUTO_DISCONNECT_RUNTIME: disconnects the Colab runtime when all final exports succeed.
 AUTO_DISCONNECT_RUNTIME = True
 
-# AUTO_DISCONNECT_GRACE_SECONDS: son durum gorunsun diye disconnect oncesi kisa bekleme suresi.
+# AUTO_DISCONNECT_GRACE_SECONDS: short wait before disconnecting so the final status stays visible.
 AUTO_DISCONNECT_GRACE_SECONDS = 20
 
-# AUTO_PUSH_TO_GITHUB: final exportlar bitince runs/<crop>/<part>/<RUN_ID>/ klasorunu repoya commit edip pushlar.
+# AUTO_PUSH_TO_GITHUB: after the final exports, commits and pushes runs/<crop>/<part>/<RUN_ID>/ to the repo.
 AUTO_PUSH_TO_GITHUB = True
 
-# AUTO_PUSH_REMOTE_NAME: auto-push aciksa kullanilacak git remote adi.
+# AUTO_PUSH_REMOTE_NAME: git remote used when auto-push is on.
 AUTO_PUSH_REMOTE_NAME = "origin"
 
-# AUTO_PUSH_BRANCH: auto-push icin branch override degeri. None olursa mevcut branch kullanilir.
+# AUTO_PUSH_BRANCH: branch override for auto-push. None uses the current branch.
 AUTO_PUSH_BRANCH = None
 
-# ADAPTER_KEY secimi bu noktada tum notebook degerlerini kesin olarak ezer.
+# The ADAPTER_KEY selection overrides all notebook values at this point.
 rec = ADAPTER_RECS[ADAPTER_KEY]
 CROP_NAME = rec["crop"]
 PART_NAME = rec["part"]
@@ -350,10 +350,10 @@ print(
 )
 if _USER_MANUAL_PARAM_OVERRIDES:
     print(f"[MANUAL_OVERRIDES] applied={sorted(_USER_MANUAL_PARAM_OVERRIDES)}")
-print("[SONRAKI] Erisim kontrolu -> dataset validation -> engine init -> training -> calibration -> save/eval hucresini sirayla calistirin.")
+print("[NEXT] Run the access check -> dataset validation -> engine init -> training -> calibration -> save/eval cells in order.")
 
 
-# Notebook icinde daha sonra kullanilacak gizli repo varsayimlarini yukle.
+# Load the repo config defaults used later in the notebook.
 BASE_CONFIG = ConfigurationManager(config_dir=str(ROOT / "config"), environment="colab").load_all_configs()
 CONTINUAL_DATA_CFG = BASE_CONFIG.get("training", {}).get("continual", {}).get("data", {})
 
@@ -472,7 +472,7 @@ if str(INITIAL_EFFECTIVE_PARAMS.get("RESUME_MODE", RESUME_MODE)) == "resume":
         if STATE["resume_manifest"]:
             manifest = STATE["resume_manifest"]
             print(
-                f"[RESUME] Checkpoint bulundu: {manifest.get('name', '?')} "
+                f"[RESUME] Checkpoint found: {manifest.get('name', '?')} "
                 f"epoch={manifest.get('epoch', 0)} step={manifest.get('global_step', 0)}"
             )
     except Exception as resume_exc:
@@ -482,13 +482,13 @@ hf_token_ready = False
 hf_token = str(resolve_hf_token() or "").strip()
 if not hf_token:
     raise RuntimeError(
-        "Notebook 2 egitim baslamadan once Hugging Face token ister. "
-        "HF_TOKEN, HUGGINGFACE_TOKEN veya HUGGINGFACE_HUB_TOKEN degerini env var ya da Colab secret olarak tanimlayin."
+        "Notebook 2 needs a Hugging Face token before training starts. "
+        "Set HF_TOKEN, HUGGINGFACE_TOKEN or HUGGINGFACE_HUB_TOKEN as an env var or Colab secret."
     )
 hf_token_ready = bool(login_and_check_hf_token(print_fn=print))
 if not hf_token_ready:
     raise RuntimeError(
-        "Hugging Face token on kontrolu basarisiz oldu. Egitimden once tokeni duzeltin."
+        "Hugging Face token pre-check failed. Fix the token before training."
     )
 
 github_token_ready = False
@@ -497,10 +497,10 @@ if bool(INITIAL_EFFECTIVE_PARAMS.get("AUTO_PUSH_TO_GITHUB", AUTO_PUSH_TO_GITHUB)
     if not github_token:
         raise RuntimeError(
             "AUTO_PUSH_TO_GITHUB is enabled, but no GitHub token was found. "
-            "Egitim baslamadan once GH_TOKEN veya GITHUB_TOKEN degerini env var ya da Colab secret olarak tanimlayin."
+            "Set GH_TOKEN or GITHUB_TOKEN as an env var or Colab secret before training starts."
         )
     github_token_ready = True
-    print("[GIT] Auto-push on kontrolu gecti: GitHub token cozuldu.")
+    print("[GIT] Auto-push pre-check passed: GitHub token resolved.")
 
 print(
     f"[CONFIG] source=notebook_cell crop={CROP_NAME} epochs={EPOCHS} bs={BATCH_SIZE} "

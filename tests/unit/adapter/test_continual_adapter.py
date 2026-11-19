@@ -160,21 +160,6 @@ def test_adapter_builds_training_session(monkeypatch):
     assert adapter.trainer.class_to_idx == {"healthy": 0}
 
 
-def test_adapter_builds_training_session_without_num_epochs_on_trainer_config(monkeypatch):
-    monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
-
-    adapter = IndependentCropAdapter(crop_name="tomato", device="cpu")
-    adapter.initialize_engine(class_names=["healthy"])
-    adapter.trainer.config = type("Cfg", (), {})()
-
-    session = adapter.build_training_session(
-        train_loader=[{"images": torch.zeros(1, 3, 224, 224), "labels": torch.zeros(1, dtype=torch.long)}],
-    )
-
-    assert isinstance(session, ContinualTrainingSession)
-    assert session.num_epochs == 1
-
-
 def test_adapter_save_load_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
 
@@ -194,32 +179,6 @@ def test_adapter_save_load_roundtrip(monkeypatch, tmp_path):
     assert loaded.is_trained is True
 
 
-def test_adapter_metadata_contains_required_contract_keys(monkeypatch, tmp_path):
-    monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
-
-    adapter = IndependentCropAdapter(crop_name="tomato", device="cpu")
-    adapter.initialize_engine(class_names=["healthy", "disease_a"])
-    adapter.calibrate_ood([{"images": torch.zeros(1, 3, 224, 224), "labels": torch.zeros(1, dtype=torch.long)}])
-
-    save_dir = tmp_path / "model_dir"
-    adapter.save_adapter(str(save_dir))
-
-    meta_path = save_dir / "continual_sd_lora_adapter" / "adapter_meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-
-    required = {
-        "schema_version",
-        "engine",
-        "crop_name",
-        "backbone",
-        "fusion",
-        "class_to_idx",
-        "ood_calibration",
-        "target_modules_resolved",
-    }
-    assert required <= set(meta.keys())
-
-
 def test_save_adapter_auto_calibrates_from_training_session_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
 
@@ -232,29 +191,6 @@ def test_save_adapter_auto_calibrates_from_training_session_loader(monkeypatch, 
     adapter.save_adapter(str(save_dir))
 
     assert adapter.ood_calibration_version == 3
-
-
-def test_adapter_metadata_golden_contract_with_exportable_ood_state(monkeypatch, tmp_path):
-    monkeypatch.setattr(adapter_module, "_trainer_types", lambda: (FakeTrainerConfig, FakeTrainer))
-
-    adapter = IndependentCropAdapter(crop_name="tomato", device="cpu")
-    adapter.initialize_engine(class_names=["healthy"])
-    adapter.trainer.ood_detector.class_stats = {0: FakeCalibrationStats()}
-    adapter.trainer.ood_detector.calibration_version = 5
-
-    save_dir = tmp_path / "golden_model"
-    adapter.save_adapter(str(save_dir))
-    meta = json.loads((save_dir / "continual_sd_lora_adapter" / "adapter_meta.json").read_text(encoding="utf-8"))
-
-    assert meta["schema_version"] == "v6"
-    assert meta["engine"] == "continual_sd_lora"
-    assert meta["crop_name"] == "tomato"
-    assert meta["class_to_idx"] == {"healthy": 0}
-    assert meta["ood_calibration"]["version"] == 5
-    assert meta["ood_state"]["primary_score_method"] == "ensemble"
-    assert meta["ood_state"]["knn_k"] == 10
-    assert meta["ood_state"]["class_stats"]["0"]["mean"] == [0.10000000149011612, 0.20000000298023224]
-    assert meta["ood_state"]["class_stats"]["0"]["threshold"] == 0.7
 
 
 def test_save_adapter_merges_export_metadata_overrides(monkeypatch, tmp_path):

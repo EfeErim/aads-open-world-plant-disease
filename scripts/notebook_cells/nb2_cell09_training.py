@@ -10,7 +10,7 @@ with TELEMETRY.capture_cell_output("Cell 6: Training"):
     )
 
     if STATE.get("adapter") is None or STATE.get("loaders") is None:
-        raise RuntimeError("Once engine init hucresini calistirin.")
+        raise RuntimeError("Run the engine init cell first.")
 
     adapter = STATE["adapter"]
     loaders = STATE["loaders"]
@@ -41,7 +41,7 @@ with TELEMETRY.capture_cell_output("Cell 6: Training"):
                     f"step={progress_state.get('global_step', 0)}"
                 )
             except Exception as exc:
-                print(f"[RESUME] Basarisiz: {exc}")
+                print(f"[RESUME] Failed: {exc}")
 
     existing_history = (resume_state or {}).get("history", (resume_state or {}).get("history_snapshot", {}))
     train_loss_curve = list(existing_history.get("train_loss", []))

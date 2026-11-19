@@ -5,7 +5,6 @@ import torch
 from PIL import Image
 
 from src.router import clip_runtime, sam3_runtime
-from src.router.pipeline_flow_utils import build_process_image_response
 from src.router.policy_taxonomy_utils import (
     apply_runtime_profile,
     build_policy_graph,
@@ -30,16 +29,9 @@ from src.router.runtime_surface import (
 from src.router.vlm_stages import (
     analyze_batch_results,
     build_pipeline_surface_config,
-    route_batch_items,
-)
-from src.router.vlm_stages import (
-    load_clip_like_model as load_clip_like_model_stage,
 )
 from src.router.vlm_stages import (
     load_models as load_models_stage,
-)
-from src.router.vlm_stages import (
-    load_sam as load_sam_stage,
 )
 from src.shared.contracts import RouterAnalysisResult, RouterRequestOptions
 
@@ -356,12 +348,6 @@ class RouterPipeline:
             and self.sam_backend == 'sam3'
         )
 
-    def _load_sam(self, model_id: str):
-        """Load SAM model and processor."""
-        return load_sam_stage(self, model_id)
-    def _load_clip_like_model(self, model_id: str):
-        """Load CLIP/BioCLIP-like model and processor."""
-        return load_clip_like_model_stage(self, model_id)
     def _score_parts_conditioned_on_crop(
         self,
         roi_image: Image.Image,
@@ -430,25 +416,6 @@ class RouterPipeline:
             status=status,
             message=message,
         )
-
-    def process_image(
-        self,
-        image_tensor: torch.Tensor,
-        confidence_threshold: Optional[float] = None,
-        max_detections: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """High-level processing entrypoint expected by tests.
-
-        Returns a small summary dict including a 'status' and 'scenario'.
-        If the pipeline is enabled, tests expect the scenario to be
-        'diagnostic_scouting'.
-        """
-        analysis = self.analyze_image(
-            image_tensor,
-            confidence_threshold=confidence_threshold,
-            max_detections=max_detections,
-        )
-        return build_process_image_response(analysis, enabled=bool(getattr(self, 'enabled', False)))
 
     def analyze_image_result(
         self,
@@ -689,26 +656,3 @@ class RouterPipeline:
         if errors:
             raise RuntimeError("; ".join(errors))
         return [normalize_sam3_results({}, empty_tensor_factory=lambda: torch.tensor([])) for _ in images]
-
-    def route_batch(
-        self,
-        batch: torch.Tensor,
-        confidence_threshold: Optional[float] = None,
-        max_detections: Optional[int] = None,
-    ) -> Tuple[List[Dict], List[float]]:
-        """Process a batch of images through the router pipeline.
-
-        Args:
-            batch: Tensor of shape [batch_size, 3, height, width]
-
-        Returns:
-            Tuple of (crops_out, confs) where:
-            - crops_out: List of crop prediction dicts for each image
-            - confs: List of confidence scores for each image
-        """
-        return route_batch_items(
-            self,
-            batch,
-            confidence_threshold=confidence_threshold,
-            max_detections=max_detections,
-        )

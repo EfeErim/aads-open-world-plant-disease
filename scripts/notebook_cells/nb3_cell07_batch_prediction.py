@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 if not BATCH_IMAGE_DIR:
-    print('Opsiyonel klasor testi icin BATCH_IMAGE_DIR degerini bir goruntu klasorune ayarlayin.')
+    print('Set BATCH_IMAGE_DIR to an image folder for the optional folder test.')
 else:
     rows = predict_image_folder(
         BATCH_IMAGE_DIR,

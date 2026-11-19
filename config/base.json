@@ -206,7 +206,6 @@
       },
       "taxonomy_path": "config/plant_taxonomy.json",
       "model_ids": {
-        "grounding_dino": "IDEA-Research/grounding-dino-base",
         "sam": "facebook/sam3",
         "bioclip": "imageomics/bioclip-2.5-vith14"
       }

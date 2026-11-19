@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List
 
-from src.router.runtime_surface import coerce_bool, coerce_float
+from src.router.runtime_surface import coerce_bool
+from src.shared.coercion import coerce_float
 
 
 def resolve_sam3_stage_order(policy_value_fn: Callable[[str, str, Any], Any]) -> List[str]:

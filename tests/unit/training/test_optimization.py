@@ -1,7 +1,6 @@
 from src.training.services.optimization import (
     build_bayesian_recommendations,
     build_pareto_frontiers,
-    build_training_config_override,
 )
 
 
@@ -77,27 +76,6 @@ def _trial(
             "ood.ood_false_positive_rate": "minimize",
         },
         "registry_source": {"artifact_root": f"/tmp/{run_id}"},
-    }
-
-
-def test_build_training_config_override_maps_flat_parameters():
-    override = build_training_config_override(
-        {
-            "training.learning_rate": 0.0002,
-            "training.adapter.lora_r": 32,
-            "training.data.randaugment_num_ops": 3,
-            "training.data.randaugment_magnitude": 9,
-        }
-    )
-
-    assert override == {
-        "training": {
-            "continual": {
-                "learning_rate": 0.0002,
-                "adapter": {"lora_r": 32},
-                "data": {"randaugment_num_ops": 3, "randaugment_magnitude": 9},
-            }
-        }
     }
 
 

@@ -319,7 +319,8 @@ def _run_git_push_with_token(*, repo: Path, remote_url: str, token: str, branch:
         )
 
 
-def _build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
+def build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
+    """Return an HTTPS clone URL carrying ``token``; non-HTTPS URLs and empty tokens pass through."""
     cleaned_url = str(repo_url or "").strip()
     if not cleaned_url or not token:
         return cleaned_url

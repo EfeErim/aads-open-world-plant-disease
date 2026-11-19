@@ -2,7 +2,6 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 from src.colab.notebook_bootstrap_helpers import setup_notebook_environment, resolve_github_token
-from urllib.parse import urlencode
 
 try:
     from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
@@ -10,19 +9,14 @@ try:
 except Exception:
     repo_root_for_update_check = None
 
-# [KONTROL] Ilk hucre: Bootstrap kontrati
-
-
-def _build_repo_access_url(base: str, params: dict) -> str:
-    """Build repo access URL for freshness check (validation contract)."""
-    return f"{base}?{urlencode(params)}"
+# [CHECK] First cell: bootstrap contract
 
 # Resolve tokens
 gh_token = resolve_github_token()
 if gh_token:
-    print('[GIT] GitHub token Colab secret/env uzerinden bulundu.')
+    print('[GIT] GitHub token found in a Colab secret or env var.')
 else:
-    print('[GIT] GitHub token bulunamadi. Public read disinda clone/push gerekiyorsa GH_TOKEN ekleyin.')
+    print('[GIT] No GitHub token found. Add GH_TOKEN if clone/push needs more than public read access.')
 
 # Bootstrap notebook environment (includes repo finding, cloning, and path setup)
 ROOT = setup_notebook_environment(install_requirements=False, print_tokens=True)
@@ -33,10 +27,10 @@ try:
     update_status = probe_repo_update_status(ROOT)
     relation = str(update_status.get('relation', 'unknown'))
     if relation == 'up_to_date':
-        print('[KONTROL] Notebook/repo guncel gorunuyor.')
+        print('[CHECK] Notebook/repo is up to date.')
     elif relation == 'update_available':
-        print(f"[KONTROL] Guncelleme var. Branch={update_status.get('branch', '')}")
+        print(f"[CHECK] Update available. Branch={update_status.get('branch', '')}")
     else:
-        print(f"[KONTROL] Guncelleme durumu okunamadi: {update_status.get('message', 'bilgi yok')}")
+        print(f"[CHECK] Could not read update status: {update_status.get('message', 'no details')}")
 except Exception as exc:
-    print(f'[KONTROL] Guncellik kontrolu basarisiz: {exc}')
+    print(f'[CHECK] Update check failed: {exc}')

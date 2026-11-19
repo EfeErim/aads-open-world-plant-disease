@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
 from src.core.config_manager import get_config
 from src.router.policy_taxonomy_utils import normalize_part_label
 from src.router.router_pipeline import RouterPipeline
+from src.shared.coercion import coerce_float
 from src.shared.contracts import RouterAnalysisResult
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -28,13 +29,6 @@ ABSTAIN_STATUSES = {"unknown_crop", "router_uncertain", "unknown", "unavailable"
 
 def _is_image_path(path: Path) -> bool:
     return path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
-
-
-def _coerce_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return float(default)
 
 
 def _iter_image_samples(root: Path, parts: tuple[str, ...], payload: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
@@ -136,8 +130,8 @@ def _supported_crops(config: Dict[str, Any]) -> set[str]:
 def _routing_score(detection_payload: Dict[str, Any]) -> float:
     quality_score = detection_payload.get("quality_score")
     if quality_score is not None:
-        return _coerce_float(quality_score, 0.0)
-    return _coerce_float(detection_payload.get("crop_confidence"), 0.0)
+        return coerce_float(quality_score, 0.0)
+    return coerce_float(detection_payload.get("crop_confidence"), 0.0)
 
 
 def _top_crop_candidates(analysis: RouterAnalysisResult, *, limit: int = 5) -> List[Dict[str, Any]]:
@@ -151,9 +145,9 @@ def _top_crop_candidates(analysis: RouterAnalysisResult, *, limit: int = 5) -> L
         candidate = {
             "crop": crop_name,
             "part": normalize_part_label(payload.get("part", "unknown")) or "unknown",
-            "crop_confidence": _coerce_float(payload.get("crop_confidence"), 0.0),
-            "part_confidence": _coerce_float(payload.get("part_confidence"), 0.0),
-            "quality_score": None if payload.get("quality_score") is None else _coerce_float(payload.get("quality_score")),
+            "crop_confidence": coerce_float(payload.get("crop_confidence"), 0.0),
+            "part_confidence": coerce_float(payload.get("part_confidence"), 0.0),
+            "quality_score": None if payload.get("quality_score") is None else coerce_float(payload.get("quality_score")),
         }
         existing = best_by_crop.get(crop_name)
         if existing is None or _routing_score(candidate) > _routing_score(existing):
@@ -206,23 +200,23 @@ def sample_from_analysis(
     predicted_crop = str(detection_payload.get("crop", "unknown") or "unknown").strip().lower()
     predicted_part = normalize_part_label(detection_payload.get("part", "unknown")) or "unknown"
     raw_part_label = str(detection_payload.get("raw_part_label", predicted_part) or predicted_part).strip().lower()
-    raw_part_confidence = _coerce_float(
+    raw_part_confidence = coerce_float(
         detection_payload.get("raw_part_confidence"),
-        _coerce_float(detection_payload.get("part_confidence"), 0.0),
+        coerce_float(detection_payload.get("part_confidence"), 0.0),
     )
-    raw_part_second_confidence = _coerce_float(detection_payload.get("raw_part_second_confidence"), 0.0)
-    raw_part_margin = _coerce_float(
+    raw_part_second_confidence = coerce_float(detection_payload.get("raw_part_second_confidence"), 0.0)
+    raw_part_margin = coerce_float(
         detection_payload.get("raw_part_margin"),
         raw_part_confidence - raw_part_second_confidence,
     )
     part_rejection_reason = str(detection_payload.get("part_rejection_reason", "") or "")
-    confidence = _coerce_float(detection_payload.get("crop_confidence"), 0.0)
+    confidence = coerce_float(detection_payload.get("crop_confidence"), 0.0)
     status = str(analysis.status or "ok").strip().lower()
     supported_crops = _supported_crops(config)
     raw_handoff_crop = predicted_crop in supported_crops and predicted_crop != "unknown" and status not in ABSTAIN_STATUSES
     inference_cfg = config.get("inference", {}) if isinstance(config.get("inference"), dict) else {}
-    min_confidence = _coerce_float(inference_cfg.get("router_min_confidence"), 0.0)
-    min_margin = _coerce_float(inference_cfg.get("router_min_margin"), 0.0)
+    min_confidence = coerce_float(inference_cfg.get("router_min_confidence"), 0.0)
+    min_margin = coerce_float(inference_cfg.get("router_min_margin"), 0.0)
     primary_score = _routing_score(detection_payload)
     runner_up_crop, runner_up_score = _routing_runner_up(analysis, primary_crop=predicted_crop)
     routing_margin = None if runner_up_score is None else primary_score - runner_up_score
@@ -262,8 +256,8 @@ def sample_from_analysis(
             None
             if len(top_crop_candidates) < 2
             else round(
-                _coerce_float(top_crop_candidates[0].get("crop_confidence"), 0.0)
-                - _coerce_float(top_crop_candidates[1].get("crop_confidence"), 0.0),
+                coerce_float(top_crop_candidates[0].get("crop_confidence"), 0.0)
+                - coerce_float(top_crop_candidates[1].get("crop_confidence"), 0.0),
                 4,
             )
         ),
@@ -280,7 +274,7 @@ def sample_from_analysis(
         "raw_part_confidence": raw_part_confidence,
         "raw_part_second_confidence": raw_part_second_confidence,
         "raw_part_margin": raw_part_margin,
-        "part_unknown_confidence": _coerce_float(detection_payload.get("part_unknown_confidence"), 0.0),
+        "part_unknown_confidence": coerce_float(detection_payload.get("part_unknown_confidence"), 0.0),
         "part_rejection_reason": part_rejection_reason,
         "part_open_set_rejection_reason": str(detection_payload.get("part_open_set_rejection_reason", "") or ""),
         "processing_time_ms": float(analysis.processing_time_ms or latency_ms),

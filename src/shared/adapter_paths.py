@@ -73,4 +73,4 @@ def resolve_adapter_bundle_dir(
             return candidate
     raise FileNotFoundError(
         f"Could not resolve an adapter bundle from {Path(base_dir)}"
-    )
+    )

@@ -666,18 +666,12 @@ def scan_class_root_dataset(
                     blur_score, brightness_mean = _compute_blur_and_brightness(image)
                     phash_hex = _compute_phash_hex(image)
                     readable = True
-            except Exception:
-                import logging
-
-                logging.exception("Unhandled exception")
-                raise
+            except (OSError, ValueError, Image.DecompressionBombError):
+                excluded_reason = "unreadable"
             try:
                 exact_hash = sha256_file(image_path)
-            except Exception:
-                import logging
-
-                logging.exception("Unhandled exception")
-                raise
+            except OSError:
+                excluded_reason = excluded_reason or "unhashable"
             records.append(
                 ImageRecord(
                     relative_path=relative_path,
@@ -729,11 +723,10 @@ def _refresh_record_availability(records: Sequence[ImageRecord]) -> Dict[str, in
         try:
             with Image.open(image_path) as raw:
                 _ = ImageOps.exif_transpose(raw.convert("RGB"))
-        except Exception:
-            import logging
-
-            logging.exception("Unhandled exception")
-            raise
+        except (OSError, ValueError, Image.DecompressionBombError):
+            record.readable = False
+            record.excluded_reason = "unreadable_after_scan"
+            excluded_counts["unreadable_after_scan"] += 1
     return excluded_counts
 
 

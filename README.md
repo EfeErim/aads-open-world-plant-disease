@@ -8,64 +8,44 @@ A conventional plant-disease classifier has to return a label even when the phot
 plant part, or no plant at all. I built AADS so it can route an image to the right specialist model and send
 unsupported inputs to review instead of bluffing.
 
-**[Run the demo in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb)** ·
-**[Train in Colab](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb)** ·
-**[Results and methodology](docs/methodology_and_results.md)** ·
-**[Adapter release](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2)**
-
 ![AADS input, router and adapter flow](docs/assets/aads-pipeline.svg)
 
-> **Status: frozen.** The project is complete as a graduation project and is no longer under active model
-> development: no further adapter training or data collection is planned. The released `aads-public-demo-v1.1.2`
-> weights are the final artifacts. The fixed end-to-end regression replay passes; the production safety gate does not
-> (0/8), and that result is final for this release. The weights are research/demo artifacts, not a plant-health
-> diagnostic product.
+> **Status: frozen.** This was my individual graduation project and is no longer under active model development. The
+> released `aads-public-demo-v1.1.2` weights are the final artifacts. The fixed end-to-end regression replay passes;
+> the production safety gate does not (0/8). The weights are research/demo artifacts, not a diagnostic product.
 
-## Start in Colab
+## What it does
 
-Training and inference are designed for Google Colab. The notebooks bootstrap the repository, install their
-dependencies, and manage the expected artifact layout; the intended user path does not require a local Python setup.
+AADS handles apricot, grape, strawberry and tomato images. A router (SAM3 regions scored by BioCLIP-2.5) identifies the
+crop and plant part, then loads one of eight per-target LoRA adapters on a frozen
+[DINOv3 ViT-L/16](https://github.com/facebookresearch/dinov3). The adapter returns a supported disease class or
+`review`, using energy, feature-distance and kNN OOD scores calibrated per adapter.
 
-| Goal | Colab notebook | Role |
-|---|---|---|
-| Upload an image and run router-to-adapter inference | [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb) | Primary inference and demo surface |
-| Train one crop/part adapter | [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) | Primary training surface |
-| Audit and prepare a dataset | [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) | Data preparation before training |
-| Reload and validate an exported adapter | [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/3_validate_exported_adapter_directly.ipynb) | Direct adapter validation |
+Code and artifact names say `continual_sd_lora` because the released bundles depend on them; the adapters are
+standard per-target LoRA adapters (see the [terminology note](docs/methodology_and_results.md#terminology-note)).
 
-Model-backed cells require a Hugging Face token with access to the gated DINOv3 backbone. Meaningful training also
-requires your own images. Notebook 2 can create a deterministic synthetic sample, but that sample only checks the
-pipeline and cannot support accuracy or readiness claims.
+## Run it in Colab
 
-## What I built
+Training and inference run in Google Colab; the notebooks clone the repository and install their own dependencies.
+Model-backed cells need a Hugging Face token with access to the gated DINOv3 backbone.
 
-This was my individual graduation project. I designed and implemented the data preparation, adapter training,
-crop/part router, OOD and review logic, artifact release, Colab interfaces, and CI evidence pipeline end to end.
+| Goal | Notebook |
+|---|---|
+| Upload an image and get a router-to-adapter decision | [Notebook 8](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/8_auto_router_adapter_prediction.ipynb) |
+| Train one crop/part adapter | [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) |
+| Audit and split your own dataset | [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) |
+| Reload and validate an exported adapter | [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/3_validate_exported_adapter_directly.ipynb) |
 
-AADS is a PyTorch pipeline for apricot, grape, strawberry, and tomato images. It first identifies the crop and plant
-part, then loads one of eight target-specific LoRA adapters built on a frozen
-[DINOv3 ViT-L/16](https://github.com/facebookresearch/dinov3). The final decision is either a supported disease class
-or `review`.
-
-The code and artifact names still say `continual_sd_lora` for compatibility with the released bundles. The adapters
-are standard per-target LoRA adapters; see the [terminology note](docs/methodology_and_results.md#terminology-note).
-
-The project includes:
-
-- per-target LoRA adapter training and export;
-- crop/part routing and open-set checks;
-- OOD scoring with energy, feature-distance, and k-nearest-neighbor signals;
-- typed inference payloads and checksum-verified adapter loading;
-- Colab orchestration, automated tests, and replayable evaluation evidence.
+Notebook 8 downloads the public adapter bundles and checks them against a SHA-256 manifest. Notebook 2 can generate a
+deterministic synthetic sample to exercise the pipeline; that sample is marked `production_eligible: false` and
+supports no accuracy claim. Training images are not included because I could not verify redistribution rights for
+every source.
 
 ## Results
 
-### Fixed router-to-adapter regression replay
-
-The 48 images were selected from rows that had already **passed** an earlier, larger internal stress run; rows that
-failed there, including two known regressions, were excluded. The replay therefore shows that the frozen pipeline
-reproduces known-good decisions end to end. It is not a measure of accuracy, and the 100% pass rate follows from the
-selection rule.
+**Fixed regression replay.** 48 images selected from rows that had already passed an earlier internal stress run;
+two known regressions were excluded. The 100% pass rate follows from that selection rule: this checks that the frozen
+pipeline reproduces known-good decisions end to end, not accuracy.
 
 | 48-image manifest | Result |
 |---|---:|
@@ -77,69 +57,38 @@ selection rule.
 <p align="center">
   <img src="docs/assets/notebook8-demo-output.png" width="760" alt="Notebook 8 controlled demo output showing 48 passes, 12 review decisions, and zero false accepts">
 </p>
-<p align="center">
-  <sub>Actual Notebook 8 output from the frozen run ·
-  <a href="evidence/controlled_demo_summary.json">inspect the machine-readable evidence</a></sub>
-</p>
 
-All 48 recorded decisions matched the frozen manifest. The supported rows cover 12 disease classes, and all 12 review
-rows are router-level rejections; adapter-level unknown-disease rejection is measured by the gate below, not by this
-replay.
+All 12 review rows are router-level rejections; adapter-level unknown-disease rejection is measured by the gate below.
 
-### Adapter evaluation
+**Per-adapter evaluation** on held-out test splits across the eight adapters: accuracy 0.899-0.994, balanced accuracy
+0.836-0.994, macro-F1 0.810-0.993. The behavioral-acceptance gate, which also requires minimum sample counts, low
+false rejection and rejection of same-crop unknown diseases, passes **0/8**. The system should not be used for
+autonomous diagnosis.
 
-| Held-out metric across eight adapters | Range |
-|---|---:|
-| Accuracy | 0.899-0.994 |
-| Balanced accuracy | 0.836-0.994 |
-| Macro-F1 | 0.810-0.993 |
+Evidence is checked in under [`evidence/`](evidence/) (`controlled_demo_summary.json`, `controlled_demo_rows.json`,
+`latest_behavioral_acceptance_summary.json`); a unit test rebuilds the acceptance summary from the eight per-target
+records and fails if they disagree. [Methodology and results](docs/methodology_and_results.md) covers the evaluation
+design, per-adapter failures, literature and limits.
 
-The stricter behavioral-acceptance gate is **0/8 passed**. It checks classification quality, minimum sample
-counts, false rejections, and same-crop unknown-disease rejection together. No released adapter clears every
-requirement, and because no further training or data collection is planned, this is the final gate result for the
-released adapters. The system should not be used for autonomous diagnosis.
+## Code
 
-The [methodology and results](docs/methodology_and_results.md) page explains the evaluation design, per-adapter
-failures, literature, and evidence limits.
-
-## Public evidence
-
-The controlled-demo records are checked into the repository so the published result can be inspected without access
-to the private training images:
-
-- [`controlled_demo_summary.json`](evidence/controlled_demo_summary.json)
-- [`controlled_demo_rows.json`](evidence/controlled_demo_rows.json)
-- [`latest_behavioral_acceptance_summary.json`](evidence/latest_behavioral_acceptance_summary.json)
-
-GitHub Actions runs unit, notebook smoke and integration tests, checks notebook structure and
-import boundaries, and reports coverage. Ruff checks the maintained Python code.
-
-## Code map
-
-The Colab notebooks are thin interfaces over maintained workflows:
-
-| Area | Maintained implementation |
+| Area | Entry point |
 |---|---|
-| End-to-end inference | [`src/workflows/inference.py`](src/workflows/inference.py) |
-| Adapter training | [`src/workflows/training.py`](src/workflows/training.py) |
-| Crop/part routing | [`src/router/`](src/router/) |
-| Adapter inference | [`src/pipeline/`](src/pipeline/) |
-| OOD and acceptance | [`src/ood/`](src/ood/) |
+| Inference | [`src/workflows/inference.py`](src/workflows/inference.py) |
+| Training | [`src/workflows/training.py`](src/workflows/training.py) |
+| Crop/part routing | [`src/router/router_pipeline.py`](src/router/router_pipeline.py) |
+| Router-to-adapter handoff | [`src/pipeline/router_adapter_runtime.py`](src/pipeline/router_adapter_runtime.py) |
+| OOD scoring | [`src/ood/continual_ood.py`](src/ood/continual_ood.py) |
 
-The [source and notebook map](docs/source_and_notebook_map.md) lists every public surface and labels its role.
-Command-line wrappers and validation scripts remain available for development and CI, but they are not the normal
-training or inference workflow.
+Notebooks run thin cell scripts from `scripts/notebook_cells/` that call `src/`. [Architecture](docs/architecture.md)
+describes the config, data layouts, decision statuses and output files.
 
-## Data, weights, and project history
+Local development (Python 3.11):
 
-Training images are not included because I could not verify redistribution rights for every source. The adapter
-weights live in a separate GitHub Release and are checked against a SHA-256 asset manifest. Notebook 8 retrieves the
-public bundles automatically; full inference still depends on access to the upstream gated backbone and a compatible
-Colab GPU runtime.
-
-Most development happened in a private thesis workspace for the same data and artifact reasons. This repository is a
-curated public snapshot, so its short history covers publication and hardening rather than the full research
-timeline.
+```bash
+pip install -e ".[dev]"
+ruff check src scripts tests && pytest --runintegration
+```
 
 ## License
 

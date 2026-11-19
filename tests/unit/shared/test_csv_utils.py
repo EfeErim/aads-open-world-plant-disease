@@ -31,4 +31,4 @@ def test_read_csv_preview_returns_count_and_selected_fields(tmp_path: Path):
     row_count, preview = read_csv_preview(csv_path, max_rows=1, fields=("a", "c"))
 
     assert row_count == 2
-    assert preview == [{"a": "1"}]
+    assert preview == [{"a": "1"}]

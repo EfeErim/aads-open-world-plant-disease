@@ -5,8 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlsplit, urlunsplit
 
+from src.colab.git_utils import build_repo_access_url
 from src.colab.repo_bootstrap import (
     COLAB_CLONE_TARGET,
     find_repo_root,
@@ -14,19 +14,6 @@ from src.colab.repo_bootstrap import (
     running_in_colab,
 )
 from src.colab.repo_bootstrap import resolve_hf_token as resolve_huggingface_token
-
-
-def _build_repo_access_url(repo_url: str, token: Optional[str]) -> str:
-    """Build repo URL with GitHub token authentication if provided."""
-    if not token:
-        return repo_url
-
-    parsed = urlsplit(str(repo_url or "").strip())
-    if parsed.scheme != "https" or not parsed.netloc:
-        return repo_url
-
-    netloc = parsed.netloc.split("@", 1)[-1]
-    return urlunsplit((parsed.scheme, f"x-access-token:{token}@{netloc}", parsed.path, parsed.query, parsed.fragment))
 
 
 def bootstrap_repo_root(repo_url: Optional[str] = None) -> Path:
@@ -42,7 +29,7 @@ def bootstrap_repo_root(repo_url: Optional[str] = None) -> Path:
         return repo_root
 
     token = resolve_github_token()
-    clone_url = _build_repo_access_url(repo_url, token)
+    clone_url = build_repo_access_url(repo_url, token)
     clone_target.parent.mkdir(parents=True, exist_ok=True)
     print("[SETUP] Repository not found locally. Cloning the latest demo code...", flush=True)
 

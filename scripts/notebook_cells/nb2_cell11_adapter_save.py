@@ -5,7 +5,7 @@ with TELEMETRY.capture_cell_output("Cell 8: Adapter Save"):
     rt("Cell 8: adapter save started", phase="export")
 
     if STATE.get("adapter") is None:
-        raise RuntimeError("Once Cell 5 calistirilmali.")
+        raise RuntimeError("Run Cell 5 first.")
 
     crop_name = str(STATE.get("crop_name") or CROP_NAME).strip().lower()
     part_name = str(STATE.get("part_name") or PART_NAME or "unspecified").strip().lower() or "unspecified"
@@ -16,9 +16,9 @@ with TELEMETRY.capture_cell_output("Cell 8: Adapter Save"):
     asset_dir = checkpoint_dir / "continual_sd_lora_adapter"
     STATE["adapter_export_dir"] = asset_dir
 
-    print("Kaydedilen adapter klasoru:", asset_dir)
+    print("Saved adapter folder:", asset_dir)
     if not asset_dir.exists():
-        raise RuntimeError(f"Beklenen adapter klasoru bulunamadi: {asset_dir}")
+        raise RuntimeError(f"Expected adapter folder not found: {asset_dir}")
 
     telemetry_adapter_root = TELEMETRY.artifacts_dir / "adapter_export" / crop_name / part_name / "continual_sd_lora_adapter"
     for path_in_adapter in sorted(asset_dir.rglob("*")):
@@ -27,7 +27,7 @@ with TELEMETRY.capture_cell_output("Cell 8: Adapter Save"):
             TELEMETRY.copy_artifact_file(path_in_adapter, f"adapter_export/{relative_path}")
             print(" -", path_in_adapter.relative_to(ROOT))
 
-    print("Telemetry adapter klasoru:", telemetry_adapter_root)
+    print("Telemetry adapter folder:", telemetry_adapter_root)
     TELEMETRY.update_latest(
         {
             "phase": "adapter_saved",
