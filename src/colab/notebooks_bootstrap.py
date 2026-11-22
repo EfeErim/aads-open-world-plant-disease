@@ -1,6 +1,6 @@
 """Colab notebook bootstrap: find or clone the repository, resolve tokens and install requirements.
 
-`run_notebook_bootstrap` is the first cell of Notebooks 2, 3 and 5; `setup_notebook_environment` is the first
+`run_notebook_bootstrap` is the first cell of Notebooks 2, 3 and 9; `setup_notebook_environment` is the first
 cell of Notebooks 0 and 1.
 """
 
@@ -207,7 +207,7 @@ def run_notebook_bootstrap(
     require_colab_requirements: bool = True,
     auto_clone_repo: bool = True,
 ) -> dict:
-    """First-cell bootstrap for Notebooks 2, 3 and 5: update check, repo, requirements, status report."""
+    """First-cell bootstrap for Notebooks 2, 3 and 9: update check, repo, requirements, status report."""
     try:
         from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
 
