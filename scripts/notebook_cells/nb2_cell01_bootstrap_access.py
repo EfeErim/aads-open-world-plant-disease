@@ -11,7 +11,7 @@ except Exception:
     repo_root_for_update_check = None
 
 # [CHECK] First cell: bootstrap contract
-from scripts.notebook_helpers.nb2_training_helpers import run_bootstrap_notebook_nb2
-BOOTSTRAP = run_bootstrap_notebook_nb2()
+from src.colab.notebooks_bootstrap import run_notebook_bootstrap
+BOOTSTRAP = run_notebook_bootstrap("Notebook 2: Continual Adapter Training")
 ROOT = BOOTSTRAP["ROOT"]
 print("[NEXT] Go to the parameter and adapter selection cell; model access is verified separately in the access-check cell.")

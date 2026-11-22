@@ -2,7 +2,7 @@
 # Keep notebook execute-only cells thin; edit behavior here.
 
 with TELEMETRY.capture_cell_output("Cell 5: Engine Init"):
-    from src.colab.dataset_layout import resolve_notebook_training_classes
+    from src.data.dataset_layout import resolve_notebook_training_classes
     from src.adapter.independent_crop_adapter import IndependentCropAdapter
     from src.data.loaders import create_training_loaders
 

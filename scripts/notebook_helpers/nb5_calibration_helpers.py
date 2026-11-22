@@ -69,26 +69,6 @@ def ensure_router_dependencies_nb5(print_fn=print) -> dict:
     return report
 
 
-def run_bootstrap_notebook_nb5(notebook_name: str = "Notebook 5: Router Calibration", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
-    """Bootstrap Notebook 5."""
-    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
-    try:
-        from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
-        _ensure_repo_root_for_update_check()
-    except (ImportError, FileNotFoundError):
-        # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
-        pass
-
-    # [CHECK] First cell: bootstrap contract
-    BOOTSTRAP = bootstrap_notebook(
-        notebook_name=notebook_name,
-        require_colab_requirements=require_colab_requirements,
-        auto_clone_repo=auto_clone_repo,
-    )
-    print_bootstrap_status(BOOTSTRAP)
-    return BOOTSTRAP
-
-
 def run_access_check_nb5(ROOT: Path, print_fn=print) -> dict:
     """Check calibration router model access."""
     from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
@@ -110,6 +90,5 @@ def run_access_check_nb5(ROOT: Path, print_fn=print) -> dict:
 
 __all__ = [
     'ensure_router_dependencies_nb5',
-    'run_bootstrap_notebook_nb5',
     'run_access_check_nb5',
 ]

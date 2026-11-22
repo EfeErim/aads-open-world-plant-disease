@@ -27,18 +27,6 @@ from src.data.dataset_release_runtime import (
 from src.data.grouped_runtime_dataset_preparation import resolve_safe_embedding_batch_size
 
 
-def run_bootstrap_notebook(notebook_name: str = "Notebook 0: Dataset Preparation", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
-    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
-
-    BOOTSTRAP = bootstrap_notebook(
-        notebook_name=notebook_name,
-        require_colab_requirements=require_colab_requirements,
-        auto_clone_repo=auto_clone_repo,
-    )
-    print_bootstrap_status(BOOTSTRAP)
-    return BOOTSTRAP
-
-
 def init_run_environment(ROOT: Path) -> dict:
     STATE: dict = {}
     RUN_ID = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
@@ -167,7 +155,7 @@ def _prompt_yes_no(prompt: str, default_value: bool = True) -> bool:
 def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DEVICE: str, EMBEDDING_BATCH_SIZE: int, NEIGHBORS: int, REPO_DATASET_ROOT: str, REPO_DATASET_NAME: str, DATASET_ROOT: str, CROP_NAME: str, PART_NAME: str, PREP_ARTIFACT_ROOT: str, PREP_DINOV3_MODEL_ID: str, PREP_BIOCLIP_MODEL_ID: str, UNDER_MIN_EVAL_POLICY: dict, IMPORT_FROM_DRIVE: bool = False, DRIVE_DATASET_PATH: str = "", INTERACTIVE_AUDIT_REVIEW: bool = True, MAX_INTERACTIVE_REVIEW_ITEMS: int = 25) -> tuple[dict, str, str]:
     """Run dataset audit and return STATE updates and resolved values."""
     from scripts.evaluate_dataset_layout import evaluate_layout
-    from src.colab.dataset_layout import resolve_repo_dataset_directory
+    from src.data.dataset_layout import resolve_repo_dataset_directory
     from src.data.grouped_runtime_dataset_preparation import (
         build_grouped_dataset_plan,
         build_human_review_packet,
@@ -408,7 +396,7 @@ def run_materialize_runtime_dataset(
     DATASET_RELEASE_CACHE_ROOT: str = ".runtime_tmp/dataset_release_cache",
     INTERACTIVE_AUDIT_REVIEW: bool = True,
 ) -> None:
-    from src.colab.dataset_layout import resolve_repo_dataset_directory
+    from src.data.dataset_layout import resolve_repo_dataset_directory
     from src.data.grouped_runtime_dataset_preparation import (
         build_prepared_dataset_key,
         format_human_review_packet,
@@ -594,7 +582,6 @@ def run_materialize_runtime_dataset(
 
 
 __all__ = [
-    'run_bootstrap_notebook',
     'init_run_environment',
     'save_run_outputs_to_repo',
     'import_dataset_from_drive',

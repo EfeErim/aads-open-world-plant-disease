@@ -53,12 +53,10 @@ else:
     print('[BOOTSTRAP] clone target already exists.', flush=True)
 
 # [CHECK] First cell: bootstrap contract
-from scripts.notebook_helpers.nb5_calibration_helpers import (
-    run_access_check_nb5,
-    run_bootstrap_notebook_nb5,
-)
+from scripts.notebook_helpers.nb5_calibration_helpers import run_access_check_nb5
+from src.colab.notebooks_bootstrap import run_notebook_bootstrap
 
-BOOTSTRAP = run_bootstrap_notebook_nb5()
+BOOTSTRAP = run_notebook_bootstrap("Notebook 5: Router Calibration")
 ROOT = BOOTSTRAP["ROOT"]
 print(f'[BOOTSTRAP] resolved ROOT={ROOT}', flush=True)
 

@@ -1,7 +1,7 @@
 # Auto-extracted from colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb cell 2.
 # Keep notebook execute-only cells thin; edit behavior here.
 
-from src.colab.notebook_bootstrap_helpers import setup_notebook_environment, resolve_github_token
+from src.colab.notebooks_bootstrap import setup_notebook_environment, resolve_github_token
 
 try:
     from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check

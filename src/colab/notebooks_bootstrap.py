@@ -1,8 +1,7 @@
-"""
-Colab notebook bootstrap utilities.
+"""Colab notebook bootstrap: find or clone the repository, resolve tokens and install requirements.
 
-Centralizes all non-interactive setup code (token resolution, repo discovery,
-access checks, imports, config loading) so notebooks remain minimalist.
+`run_notebook_bootstrap` is the first cell of Notebooks 2, 3 and 5; `setup_notebook_environment` is the first
+cell of Notebooks 0 and 1.
 """
 
 import os
@@ -200,3 +199,115 @@ def print_bootstrap_status(bootstrap_result: dict) -> None:
     print(f"GitHub Token: {'✓' if bootstrap_result.get('GH_TOKEN') else '✗'}")
     print(f"HuggingFace Token: {'✓' if bootstrap_result.get('HF_TOKEN') else '✗'}")
     print("=" * 70 + "\n")
+
+
+def run_notebook_bootstrap(
+    notebook_name: str,
+    *,
+    require_colab_requirements: bool = True,
+    auto_clone_repo: bool = True,
+) -> dict:
+    """First-cell bootstrap for Notebooks 2, 3 and 5: update check, repo, requirements, status report."""
+    try:
+        from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
+
+        _ensure_repo_root_for_update_check()
+    except (ImportError, FileNotFoundError):
+        # Repo not importable or not found yet: bootstrap_notebook clones it or reports why it cannot.
+        pass
+    result = bootstrap_notebook(
+        notebook_name=notebook_name,
+        require_colab_requirements=require_colab_requirements,
+        auto_clone_repo=auto_clone_repo,
+    )
+    print_bootstrap_status(result)
+    return result
+
+
+def bootstrap_repo_root(repo_url: Optional[str] = None) -> Path:
+    """Find or clone repo root, ensuring it's available and sys.path is updated."""
+    if repo_url is None:
+        repo_url = os.environ.get("AADS_REPO_URL", "https://github.com/EfeErim/aads-open-world-plant-disease.git")
+    clone_target = COLAB_CLONE_TARGET
+
+    print("[SETUP] Checking repository checkout...", flush=True)
+    repo_root = find_repo_root()
+    if repo_root is not None:
+        print(f"[SETUP] Repository ready: {repo_root}", flush=True)
+        return repo_root
+
+    token = resolve_github_token()
+    clone_url = build_repo_access_url(repo_url, token)
+    clone_target.parent.mkdir(parents=True, exist_ok=True)
+    print("[SETUP] Repository not found locally. Cloning the latest demo code...", flush=True)
+
+    completed = subprocess.run(
+        ["git", "clone", "--depth", "1", clone_url, str(clone_target)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if completed.stdout:
+        print(completed.stdout)
+
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Repo bootstrap failed. Set AADS_REPO_ROOT for an existing checkout or "
+            "provide GH_TOKEN/GITHUB_TOKEN for private repo auto-clone."
+        )
+
+    repo_root = find_repo_root()
+    if repo_root is not None:
+        print(f"[SETUP] Repository ready: {repo_root}", flush=True)
+        return repo_root
+
+    raise RuntimeError(
+        "Repo bootstrap failed. Set AADS_REPO_ROOT for existing checkout or "
+        "provide GH_TOKEN/GITHUB_TOKEN for private repo auto-clone."
+    )
+
+
+def setup_notebook_environment(
+    repo_url: Optional[str] = None,
+    install_requirements: bool = True,
+    print_tokens: bool = True,
+    requirements_file: Optional[str | Path] = None,
+) -> Path:
+    """Complete notebook bootstrap: resolve repo, set sys.path, install requirements."""
+    print("[SETUP] Starting notebook environment setup...", flush=True)
+    print("[SETUP] Checking Colab access tokens...", flush=True)
+    gh_token = resolve_github_token()
+    hf_token = resolve_huggingface_token()
+
+    if print_tokens:
+        if gh_token:
+            print("[GIT] GitHub token resolved from env/secret.")
+        else:
+            print("[GIT] GitHub token not found. Public read only; set GH_TOKEN for private repos.")
+
+        if hf_token:
+            print("[HF] Hugging Face token resolved. Gated model access available.")
+        else:
+            print("[HF] Hugging Face token not found. Gated models may require setup.")
+
+    repo_root = bootstrap_repo_root(repo_url=repo_url)
+    os.chdir(repo_root)
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    if install_requirements and running_in_colab():
+        from src.colab.repo_bootstrap import install_colab_requirements
+        relative_requirements = Path(
+            requirements_file or os.environ.get("AADS_COLAB_REQUIREMENTS_FILE", "requirements_colab.txt")
+        )
+        requirements_path = (repo_root / relative_requirements).resolve()
+        try:
+            requirements_path.relative_to(repo_root.resolve())
+        except ValueError as exc:
+            raise ValueError(f"Colab requirements file must stay under the repo root: {relative_requirements}") from exc
+        print(f"[SETUP] Dependency profile: {relative_requirements}")
+        install_colab_requirements(requirements_path, in_colab=True)
+
+    print("[SETUP] Notebook environment ready.", flush=True)
+    return repo_root

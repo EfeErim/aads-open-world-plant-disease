@@ -3,26 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def run_bootstrap_notebook_nb2(notebook_name: str = "Notebook 2: Continual Adapter Training", require_colab_requirements: bool = True, auto_clone_repo: bool = True) -> dict:
-    """Bootstrap Notebook 2."""
-    from src.colab.notebooks_bootstrap import bootstrap_notebook, print_bootstrap_status
-    try:
-        from src.colab.repo_bootstrap import _ensure_repo_root_for_update_check
-        _ensure_repo_root_for_update_check()
-    except (ImportError, FileNotFoundError):
-        # Repo not importable or not found yet: bootstrap_notebook below clones the repository or reports why it cannot.
-        pass
-
-    # [CHECK] First cell: bootstrap contract
-    BOOTSTRAP = bootstrap_notebook(
-        notebook_name=notebook_name,
-        require_colab_requirements=require_colab_requirements,
-        auto_clone_repo=auto_clone_repo,
-    )
-    print_bootstrap_status(BOOTSTRAP)
-    return BOOTSTRAP
-
-
 def run_access_check_nb2(ROOT: Path, print_fn=print) -> dict:
     """Check training model access."""
     from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
@@ -43,6 +23,5 @@ def run_access_check_nb2(ROOT: Path, print_fn=print) -> dict:
 
 
 __all__ = [
-    'run_bootstrap_notebook_nb2',
     'run_access_check_nb2',
 ]

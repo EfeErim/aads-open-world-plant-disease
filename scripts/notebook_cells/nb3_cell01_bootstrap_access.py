@@ -52,12 +52,10 @@ except Exception:
     repo_root_for_update_check = None
 
 # [CHECK] First cell: bootstrap contract
-from scripts.notebook_helpers.nb3_smoke_test_helpers import (
-    run_access_check_nb3,
-    run_bootstrap_notebook_nb3,
-)
+from scripts.notebook_helpers.nb3_smoke_test_helpers import run_access_check_nb3
+from src.colab.notebooks_bootstrap import run_notebook_bootstrap
 
-BOOTSTRAP = run_bootstrap_notebook_nb3()
+BOOTSTRAP = run_notebook_bootstrap("Notebook 3: Adapter Smoke Test")
 ROOT = BOOTSTRAP["ROOT"]
 
 # Check model access

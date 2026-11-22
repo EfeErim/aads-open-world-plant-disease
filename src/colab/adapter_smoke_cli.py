@@ -1,4 +1,4 @@
-"""CLI for direct adapter smoke tests; re-exports the helpers Notebook 3 imports.
+"""CLI for direct adapter smoke tests.
 
 The command-line path is contract-first: it discovers exported adapter bundles,
 validates the metadata shape Notebook 3 and inference need, and optionally
@@ -20,12 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.colab.adapter_smoke import (  # noqa: E402
-    build_prediction_visualization_images as build_prediction_visualization_images,
-)
 from src.colab.adapter_smoke import discover_adapter_candidates, predict_image_folder  # noqa: E402
-from src.colab.adapter_smoke import load_adapter_summary as load_adapter_summary  # noqa: E402
-from src.colab.adapter_smoke import predict_single_image as predict_single_image  # noqa: E402
 
 
 def _read_adapter_meta_for_cli(adapter_dir: Path) -> dict[str, Any]:

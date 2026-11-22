@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.colab import notebook_bootstrap_helpers as bootstrap_helpers
+from src.colab import notebooks_bootstrap as bootstrap_helpers
 
 
 def test_colab_profile_does_not_force_incompatible_torchao():

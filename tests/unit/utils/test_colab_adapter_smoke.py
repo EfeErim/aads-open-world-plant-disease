@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 
 from src.colab import adapter_smoke as smoke_impl
-from src.colab import adapter_smoke_test as smoke
+from src.colab import adapter_smoke_cli as smoke
 from tests.utils.test_helpers import make_image
 
 
@@ -218,7 +218,7 @@ def test_load_adapter_summary_accepts_parent_export_dir(monkeypatch, tmp_path: P
     asset_dir = _write_adapter_export(export_root)
     monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
-    summary = smoke.load_adapter_summary("tomato", adapter_dir=export_root, device="cpu")
+    summary = smoke_impl.load_adapter_summary("tomato", adapter_dir=export_root, device="cpu")
 
     assert summary["resolved_adapter_dir"] == str(asset_dir)
     assert summary["backbone_model_name"] == "facebook/dinov3-vitl16-pretrain-lvd1689m"
@@ -234,7 +234,7 @@ def test_load_adapter_summary_accepts_telemetry_run_dir_and_infers_crop_from_rea
     _write_production_readiness(run_dir / "artifacts", crop_name="tomato")
     monkeypatch.setattr(smoke_impl, "_build_adapter", lambda crop_name, device: _FakeAdapter(crop_name, device))
 
-    summary = smoke.load_adapter_summary(None, adapter_dir=run_dir, device="cpu")
+    summary = smoke_impl.load_adapter_summary(None, adapter_dir=run_dir, device="cpu")
 
     assert summary["resolved_adapter_dir"] == str(asset_dir)
     assert summary["crop_name"] == "tomato"
@@ -252,7 +252,7 @@ def test_predict_single_image_returns_notebook_payload(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(smoke_impl, "preprocess_image", zero_preprocess)
     monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 224)
 
-    result = smoke.predict_single_image(image_path, "tomato", adapter_dir=asset_dir, device="cpu")
+    result = smoke_impl.predict_single_image(image_path, "tomato", adapter_dir=asset_dir, device="cpu")
 
     assert result["image_name"] == "leaf.png"
     assert result["predicted_class"] == "blight"
@@ -291,7 +291,7 @@ def test_predict_single_image_robust_mode_returns_ordered_views_and_full_resize_
     monkeypatch.setattr(smoke_impl, "_prepare_view_tensor", _scripted_view_tensor)
     monkeypatch.setattr(smoke_impl, "_target_size", lambda _env: 16)
 
-    result = smoke.predict_single_image(
+    result = smoke_impl.predict_single_image(
         image_path,
         "tomato",
         adapter_dir=asset_dir,

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from src.colab.dataset_layout import (
+from src.data.dataset_layout import (
     list_dataset_directories_from_parent,
     list_repo_dataset_directories,
     looks_like_class_root_dataset,
