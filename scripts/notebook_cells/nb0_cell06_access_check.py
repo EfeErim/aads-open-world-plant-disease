@@ -3,7 +3,7 @@
 
 with TELEMETRY.capture_cell_output("Cell 3b: Update and Access Check"):
     from src.colab.repo_bootstrap import collect_notebook_access_report, print_notebook_access_report
-    from scripts.notebook_helpers.nb0_grouped_dataset_prep_helpers import DatasetReleaseAccessBlocker
+    from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker
     from src.pipeline.adapter_release import resolve_token
 
     access_report = collect_notebook_access_report(
@@ -12,7 +12,7 @@ with TELEMETRY.capture_cell_output("Cell 3b: Update and Access Check"):
     )
     STATE["access_report"] = access_report
     print_notebook_access_report(access_report, print_fn=print)
-    dataset_release_read_token = resolve_token(write=False)
+    dataset_release_read_token = resolve_token()
     if DATASET_RELEASE_TAG and not dataset_release_read_token:
         raise DatasetReleaseAccessBlocker(
             "DATASET_RELEASE_ACCESS_BLOCKER: AADS_GITHUB_RELEASE_READ_TOKEN is required for the private release"

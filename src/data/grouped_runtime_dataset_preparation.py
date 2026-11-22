@@ -23,27 +23,21 @@ from src.data.dataset_layout import (
     normalize_class_name,
 )
 from src.data.grouped_dataset_embeddings import (
-    _compute_neighbor_pairs as _compute_neighbor_pairs,
+    _compute_neighbor_pairs,
+    _encode_bioclip_with_components,
+    _encode_dinov3_with_components,
+    _encode_with_oom_retries,
+    _load_bioclip_components,
+    _load_dinov3_components,
+    _progress,
+    _resolve_amp_dtype,
+    _resolve_embedding_device,
+    resolve_safe_embedding_batch_size,
 )
-from src.data.grouped_dataset_embeddings import (
-    _encode_bioclip_with_components as _encode_bioclip_with_components,
-)
-from src.data.grouped_dataset_embeddings import (
-    _encode_dinov3_with_components as _encode_dinov3_with_components,
-)
-from src.data.grouped_dataset_embeddings import _encode_with_oom_retries as _encode_with_oom_retries
-from src.data.grouped_dataset_embeddings import _load_bioclip_components as _load_bioclip_components
-from src.data.grouped_dataset_embeddings import _load_dinov3_components as _load_dinov3_components
-from src.data.grouped_dataset_embeddings import _progress as _progress
-from src.data.grouped_dataset_embeddings import _resolve_amp_dtype as _resolve_amp_dtype
-from src.data.grouped_dataset_embeddings import _resolve_embedding_device as _resolve_embedding_device
-from src.data.grouped_dataset_embeddings import (
-    resolve_safe_embedding_batch_size as resolve_safe_embedding_batch_size,
-)
-from src.data.grouped_dataset_materialization import DEFAULT_RUNTIME_ROOT as DEFAULT_RUNTIME_ROOT
-from src.data.grouped_dataset_materialization import build_prepared_dataset_key as build_prepared_dataset_key
 from src.data.grouped_dataset_materialization import (
-    materialize_grouped_runtime_dataset as materialize_grouped_runtime_dataset,
+    DEFAULT_RUNTIME_ROOT,
+    build_prepared_dataset_key,
+    materialize_grouped_runtime_dataset,
 )
 from src.data.grouped_dataset_policy import (
     BIOCLIP_AUTO_MIN,
@@ -57,16 +51,11 @@ from src.data.grouped_dataset_policy import (
     PHASH_REVIEW_MAX_DISTANCE,
     PHASH_SIZE,
 )
-from src.data.grouped_dataset_policy import (
-    BIOCLIP_CROSS_CLASS_BLOCK_MIN as BIOCLIP_CROSS_CLASS_BLOCK_MIN,
+from src.data.grouped_dataset_reporting import (
+    _skipped_class_entry,
+    build_human_review_packet,
+    build_label_review_summary,
 )
-from src.data.grouped_dataset_policy import (
-    DINO_CROSS_CLASS_BLOCK_MIN as DINO_CROSS_CLASS_BLOCK_MIN,
-)
-from src.data.grouped_dataset_reporting import _skipped_class_entry as _skipped_class_entry
-from src.data.grouped_dataset_reporting import build_human_review_packet as build_human_review_packet
-from src.data.grouped_dataset_reporting import build_label_review_summary as build_label_review_summary
-from src.data.grouped_dataset_reporting import format_human_review_packet as format_human_review_packet
 from src.shared.csv_utils import write_csv_rows
 from src.shared.hash_utils import sha256_file
 from src.shared.json_utils import read_json, write_json

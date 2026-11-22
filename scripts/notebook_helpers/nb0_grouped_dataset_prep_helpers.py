@@ -10,16 +10,10 @@ matplotlib.use("Agg")
 
 import torch
 
+from src.colab.git_utils import mirror_checkpoint_state_to_repo, mirror_path_to_repo
 from src.colab.live_telemetry import ColabLiveTelemetry
-from src.colab.repo_bootstrap import (
-    export_current_colab_notebook,
-    mirror_checkpoint_state_to_repo,
-    mirror_path_to_repo,
-)
+from src.colab.repo_bootstrap import export_current_colab_notebook
 from src.core.config_manager import ConfigurationManager
-from src.data.dataset_release_runtime import (
-    DatasetReleaseAccessBlocker as DatasetReleaseAccessBlocker,
-)
 from src.data.dataset_release_runtime import (
     fetch_materialize_dataset_release,
     resolve_dataset_release_manifest,
@@ -156,11 +150,8 @@ def run_dataset_audit(ROOT: Path, STATE: dict, TELEMETRY: ColabLiveTelemetry, DE
     """Run dataset audit and return STATE updates and resolved values."""
     from scripts.evaluate_dataset_layout import evaluate_layout
     from src.data.dataset_layout import resolve_repo_dataset_directory
-    from src.data.grouped_runtime_dataset_preparation import (
-        build_grouped_dataset_plan,
-        build_human_review_packet,
-        format_human_review_packet,
-    )
+    from src.data.grouped_dataset_reporting import build_human_review_packet, format_human_review_packet
+    from src.data.grouped_runtime_dataset_preparation import build_grouped_dataset_plan
     from src.shared.json_utils import write_json
 
     def _resolve_repo_dataset_root(repo_relative_root: str) -> Path:
@@ -397,9 +388,9 @@ def run_materialize_runtime_dataset(
     INTERACTIVE_AUDIT_REVIEW: bool = True,
 ) -> None:
     from src.data.dataset_layout import resolve_repo_dataset_directory
+    from src.data.grouped_dataset_reporting import format_human_review_packet
     from src.data.grouped_runtime_dataset_preparation import (
         build_prepared_dataset_key,
-        format_human_review_packet,
         materialize_grouped_runtime_dataset,
     )
 

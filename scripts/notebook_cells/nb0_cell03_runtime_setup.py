@@ -8,11 +8,10 @@ import torch
 
 matplotlib.use("Agg")
 
+from src.colab.git_utils import mirror_checkpoint_state_to_repo, mirror_path_to_repo
 from src.colab.repo_bootstrap import (
     export_current_colab_notebook,
     install_colab_requirements,
-    mirror_checkpoint_state_to_repo,
-    mirror_path_to_repo,
     running_in_colab,
 )
 from src.colab.live_telemetry import ColabLiveTelemetry

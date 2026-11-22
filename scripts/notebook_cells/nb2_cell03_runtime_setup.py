@@ -48,12 +48,11 @@ def _infer_part_name_from_dataset_name(dataset_name: str) -> str:
     return "_".join(tokens[1:]) or "unspecified"
 
 # Imports for training notebook setup
+from src.colab.git_utils import mirror_checkpoint_state_to_repo, mirror_path_to_repo
 from src.colab.repo_bootstrap import (
     export_current_colab_notebook,
     install_colab_requirements,
     login_and_check_hf_token,
-    mirror_checkpoint_state_to_repo,
-    mirror_path_to_repo,
     push_repo_run_to_github,
     resolve_github_token,
     resolve_hf_token,

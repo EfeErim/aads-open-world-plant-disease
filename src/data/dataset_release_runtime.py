@@ -60,7 +60,7 @@ def fetch_materialize_dataset_release(
     if invalid:
         raise ValueError(f"Invalid dataset release target(s): {invalid!r}")
 
-    resolved_token = str(token or resolve_token(write=False) or "").strip()
+    resolved_token = str(token or resolve_token() or "").strip()
     if client is None and not resolved_token:
         raise DatasetReleaseAccessBlocker(
             "DATASET_RELEASE_ACCESS_BLOCKER: AADS_GITHUB_RELEASE_READ_TOKEN is required for the private release"

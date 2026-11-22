@@ -90,6 +90,13 @@ pip install -e ".[dev]"
 ruff check src scripts tests && pytest --runintegration
 ```
 
+To fetch the eight released adapters (64 files, about 518 MB) into `models/adapters` and verify them against the
+release manifest without Colab:
+
+```bash
+python scripts/fetch_public_adapters.py
+```
+
 ## License
 
 The source code is released under the [MIT License](LICENSE). Each DINOv3-derived adapter bundle also includes the

@@ -76,4 +76,4 @@ class TestAutoTuneBeta:
         features = torch.cat([c0, c1])
         labels = torch.cat([torch.zeros(50), torch.ones(50)]).long()
         beta = auto_tune_beta(features, labels, beta_range=(0.1, 5.0), beta_steps=20)
-        assert isinstance(beta, float)
+        assert beta < 1.0

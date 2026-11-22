@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import torch
 
 from src.ood.conformal_prediction import (
@@ -16,6 +17,11 @@ from src.ood.conformal_prediction import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _seed() -> None:
+    torch.manual_seed(0)
+
+
 class TestNonconformityScores:
     def test_signed_distance(self):
         ensemble = torch.tensor([2.0, 1.0, 3.0])
@@ -26,10 +32,10 @@ class TestNonconformityScores:
 
 
 class TestCalibrateConformalQhat:
-    def test_basic(self):
-        scores = torch.randn(100)
-        qhat = calibrate_conformal_qhat(scores, alpha=0.05)
-        assert isinstance(qhat, float)
+    def test_uses_finite_sample_adjusted_quantile(self):
+        scores = torch.arange(1, 101, dtype=torch.float32)
+        # ceil((1 - 0.05) * 101) / 100 = 0.96 -> linear quantile of 1..100.
+        assert calibrate_conformal_qhat(scores, alpha=0.05) == pytest.approx(96.04, abs=1e-3)
 
     def test_higher_alpha_lower_qhat(self):
         scores = torch.randn(200)
@@ -176,13 +182,12 @@ class TestBuildPredictionSet:
         assert isinstance(pred_set, list)
         assert all(isinstance(c, str) for c in pred_set)
 
-    def test_tight_qhat_may_exclude(self):
+    def test_tight_qhat_excludes_every_class(self):
         stats = self._make_stats()
         idx_to_class = {0: "healthy", 1: "diseased"}
         features = torch.randn(8) * 10  # Far from both class means
         logits = torch.randn(2)
         pred_set = build_prediction_set(features, logits, -100.0, stats, idx_to_class)
-        # Very tight qhat should exclude classes
-        assert len(pred_set) <= 2
+        assert pred_set == []
 
 

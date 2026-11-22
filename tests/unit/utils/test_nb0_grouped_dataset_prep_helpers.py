@@ -91,7 +91,7 @@ def test_release_fetch_requires_read_only_token(tmp_path: Path, monkeypatch):
     monkeypatch.delenv("AADS_GITHUB_RELEASE_READ_TOKEN", raising=False)
     monkeypatch.delenv("AADS_GITHUB_RELEASE_CI_READ_TOKEN", raising=False)
 
-    with pytest.raises(nb0.DatasetReleaseAccessBlocker, match="AADS_GITHUB_RELEASE_READ_TOKEN"):
+    with pytest.raises(dataset_release_runtime.DatasetReleaseAccessBlocker, match="AADS_GITHUB_RELEASE_READ_TOKEN"):
         nb0.fetch_materialize_dataset_release(
             root=tmp_path,
             repository="owner/repo",
@@ -140,7 +140,7 @@ def test_release_network_failure_is_access_blocker(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(dataset_release_runtime, "fetch_dataset_release", _fail)
 
-    with pytest.raises(nb0.DatasetReleaseAccessBlocker, match="DATASET_RELEASE_ACCESS_BLOCKER"):
+    with pytest.raises(dataset_release_runtime.DatasetReleaseAccessBlocker, match="DATASET_RELEASE_ACCESS_BLOCKER"):
         nb0.fetch_materialize_dataset_release(
             root=tmp_path,
             repository="owner/repo",

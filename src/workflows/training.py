@@ -230,6 +230,85 @@ class _PrimaryScoreSelectionStage:
     selection_metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+def _resolve_dataset_lineage(
+    dataset_lineage: Optional[Mapping[str, Any]],
+    *,
+    runtime_crop_root: Path,
+    runtime_dataset_key: str,
+    runtime_manifest_context: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Return the caller's lineage, or a local one, after checking it matches the resolved runtime dataset."""
+    runtime_manifest_path = runtime_crop_root / "split_manifest.json"
+    split_manifest_context = dict(runtime_manifest_context.get("split_manifest.json", {}))
+    split_manifest_sha256 = str(split_manifest_context.get("sha256", "") or "")
+    if not split_manifest_sha256:
+        split_manifest_sha256 = canonical_sha256(
+            {"dataset_key": runtime_dataset_key, "split_manifest": "missing_local_legacy"}
+        )
+    resolved_dataset_lineage = dict(dataset_lineage or {})
+    if not resolved_dataset_lineage:
+        resolved_dataset_lineage = build_local_legacy_lineage(
+            dataset_key=runtime_dataset_key,
+            split_manifest_sha256=split_manifest_sha256,
+            compatibility_reason="local_workflow_compatibility",
+        )
+        if not runtime_manifest_path.is_file():
+            resolved_dataset_lineage["split_manifest_missing"] = True
+    if str(resolved_dataset_lineage.get("dataset_key", "") or "") != runtime_dataset_key:
+        raise ValueError("dataset_lineage dataset_key does not match the resolved runtime dataset")
+    if str(resolved_dataset_lineage.get("split_manifest_sha256", "") or "") != split_manifest_sha256:
+        raise ValueError(f"dataset_lineage does not match {runtime_manifest_path}")
+    return resolved_dataset_lineage
+
+
+def _split_metric_summaries(split_evaluations: Mapping[str, Any]) -> Dict[str, Any]:
+    return {
+        split_name: _evaluation_metrics_summary(payload)
+        for split_name, payload in split_evaluations.items()
+        if payload is not None
+    }
+
+
+def _classifier_rebalance_context(
+    training_cfg: Mapping[str, Any], split_evaluations: Mapping[str, Any]
+) -> Dict[str, Any]:
+    classifier_rebalance_cfg = dict(training_cfg.get("classifier_rebalance", {}))
+    return {
+        "enabled": bool(classifier_rebalance_cfg.get("enabled", False)),
+        "objective": str(classifier_rebalance_cfg.get("objective", "") or ""),
+        "sampler": str(classifier_rebalance_cfg.get("sampler", "") or ""),
+        "epochs": int(classifier_rebalance_cfg.get("epochs", 0) or 0),
+        "pre_rebalance_metrics": _split_metric_summaries(split_evaluations),
+    }
+
+
+def _apply_benchmark_score_selection(
+    trainer: Any,
+    primary_score_stage: _PrimaryScoreSelectionStage,
+    ood_benchmark: Mapping[str, Any],
+) -> _PrimaryScoreSelectionStage:
+    """With ``auto`` and no real OOD split, use the best method from the leave-one-class-out benchmark."""
+    if not is_auto_primary_score_method(primary_score_stage.requested_method):
+        return primary_score_stage
+    benchmark_method_comparison = dict(ood_benchmark.get("method_comparison", {}))
+    if not benchmark_method_comparison:
+        benchmark_method_comparison = dict(ood_benchmark.get("method_comparison_metrics", {}))
+    if not benchmark_method_comparison:
+        return primary_score_stage
+    selected_primary_score_method = apply_primary_score_method_to_trainer(
+        trainer,
+        select_best_ood_score_method(
+            benchmark_method_comparison,
+            fallback=primary_score_stage.selected_method,
+        ),
+    )
+    return replace(
+        primary_score_stage,
+        selected_method=selected_primary_score_method,
+        selection_source="held_out_benchmark",
+    )
+
+
 class TrainingWorkflow:
     """Stable app-facing entrypoint for continual adapter training."""
 
@@ -478,6 +557,48 @@ class TrainingWorkflow:
         )
         return dict(ood_benchmark)
 
+    def _select_primary_score_method(
+        self,
+        *,
+        trainer: Any,
+        loaders: Dict[str, Any],
+        ood_cfg: Dict[str, Any],
+        gate_targets: Dict[str, Any],
+        real_ood_present: bool,
+        split_evaluations: Dict[str, Any],
+    ) -> tuple[_PrimaryScoreSelectionStage, Dict[str, Any]]:
+        """Apply the configured OOD score; with real OOD data and ``auto``, pick it on the OOD dev split."""
+        primary_score_stage = _PrimaryScoreSelectionStage(
+            requested_method=normalize_requested_primary_score_method(
+                ood_cfg.get("primary_score_method", "auto")
+            ),
+            selected_method=resolve_runtime_primary_score_method(
+                ood_cfg.get("primary_score_method", "auto")
+            ),
+            selection_source="configured",
+        )
+        selected_primary_score_method = apply_primary_score_method_to_trainer(
+            trainer,
+            primary_score_stage.selected_method,
+        )
+        primary_score_stage = replace(primary_score_stage, selected_method=selected_primary_score_method)
+        if real_ood_present and is_auto_primary_score_method(primary_score_stage.requested_method):
+            real_dev_stage = None
+            if bool(ood_cfg.get("real_dev_selection_enabled", True)):
+                real_dev_stage = self._select_from_real_ood_dev(
+                    trainer=trainer,
+                    loaders=loaders,
+                    requested_method=primary_score_stage.requested_method,
+                    fallback_method=primary_score_stage.selected_method,
+                    target_fpr=float(ood_cfg.get("real_dev_target_fpr", gate_targets.get("ood_false_positive_rate", 0.05))),
+                )
+            if real_dev_stage is not None:
+                primary_score_stage = real_dev_stage
+                split_evaluations = self._collect_split_evaluations(trainer=trainer, loaders=loaders)
+            else:
+                primary_score_stage = replace(primary_score_stage, selection_source="real_ood_guardrail_no_dev")
+        return primary_score_stage, split_evaluations
+
     def run(
         self,
         *,
@@ -536,27 +657,13 @@ class TrainingWorkflow:
         runtime_crop_root = Path(run_setup.runtime_crop_root)
         runtime_dataset_resolution_source = str(run_setup.runtime_dataset_resolution_source)
         runtime_manifest_payload = run_metadata.read_dataset_manifest_payload(runtime_crop_root)
-        runtime_manifest_path = runtime_crop_root / "split_manifest.json"
         runtime_manifest_context = run_metadata.collect_dataset_manifest_context(runtime_crop_root)
-        split_manifest_context = dict(runtime_manifest_context.get("split_manifest.json", {}))
-        split_manifest_sha256 = str(split_manifest_context.get("sha256", "") or "")
-        if not split_manifest_sha256:
-            split_manifest_sha256 = canonical_sha256(
-                {"dataset_key": runtime_dataset_key, "split_manifest": "missing_local_legacy"}
-            )
-        resolved_dataset_lineage = dict(dataset_lineage or {})
-        if not resolved_dataset_lineage:
-            resolved_dataset_lineage = build_local_legacy_lineage(
-                dataset_key=runtime_dataset_key,
-                split_manifest_sha256=split_manifest_sha256,
-                compatibility_reason="local_workflow_compatibility",
-            )
-            if not runtime_manifest_path.is_file():
-                resolved_dataset_lineage["split_manifest_missing"] = True
-        if str(resolved_dataset_lineage.get("dataset_key", "") or "") != runtime_dataset_key:
-            raise ValueError("dataset_lineage dataset_key does not match the resolved runtime dataset")
-        if str(resolved_dataset_lineage.get("split_manifest_sha256", "") or "") != split_manifest_sha256:
-            raise ValueError(f"dataset_lineage does not match {runtime_manifest_path}")
+        resolved_dataset_lineage = _resolve_dataset_lineage(
+            dataset_lineage,
+            runtime_crop_root=runtime_crop_root,
+            runtime_dataset_key=runtime_dataset_key,
+            runtime_manifest_context=runtime_manifest_context,
+        )
         adapter = run_setup.adapter
         resolved_part_name = (
             run_metadata.normalize_part_name(part_name)
@@ -629,19 +736,7 @@ class TrainingWorkflow:
             telemetry=telemetry,
         )
         split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
-        pre_rebalance_metrics = {
-            split_name: _evaluation_metrics_summary(payload)
-            for split_name, payload in split_evaluations.items()
-            if payload is not None
-        }
-        classifier_rebalance_cfg = dict(training_cfg.get("classifier_rebalance", {}))
-        classifier_rebalance_context: Dict[str, Any] = {
-            "enabled": bool(classifier_rebalance_cfg.get("enabled", False)),
-            "objective": str(classifier_rebalance_cfg.get("objective", "") or ""),
-            "sampler": str(classifier_rebalance_cfg.get("sampler", "") or ""),
-            "epochs": int(classifier_rebalance_cfg.get("epochs", 0) or 0),
-            "pre_rebalance_metrics": pre_rebalance_metrics,
-        }
+        classifier_rebalance_context = _classifier_rebalance_context(training_cfg, split_evaluations)
         if classifier_rebalance_context["enabled"]:
             (
                 trainer_for_artifacts,
@@ -662,11 +757,7 @@ class TrainingWorkflow:
             if rebalance_history_payload:
                 classifier_rebalance_context["history"] = rebalance_history_payload
             split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
-            classifier_rebalance_context["post_rebalance_metrics"] = {
-                split_name: _evaluation_metrics_summary(payload)
-                for split_name, payload in split_evaluations.items()
-                if payload is not None
-            }
+            classifier_rebalance_context["post_rebalance_metrics"] = _split_metric_summaries(split_evaluations)
             best_state_restored = bool(best_state_restored or rebalance_best_state_restored)
         real_ood_present = loader_size(loaders.get("ood")) > 0
         ood_cfg = dict(training_cfg.get("ood", {}))
@@ -675,35 +766,14 @@ class TrainingWorkflow:
         gate_auxiliary_ood_diagnostics = bool(
             evaluation_cfg.get("gate_auxiliary_ood_diagnostics", False)
         )
-        primary_score_stage = _PrimaryScoreSelectionStage(
-            requested_method=normalize_requested_primary_score_method(
-                ood_cfg.get("primary_score_method", "auto")
-            ),
-            selected_method=resolve_runtime_primary_score_method(
-                ood_cfg.get("primary_score_method", "auto")
-            ),
-            selection_source="configured",
+        primary_score_stage, split_evaluations = self._select_primary_score_method(
+            trainer=trainer_for_artifacts,
+            loaders=loaders,
+            ood_cfg=ood_cfg,
+            gate_targets=gate_targets,
+            real_ood_present=real_ood_present,
+            split_evaluations=split_evaluations,
         )
-        selected_primary_score_method = apply_primary_score_method_to_trainer(
-            trainer_for_artifacts,
-            primary_score_stage.selected_method,
-        )
-        primary_score_stage = replace(primary_score_stage, selected_method=selected_primary_score_method)
-        if real_ood_present and is_auto_primary_score_method(primary_score_stage.requested_method):
-            real_dev_stage = None
-            if bool(ood_cfg.get("real_dev_selection_enabled", True)):
-                real_dev_stage = self._select_from_real_ood_dev(
-                    trainer=trainer_for_artifacts,
-                    loaders=loaders,
-                    requested_method=primary_score_stage.requested_method,
-                    fallback_method=primary_score_stage.selected_method,
-                    target_fpr=float(ood_cfg.get("real_dev_target_fpr", gate_targets.get("ood_false_positive_rate", 0.05))),
-                )
-            if real_dev_stage is not None:
-                primary_score_stage = real_dev_stage
-                split_evaluations = self._collect_split_evaluations(trainer=trainer_for_artifacts, loaders=loaders)
-            else:
-                primary_score_stage = replace(primary_score_stage, selection_source="real_ood_guardrail_no_dev")
 
         ood_benchmark: Dict[str, Any] = {}
         if not real_ood_present:
@@ -719,23 +789,9 @@ class TrainingWorkflow:
             )
             ood_evidence_source = "held_out_benchmark"
             ood_evidence_metrics = dict(ood_benchmark.get("metrics", {}))
-            if is_auto_primary_score_method(primary_score_stage.requested_method):
-                benchmark_method_comparison = dict(ood_benchmark.get("method_comparison", {}))
-                if not benchmark_method_comparison:
-                    benchmark_method_comparison = dict(ood_benchmark.get("method_comparison_metrics", {}))
-                if benchmark_method_comparison:
-                    selected_primary_score_method = apply_primary_score_method_to_trainer(
-                        trainer_for_artifacts,
-                        select_best_ood_score_method(
-                            benchmark_method_comparison,
-                            fallback=primary_score_stage.selected_method,
-                        ),
-                    )
-                    primary_score_stage = replace(
-                        primary_score_stage,
-                        selected_method=selected_primary_score_method,
-                        selection_source="held_out_benchmark",
-                    )
+            primary_score_stage = _apply_benchmark_score_selection(
+                trainer_for_artifacts, primary_score_stage, ood_benchmark
+            )
 
         requested_primary_score_method = primary_score_stage.requested_method
         selection_source = primary_score_stage.selection_source

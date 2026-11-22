@@ -1,0 +1,40 @@
+{
+  "approved_manifest_sha256": "639916ee1c4ae2447615968ed5a0bb0068a97f31bf7070891f25caa6fe80d36f",
+  "assets": [
+    {
+      "asset_id": 100,
+      "asset_name": "aads-dataset-v1.0.0-shard-0001.zip",
+      "github_digest": "sha256:a455679fe976186363cac23a344f7c5057ad8303b587801b9ba12e7cbe94915b",
+      "members": [
+        {
+          "path": "tomato/leaf/id_train/healthy/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/image.jpg",
+          "sample_id": "sample-1",
+          "sha256": "4cd68a377f4b350468ba84edbfb23601e6c34c40ee06101987fd5a9f585b53d5",
+          "size_bytes": 9
+        }
+      ],
+      "sha256": "a455679fe976186363cac23a344f7c5057ad8303b587801b9ba12e7cbe94915b",
+      "size_bytes": 809
+    }
+  ],
+  "audit_outcome": "approved_manifest_only",
+  "dataset_version": "1.0.0",
+  "distributed_bytes": 9,
+  "draft": false,
+  "file_count": 1,
+  "immutable": true,
+  "previous_release_tag": null,
+  "published_at": "2026-07-13T12:00:00Z",
+  "publisher": "release-owner",
+  "release_id": 77,
+  "release_manifest_sha256": "f92ec2bf3546d7c942250480c1726c9dff4d68ba0f5e6fb912f3c30b499ad088",
+  "release_state": "verified",
+  "release_tag": "aads-dataset-v1.0.0",
+  "repository": "example/private-repo",
+  "revocation_reason": "",
+  "schema_version": "aads.dataset_release.v1",
+  "shard_count": 1,
+  "snapshot_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "staging_snapshot_id": "dataset-snapshot-aaaaaaaaaaaaaaaaaaaa",
+  "tag_commit_sha": "cccccccccccccccccccccccccccccccccccccccc"
+}

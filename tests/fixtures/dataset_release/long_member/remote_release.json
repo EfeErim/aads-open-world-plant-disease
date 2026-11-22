@@ -1,0 +1,17 @@
+{
+  "assets": [
+    {
+      "digest": "sha256:a455679fe976186363cac23a344f7c5057ad8303b587801b9ba12e7cbe94915b",
+      "id": 100,
+      "name": "aads-dataset-v1.0.0-shard-0001.zip",
+      "size": 809,
+      "state": "uploaded"
+    }
+  ],
+  "draft": false,
+  "id": 77,
+  "immutable": true,
+  "published_at": "2026-07-13T12:00:00Z",
+  "tag_name": "aads-dataset-v1.0.0",
+  "upload_url": "https://uploads.example/assets{?name}"
+}

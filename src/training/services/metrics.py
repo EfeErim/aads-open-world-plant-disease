@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 import torch
-from sklearn.metrics import balanced_accuracy_score, f1_score, roc_auc_score, roc_curve
 
 from src.shared.json_utils import read_json, write_json
 
@@ -195,6 +194,8 @@ def compute_ood_detection_metrics(
             ood_total = int((labels_t == 1).sum().item())
             in_dist_total = int((labels_t == 0).sum().item())
             if ood_total > 0 and in_dist_total > 0:
+                from sklearn.metrics import roc_auc_score, roc_curve
+
                 try:
                     labels_np = labels_t.cpu().numpy()
                     scores_np = scores_t.cpu().numpy()
@@ -241,6 +242,8 @@ def compute_plan_metrics(
     y_true_list = y_true_t.cpu().tolist()
     y_pred_list = y_pred_t.cpu().tolist()
     accuracy = float((y_true_t == y_pred_t).float().mean().item())
+    from sklearn.metrics import balanced_accuracy_score, f1_score
+
     balanced_accuracy = float(balanced_accuracy_score(y_true_list, y_pred_list))
     macro_f1 = float(f1_score(y_true_list, y_pred_list, average="macro", zero_division=0))
 

@@ -217,6 +217,7 @@
     "confidence_spread_warning_threshold": 0.20,
     "router_min_confidence": 0.65,
     "router_min_margin": 0.10,
+    "max_cached_adapters": 2,
     "input_guard": {
       "enabled": false,
       "plant_min_score": 0.45,

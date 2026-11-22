@@ -654,3 +654,32 @@ def test_cross_part_fallback_does_not_cross_crop_when_metadata_omits_crop(monkey
     assert result["status"] == "adapter_unavailable"
     assert result["crop"] == "pepper"
     assert "pepper" in result["message"]
+
+
+def test_adapter_cache_keeps_only_the_most_recent_adapters(monkeypatch, tmp_path):
+    adapter_root = tmp_path / "models"
+    for crop in ("tomato", "grape", "apricot"):
+        _write_adapter_meta(adapter_root, crop, "leaf")
+    runtime = RouterAdapterRuntime(
+        config={"inference": {"adapter_root": str(adapter_root), "max_cached_adapters": 2}},
+        device="cpu",
+        adapter_root=adapter_root,
+    )
+    built: list[str] = []
+
+    def _build(crop_name):
+        built.append(crop_name)
+        return FakeAdapter(crop_name, device="cpu")
+
+    monkeypatch.setattr(runtime, "_build_adapter", _build)
+
+    tomato = runtime.load_adapter("tomato", part_name="leaf")
+    runtime.load_adapter("grape", part_name="leaf")
+    assert runtime.load_adapter("tomato", part_name="leaf") is tomato
+    runtime.load_adapter("apricot", part_name="leaf")
+
+    assert list(runtime.adapters) == ["tomato::leaf", "apricot::leaf"]
+    assert built == ["tomato", "grape", "apricot"]
+    runtime.load_adapter("grape", part_name="leaf")
+    assert built[-1] == "grape"
+    assert list(runtime.adapters) == ["apricot::leaf", "grape::leaf"]

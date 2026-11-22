@@ -27,18 +27,6 @@ from src.colab.git_utils import (
     _sanitize_run_text_artifacts,
     _should_exclude_run_file_from_push,
 )
-from src.colab.git_utils import (
-    _read_json_dict as _read_json_dict,
-)
-from src.colab.git_utils import (
-    _redact_secret as _redact_secret,
-)
-from src.colab.git_utils import (
-    mirror_checkpoint_state_to_repo as mirror_checkpoint_state_to_repo,
-)
-from src.colab.git_utils import (
-    mirror_path_to_repo as mirror_path_to_repo,
-)
 
 HF_TOKEN_NAMES = ("HF_TOKEN", "HUGGINGFACE_TOKEN", "HUGGINGFACE_HUB_TOKEN")
 GITHUB_TOKEN_NAMES = ("GH_TOKEN", "GITHUB_TOKEN")

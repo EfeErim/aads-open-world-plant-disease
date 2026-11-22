@@ -20,7 +20,7 @@ except SystemExit:
 @pytest.mark.parametrize(
     ("setup", "forbidden"),
     [
-        ("import src.workflows.inference", ["src.training.continual_sd_lora", "peft"]),
+        ("import src.workflows.inference", ["src.training.continual_sd_lora", "peft", "sklearn"]),
         (_CLI_HELP, ["src.training.continual_sd_lora", "src.workflows.training"]),
     ],
     ids=["inference_workflow", "cli_inference_help"],

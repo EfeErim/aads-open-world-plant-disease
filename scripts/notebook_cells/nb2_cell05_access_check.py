@@ -6,7 +6,7 @@ with TELEMETRY.capture_cell_output("Cell 3b: Update and Access Check"):
     from src.data.dataset_release_runtime import DatasetReleaseAccessBlocker
     from src.pipeline.adapter_release import resolve_token
 
-    dataset_release_read_token = str(resolve_token(write=False) or "").strip()
+    dataset_release_read_token = str(resolve_token() or "").strip()
     if not dataset_release_read_token:
         raise DatasetReleaseAccessBlocker(
             "DATASET_RELEASE_ACCESS_BLOCKER: AADS_GITHUB_RELEASE_READ_TOKEN is required for the private release"

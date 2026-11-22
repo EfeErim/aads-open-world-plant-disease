@@ -1,0 +1,40 @@
+{
+  "approved_manifest_sha256": "63b2fc5ce392abf7bd9489f5ec004d1a7626842e67ba7d985a624c63c999367d",
+  "assets": [
+    {
+      "asset_id": 100,
+      "asset_name": "aads-dataset-v1.0.0-shard-0001.zip",
+      "github_digest": "sha256:b74956f45d0325669ddb9b73e12a28ba4eeae9d8f51ebcab1f6e4dd6efb11abb",
+      "members": [
+        {
+          "path": "tomato/leaf/id_train/healthy/image.jpg",
+          "sample_id": "sample-1",
+          "sha256": "4cd68a377f4b350468ba84edbfb23601e6c34c40ee06101987fd5a9f585b53d5",
+          "size_bytes": 9
+        }
+      ],
+      "sha256": "b74956f45d0325669ddb9b73e12a28ba4eeae9d8f51ebcab1f6e4dd6efb11abb",
+      "size_bytes": 203
+    }
+  ],
+  "audit_outcome": "approved_manifest_only",
+  "dataset_version": "1.0.0",
+  "distributed_bytes": 9,
+  "draft": false,
+  "file_count": 1,
+  "immutable": true,
+  "previous_release_tag": null,
+  "published_at": "2026-07-13T12:00:00Z",
+  "publisher": "release-owner",
+  "release_id": 77,
+  "release_manifest_sha256": "c94111e83ea68bc531eda9db6b8fa9e9baf7903b547b988fac9686fe41ba95b9",
+  "release_state": "verified",
+  "release_tag": "aads-dataset-v1.0.0",
+  "repository": "example/private-repo",
+  "revocation_reason": "",
+  "schema_version": "aads.dataset_release.v1",
+  "shard_count": 1,
+  "snapshot_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "staging_snapshot_id": "dataset-snapshot-aaaaaaaaaaaaaaaaaaaa",
+  "tag_commit_sha": "cccccccccccccccccccccccccccccccccccccccc"
+}

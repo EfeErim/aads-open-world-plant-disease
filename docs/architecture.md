@@ -34,7 +34,7 @@ data/prepared_runtime_datasets/<crop>__<part>/
 ```
 
 The loader splits `ood/` into a dev assignment (score and threshold selection) and a held-out test assignment, recorded
-in `ood/ood_split_manifest.json`. Router calibration (Notebook 5, `scripts/evaluate_router_surface.py`) uses a
+in `ood/ood_split_manifest.json`. The router evaluation script (`scripts/evaluate_router_surface.py`) uses a
 separate evaluation-only layout under `data/router_eval/` with `id/<crop>/<part>`, `negatives/off_crop`,
 `negatives/non_plant`, `ambiguous` and `wrong_part` folders.
 

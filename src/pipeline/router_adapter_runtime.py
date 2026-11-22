@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Protocol, TypeAlias
 
+import torch
 from PIL import Image
 
 from src.adapter.independent_crop_adapter import IndependentCropAdapter
@@ -80,8 +82,10 @@ class RouterAdapterRuntime:
         self.allow_cross_part_adapter_fallback = bool(
             inference_cfg.get("allow_cross_part_adapter_fallback", False)
         )
+        # Every adapter carries its own DINOv3 ViT-L backbone, so the cache is bounded.
+        self.max_cached_adapters = max(1, int(inference_cfg.get("max_cached_adapters", 2)))
         self.router: Optional[RouterLike] = None
-        self.adapters: Dict[str, _CachedAdapter] = {}
+        self.adapters: OrderedDict[str, _CachedAdapter] = OrderedDict()
         self.status_callback = status_callback
 
     def _emit_status(self, message: str) -> None:
@@ -164,11 +168,14 @@ class RouterAdapterRuntime:
                 and cached.adapter_meta_mtime_ns == adapter_meta_mtime_ns
                 and cached.adapter_meta_size == adapter_meta_size
             ):
+                self.adapters.move_to_end(cache_key)
                 return cached.adapter
             self._emit_status(f"[ADAPTER] Reloading adapter for crop={crop_key} part={part_key or resolved_part_name}...")
         else:
             self._emit_status(f"[ADAPTER] Loading adapter for crop={crop_key} part={part_key or resolved_part_name}...")
 
+        self.adapters.pop(cache_key, None)
+        self._evict_adapters(keep=self.max_cached_adapters - 1)
         adapter = self._build_adapter(crop_key)
         adapter.part_name = part_key or resolved_part_name
         adapter.load_adapter(str(resolved_dir))
@@ -181,6 +188,15 @@ class RouterAdapterRuntime:
         )
         self._emit_status(f"[ADAPTER] Ready crop={crop_key} part={part_key or resolved_part_name}")
         return adapter
+
+    def _evict_adapters(self, *, keep: int) -> None:
+        evicted = False
+        while len(self.adapters) > max(0, keep):
+            evicted_key, _ = self.adapters.popitem(last=False)
+            self._emit_status(f"[ADAPTER] Released {evicted_key}")
+            evicted = True
+        if evicted and self.device.type == "cuda":
+            torch.cuda.empty_cache()
 
     def _coerce_image(self, image: ImageInput) -> Image.Image:
         if isinstance(image, (str, Path)):
