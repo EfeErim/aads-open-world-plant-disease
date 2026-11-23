@@ -309,6 +309,137 @@ def _apply_benchmark_score_selection(
     )
 
 
+def _persist_production_readiness(
+    artifact_dir: Path,
+    *,
+    authoritative_artifacts: Any,
+    authoritative_split: str,
+    ood_evidence_source: str,
+    ood_evidence_metrics: Dict[str, Any],
+    gate_targets: Dict[str, Any],
+    readiness_context: Dict[str, Any],
+    require_ood: bool,
+    run_id: str,
+    crop_name: str,
+    telemetry: Any,
+) -> Dict[str, Any]:
+    readiness_artifacts = persist_production_readiness_artifact(
+        artifact_root=artifact_dir,
+        classification_metric_gate=(
+            dict(authoritative_artifacts.get("metric_gate", {}))
+            if isinstance(authoritative_artifacts, dict)
+            else None
+        ),
+        classification_split=authoritative_split,
+        ood_evidence_source=ood_evidence_source,
+        ood_metrics=ood_evidence_metrics,
+        targets=gate_targets,
+        context=readiness_context,
+        require_ood=require_ood,
+        telemetry=telemetry,
+    )
+    production_readiness = dict(readiness_artifacts.get("payload", {}))
+    _emit_event(
+        telemetry,
+        "production_readiness_ready",
+        {
+            "run_id": run_id,
+            "crop_name": crop_name,
+            "status": production_readiness.get("status"),
+            "passed": production_readiness.get("passed"),
+            "ood_evidence_source": production_readiness.get("ood_evidence_source"),
+        },
+        phase="artifact",
+    )
+    return readiness_artifacts
+
+
+def _persist_behavioral_acceptance(
+    artifact_dir: Path,
+    *,
+    authoritative_artifacts: Any,
+    authoritative_evaluation: Any,
+    authoritative_split: str,
+    production_readiness: Mapping[str, Any],
+    run_id: str,
+    crop_name: str,
+    part_name: str,
+    telemetry: Any,
+) -> Dict[str, Any]:
+    behavioral_artifacts = persist_behavioral_acceptance_artifact(
+        artifact_root=artifact_dir,
+        classification_metrics=(
+            dict(authoritative_artifacts.get("metric_gate", {}).get("metrics", {}))
+            if isinstance(authoritative_artifacts, dict)
+            else None
+        ),
+        prediction_rows=(
+            list(authoritative_evaluation.prediction_rows) if authoritative_evaluation is not None else []
+        ),
+        context={
+            "run_id": run_id,
+            "crop_name": crop_name,
+            "part_name": part_name,
+            "classification_split": authoritative_split,
+            "ood_scope": "same_crop_same_part_unsupported_disease",
+            "router_scope_excluded": ["wrong_part", "other_plant", "non_plant"],
+            "production_readiness_status": production_readiness.get("status"),
+        },
+        telemetry=telemetry,
+    )
+    behavioral_acceptance = dict(behavioral_artifacts.get("payload", {}))
+    _emit_event(
+        telemetry,
+        "adapter_behavioral_acceptance_ready",
+        {
+            "run_id": run_id,
+            "crop_name": crop_name,
+            "part_name": part_name,
+            "status": behavioral_acceptance.get("status"),
+            "passed": behavioral_acceptance.get("pass"),
+        },
+        phase="artifact",
+    )
+    return behavioral_artifacts
+
+
+def _persist_traceability(
+    artifact_dir: Path,
+    *,
+    summary_payload: Dict[str, Any],
+    run_context_payload: Dict[str, Any],
+    production_readiness: Dict[str, Any],
+    authoritative_artifacts: Any,
+    created_at: str,
+    telemetry: Any,
+) -> Dict[str, Any]:
+    """Write the experiment manifest and optimization record that index this run."""
+    experiment_manifest = build_experiment_manifest(
+        summary_payload=summary_payload,
+        run_context_payload=run_context_payload,
+        artifact_root=artifact_dir,
+        explicit_surface="workflow",
+        created_at=created_at,
+        record_quality="canonical",
+    )
+    optimization_record = build_optimization_record(
+        summary_payload=summary_payload,
+        run_context_payload=run_context_payload,
+        production_readiness_payload=production_readiness,
+        authoritative_artifacts=authoritative_artifacts,
+        artifact_root=artifact_dir,
+        explicit_surface="workflow",
+        created_at=created_at,
+        record_quality="canonical",
+    )
+    return persist_traceability_artifacts(
+        artifact_root=artifact_dir,
+        experiment_manifest=experiment_manifest,
+        optimization_record=optimization_record,
+        telemetry=telemetry,
+    )
+
+
 class TrainingWorkflow:
     """Stable app-facing entrypoint for continual adapter training."""
 
@@ -880,68 +1011,32 @@ class TrainingWorkflow:
             dataset_lineage=resolved_dataset_lineage,
         )
         adapter_dir = adapter.save_adapter(str(run_output_dir))
-        readiness_artifacts = persist_production_readiness_artifact(
-            artifact_root=artifact_dir,
-            classification_metric_gate=(
-                dict(authoritative_artifacts.get("metric_gate", {}))
-                if isinstance(authoritative_artifacts, dict)
-                else None
-            ),
-            classification_split=authoritative_split,
+        readiness_artifacts = _persist_production_readiness(
+            artifact_dir,
+            authoritative_artifacts=authoritative_artifacts,
+            authoritative_split=authoritative_split,
             ood_evidence_source=ood_evidence_source,
-            ood_metrics=ood_evidence_metrics,
-            targets=gate_targets,
-            context=readiness_context,
+            ood_evidence_metrics=ood_evidence_metrics,
+            gate_targets=gate_targets,
+            readiness_context=readiness_context,
             require_ood=bool(evaluation_cfg.get("require_ood_for_gate", True)),
+            run_id=run_id,
+            crop_name=crop_name,
             telemetry=telemetry,
         )
         production_readiness = dict(readiness_artifacts.get("payload", {}))
-        _emit_event(
-            telemetry,
-            "production_readiness_ready",
-            {
-                "run_id": run_id,
-                "crop_name": crop_name,
-                "status": production_readiness.get("status"),
-                "passed": production_readiness.get("passed"),
-                "ood_evidence_source": production_readiness.get("ood_evidence_source"),
-            },
-            phase="artifact",
-        )
-        behavioral_artifacts = persist_behavioral_acceptance_artifact(
-            artifact_root=artifact_dir,
-            classification_metrics=(
-                dict(authoritative_artifacts.get("metric_gate", {}).get("metrics", {}))
-                if isinstance(authoritative_artifacts, dict)
-                else None
-            ),
-            prediction_rows=(
-                list(authoritative_evaluation.prediction_rows) if authoritative_evaluation is not None else []
-            ),
-            context={
-                "run_id": run_id,
-                "crop_name": crop_name,
-                "part_name": resolved_part_name,
-                "classification_split": authoritative_split,
-                "ood_scope": "same_crop_same_part_unsupported_disease",
-                "router_scope_excluded": ["wrong_part", "other_plant", "non_plant"],
-                "production_readiness_status": production_readiness.get("status"),
-            },
+        behavioral_artifacts = _persist_behavioral_acceptance(
+            artifact_dir,
+            authoritative_artifacts=authoritative_artifacts,
+            authoritative_evaluation=authoritative_evaluation,
+            authoritative_split=authoritative_split,
+            production_readiness=production_readiness,
+            run_id=run_id,
+            crop_name=crop_name,
+            part_name=resolved_part_name,
             telemetry=telemetry,
         )
         behavioral_acceptance = dict(behavioral_artifacts.get("payload", {}))
-        _emit_event(
-            telemetry,
-            "adapter_behavioral_acceptance_ready",
-            {
-                "run_id": run_id,
-                "crop_name": crop_name,
-                "part_name": resolved_part_name,
-                "status": behavioral_acceptance.get("status"),
-                "passed": behavioral_acceptance.get("pass"),
-            },
-            phase="artifact",
-        )
 
         summary_payload = build_training_summary_payload(
             run_id=run_id,
@@ -1032,28 +1127,13 @@ class TrainingWorkflow:
             context_payload=run_context_payload,
             telemetry=telemetry,
         )
-        experiment_manifest = build_experiment_manifest(
+        traceability_artifacts = _persist_traceability(
+            artifact_dir,
             summary_payload=summary_payload,
             run_context_payload=run_context_payload,
-            artifact_root=artifact_dir,
-            explicit_surface="workflow",
-            created_at=run_created_at,
-            record_quality="canonical",
-        )
-        optimization_record = build_optimization_record(
-            summary_payload=summary_payload,
-            run_context_payload=run_context_payload,
-            production_readiness_payload=production_readiness,
+            production_readiness=production_readiness,
             authoritative_artifacts=authoritative_artifacts,
-            artifact_root=artifact_dir,
-            explicit_surface="workflow",
             created_at=run_created_at,
-            record_quality="canonical",
-        )
-        traceability_artifacts = persist_traceability_artifacts(
-            artifact_root=artifact_dir,
-            experiment_manifest=experiment_manifest,
-            optimization_record=optimization_record,
             telemetry=telemetry,
         )
         training_artifacts = {**training_artifacts, **run_context_artifacts, **traceability_artifacts}

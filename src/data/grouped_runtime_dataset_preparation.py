@@ -1192,89 +1192,8 @@ def _assign_splits_for_units(
         used[preferred] += size
     return assignments
 
-
-def build_grouped_dataset_plan(
-    *,
-    class_root: Path,
-    crop_name: str,
-    part_name: str = "unspecified",
-    artifact_root: Path,
-    taxonomy_path: Optional[Path] = None,
-    dino_model_id: str = DEFAULT_DINOV3_MODEL_ID,
-    bioclip_model_id: str = DEFAULT_BIOCLIP_MODEL_ID,
-    device: str = "cpu",
-    batch_size: int = 16,
-    neighbors: int = DEFAULT_NEIGHBORS,
-    under_min_eval_policy: str = "block",
-    progress_fn: Optional[Callable[[str], None]] = None,
-) -> Dict[str, Any]:
-    import torch
-
-    requested_device = str(device or "cpu").strip() or "cpu"
-    device = _resolve_embedding_device(requested_device)
-    if device != requested_device:
-        _progress(
-            progress_fn,
-            f"Requested embedding device '{requested_device}' is unavailable; falling back to '{device}'.",
-        )
-    amp_dtype = _resolve_amp_dtype(device)
-    effective_batch_size = resolve_safe_embedding_batch_size(device, requested_batch_size=batch_size)
-    _progress(
-        progress_fn,
-        f"Embedding device={device} requested_device={requested_device} batch_size={effective_batch_size}.",
-    )
-    normalized_under_min_eval_policy = str(under_min_eval_policy or "block").strip().lower()
-    if normalized_under_min_eval_policy not in {"block", "skip"}:
-        raise ValueError("under_min_eval_policy must be either 'block' or 'skip'.")
-
-    _progress(progress_fn, "Scanning class-root dataset and computing hashes.")
-    records, normalization_report = scan_class_root_dataset(
-        class_root=class_root,
-        crop_name=crop_name,
-        taxonomy_path=taxonomy_path,
-    )
-    artifact_root.mkdir(parents=True, exist_ok=True)
-    availability_exclusions = _refresh_record_availability(records)
-    if availability_exclusions["missing_after_scan"]:
-        _progress(
-            progress_fn,
-            f"Excluded {availability_exclusions['missing_after_scan']} image(s) that disappeared after the initial scan.",
-        )
-    if availability_exclusions["unreadable_after_scan"]:
-        _progress(
-            progress_fn,
-            f"Excluded {availability_exclusions['unreadable_after_scan']} image(s) that became unreadable after the initial scan.",
-        )
-    valid_records = [record for record in records if not record.excluded_reason]
-    source_style_group_rows = _apply_source_style_risk(valid_records)
-    class_to_records: Dict[str, List[ImageRecord]] = defaultdict(list)
-    for record in valid_records:
-        class_to_records[record.normalized_class_name].append(record)
-    records_by_class_and_path = {
-        name: {record.relative_path: record for record in items} for name, items in class_to_records.items()
-    }
-
-    dino_scores: Dict[tuple[str, str], float] = {}
-    bioclip_scores: Dict[tuple[str, str], float] = {}
-    review_pairs: List[ReviewPair] = []
-    blocking_conflicts: List[ReviewPair] = []
-    class_dino_pairs_by_class: Dict[str, Dict[tuple[str, str], float]] = {}
-    seen_blocking_pairs: set[tuple[str, str]] = set()
-    global_exact_hash_groups = _build_hash_groups(valid_records, key_name="exact_hash")
-    global_phash_groups = _build_hash_groups(valid_records, key_name="phash_hex")
-    _register_cross_class_conflicts(
-        groups=global_exact_hash_groups,
-        conflict_reason="cross-class exact duplicate",
-        blocking_conflicts=blocking_conflicts,
-        seen_pairs=seen_blocking_pairs,
-    )
-    _register_cross_class_conflicts(
-        groups=global_phash_groups,
-        conflict_reason="cross-class identical perceptual hash",
-        blocking_conflicts=blocking_conflicts,
-        seen_pairs=seen_blocking_pairs,
-    )
-
+def _union_same_class_duplicates(valid_records: List[ImageRecord]) -> tuple[UnionFind, Dict[tuple[str, str], List[ImageRecord]]]:
+    """Merge same-class exact duplicates and source-like families before any embedding is computed."""
     uf = UnionFind()
     for record in valid_records:
         uf.find(record.relative_path)
@@ -1290,7 +1209,23 @@ def build_grouped_dataset_plan(
             uf.union(base, other.relative_path)
 
     _auto_merge_same_class_source_like_families(records=valid_records, uf=uf)
+    return uf, by_hash
 
+
+def _encode_dino_neighbor_pairs(
+    class_to_records: Dict[str, List[ImageRecord]],
+    *,
+    dino_model_id: str,
+    device: str,
+    amp_dtype: Any,
+    effective_batch_size: int,
+    neighbors: int,
+    progress_fn: Optional[Callable[[str], None]],
+) -> Dict[str, Dict[tuple[str, str], float]]:
+    """DINOv3 nearest-neighbour cosine pairs per class; the model is released afterwards."""
+    import torch
+
+    class_dino_pairs_by_class: Dict[str, Dict[tuple[str, str], float]] = {}
     _progress(progress_fn, "Loading DINOv3 once for the full audit run.")
     dino_processor, dino_model = _load_dinov3_components(dino_model_id, device=device)
     dino_model.to(device)
@@ -1321,7 +1256,6 @@ def build_grouped_dataset_plan(
             paths=path_keys,
             neighbors=neighbors,
         )
-        dino_scores.update(class_dino_pairs)
         class_dino_pairs_by_class[normalized_class_name] = class_dino_pairs
 
     dino_model.to("cpu")
@@ -1329,7 +1263,25 @@ def build_grouped_dataset_plan(
     gc.collect()
     if str(device).startswith("cuda") and torch.cuda.is_available():
         torch.cuda.empty_cache()
+    return class_dino_pairs_by_class
 
+
+def _refine_pairs_with_bioclip(
+    class_dino_pairs_by_class: Dict[str, Dict[tuple[str, str], float]],
+    records_by_class_and_path: Dict[str, Dict[str, ImageRecord]],
+    *,
+    uf: UnionFind,
+    bioclip_model_id: str,
+    device: str,
+    amp_dtype: Any,
+    effective_batch_size: int,
+    progress_fn: Optional[Callable[[str], None]],
+) -> List[ReviewPair]:
+    """Score DINOv3 candidate pairs with BioCLIP; merge near-duplicates in ``uf`` and return borderline pairs."""
+    import torch
+
+    bioclip_scores: Dict[tuple[str, str], float] = {}
+    review_pairs: List[ReviewPair] = []
     bioclip_candidates_by_class = {
         class_name: _select_bioclip_candidate_pairs(
             class_dino_pairs,
@@ -1423,39 +1375,16 @@ def build_grouped_dataset_plan(
         gc.collect()
         if str(device).startswith("cuda") and torch.cuda.is_available():
             torch.cuda.empty_cache()
+    return review_pairs
 
-    record_lookup = {record.relative_path: record for record in valid_records}
-    review_pairs_total = len(review_pairs)
-    review_pairs, review_clusters, auto_resolved_review_clusters = _triage_review_clusters(
-        review_pairs=review_pairs,
-        record_lookup=record_lookup,
-        uf=uf,
-    )
-    high_risk_review_clusters = [row for row in review_clusters if row.resolution != "auto_resolve"]
-    label_risk_by_path, label_review_candidates, label_risk_summary = _build_label_risk_audit(
-        records=valid_records,
-        review_pairs=review_pairs,
-        auto_resolved_review_clusters=auto_resolved_review_clusters,
-        blocking_conflicts=blocking_conflicts,
-    )
 
-    review_pairs = sorted(
-        review_pairs,
-        key=lambda item: (
-            item.class_a,
-            item.review_rank,
-            -max(float(item.dino_cosine), float(item.bioclip_cosine)),
-            item.phash_distance,
-            item.path_a,
-            item.path_b,
-        ),
-    )
-
-    families: Dict[tuple[str, str], List[ImageRecord]] = defaultdict(list)
-    for record in valid_records:
-        root_id = uf.find(record.relative_path)
-        families[(record.normalized_class_name, root_id)].append(record)
-
+def _build_family_details(
+    families: Dict[tuple[str, str], List[ImageRecord]],
+    *,
+    review_pairs: List[ReviewPair],
+    label_risk_by_path: Dict[str, Any],
+) -> tuple[Dict[tuple[str, str], Dict[str, Any]], set[str]]:
+    """Pick each family's canonical image, its role and whether it may enter val/test."""
     review_excluded_paths = {
         str(path) for pair in review_pairs for path in (pair.path_a, pair.path_b) if str(path).strip()
     }
@@ -1519,7 +1448,28 @@ def build_grouped_dataset_plan(
             "family_label_risk_levels": "|".join(family_label_risk_levels),
             "bundle_key": bundle_key,
         }
+    return family_details, review_excluded_paths
 
+
+@dataclass
+class _ClassSplitPlan:
+    family_assignments: Dict[str, str]
+    class_health: Dict[str, Any]
+    blocking_issues: List[str]
+    skipped_classes: List[Dict[str, Any]]
+    skipped_class_names: set[str]
+    included_class_names: set[str]
+
+
+def _assign_family_splits(
+    families: Dict[tuple[str, str], List[ImageRecord]],
+    family_details: Dict[tuple[str, str], Dict[str, Any]],
+    *,
+    valid_records: List[ImageRecord],
+    label_risk_by_path: Dict[str, Any],
+    under_min_eval_policy: str,
+) -> _ClassSplitPlan:
+    """Per class: health counts, skip/block decisions and the split of each eval-eligible bundle."""
     family_assignments: Dict[str, str] = {}
     class_health: Dict[str, Any] = {}
     blocking_issues: List[str] = []
@@ -1594,7 +1544,7 @@ def build_grouped_dataset_plan(
                 f"Class '{class_name}' has only {len(eval_candidate_families)} "
                 "evaluation-eligible family/families after grouped prep."
             )
-            if normalized_under_min_eval_policy == "skip":
+            if under_min_eval_policy == "skip":
                 health_entry["runtime_action"] = "skipped"
                 health_entry["skip_reason"] = shortage_reason
                 skipped_class_names.add(class_name)
@@ -1616,7 +1566,7 @@ def build_grouped_dataset_plan(
                 f"Class '{class_name}' has only {len(bundled_eval_families)} "
                 "source-like eval bundle(s) after grouped prep."
             )
-            if normalized_under_min_eval_policy == "skip":
+            if under_min_eval_policy == "skip":
                 health_entry["runtime_action"] = "skipped"
                 health_entry["skip_reason"] = shortage_reason
                 skipped_class_names.add(class_name)
@@ -1636,11 +1586,29 @@ def build_grouped_dataset_plan(
                 family_assignments[family_root] = split_name
 
     if skipped_classes and not included_class_names and not blocking_issues:
-        if normalized_under_min_eval_policy == "skip":
+        if under_min_eval_policy == "skip":
             blocking_issues.append("No classes remain after applying under-minimum evaluation skip policy.")
         else:
             blocking_issues.append("No classes remain after skipping zero evaluation-eligible classes.")
+    return _ClassSplitPlan(
+        family_assignments=family_assignments,
+        class_health=class_health,
+        blocking_issues=blocking_issues,
+        skipped_classes=skipped_classes,
+        skipped_class_names=skipped_class_names,
+        included_class_names=included_class_names,
+    )
 
+
+def _build_family_manifest_rows(
+    families: Dict[tuple[str, str], List[ImageRecord]],
+    family_details: Dict[tuple[str, str], Dict[str, Any]],
+    *,
+    family_assignments: Dict[str, str],
+    skipped_class_names: set[str],
+    label_risk_by_path: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """One row per image: its family, split and why it was routed to continual-only."""
     manifest_rows: List[Dict[str, Any]] = []
     for (class_name, family_root), items in sorted(families.items(), key=lambda item: (item[0][0], item[0][1])):
         family_detail = family_details[(class_name, family_root)]
@@ -1715,6 +1683,171 @@ def build_grouped_dataset_plan(
                     "split": split_name,
                 }
             )
+    return manifest_rows
+
+
+def build_grouped_dataset_plan(
+    *,
+    class_root: Path,
+    crop_name: str,
+    part_name: str = "unspecified",
+    artifact_root: Path,
+    taxonomy_path: Optional[Path] = None,
+    dino_model_id: str = DEFAULT_DINOV3_MODEL_ID,
+    bioclip_model_id: str = DEFAULT_BIOCLIP_MODEL_ID,
+    device: str = "cpu",
+    batch_size: int = 16,
+    neighbors: int = DEFAULT_NEIGHBORS,
+    under_min_eval_policy: str = "block",
+    progress_fn: Optional[Callable[[str], None]] = None,
+) -> Dict[str, Any]:
+    """Audit a class-root dataset and propose a duplicate-aware continual/val/test split.
+
+    Phases: scan and hash, merge exact duplicates, DINOv3 neighbour pairs, BioCLIP refinement, review triage,
+    family roles, per-class split assignment, then the manifest and audit artifacts under ``artifact_root``.
+    """
+    requested_device = str(device or "cpu").strip() or "cpu"
+    device = _resolve_embedding_device(requested_device)
+    if device != requested_device:
+        _progress(
+            progress_fn,
+            f"Requested embedding device '{requested_device}' is unavailable; falling back to '{device}'.",
+        )
+    amp_dtype = _resolve_amp_dtype(device)
+    effective_batch_size = resolve_safe_embedding_batch_size(device, requested_batch_size=batch_size)
+    _progress(
+        progress_fn,
+        f"Embedding device={device} requested_device={requested_device} batch_size={effective_batch_size}.",
+    )
+    normalized_under_min_eval_policy = str(under_min_eval_policy or "block").strip().lower()
+    if normalized_under_min_eval_policy not in {"block", "skip"}:
+        raise ValueError("under_min_eval_policy must be either 'block' or 'skip'.")
+
+    _progress(progress_fn, "Scanning class-root dataset and computing hashes.")
+    records, normalization_report = scan_class_root_dataset(
+        class_root=class_root,
+        crop_name=crop_name,
+        taxonomy_path=taxonomy_path,
+    )
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    availability_exclusions = _refresh_record_availability(records)
+    if availability_exclusions["missing_after_scan"]:
+        _progress(
+            progress_fn,
+            f"Excluded {availability_exclusions['missing_after_scan']} image(s) that disappeared after the initial scan.",
+        )
+    if availability_exclusions["unreadable_after_scan"]:
+        _progress(
+            progress_fn,
+            f"Excluded {availability_exclusions['unreadable_after_scan']} image(s) that became unreadable after the initial scan.",
+        )
+    valid_records = [record for record in records if not record.excluded_reason]
+    source_style_group_rows = _apply_source_style_risk(valid_records)
+    class_to_records: Dict[str, List[ImageRecord]] = defaultdict(list)
+    for record in valid_records:
+        class_to_records[record.normalized_class_name].append(record)
+    records_by_class_and_path = {
+        name: {record.relative_path: record for record in items} for name, items in class_to_records.items()
+    }
+
+    blocking_conflicts: List[ReviewPair] = []
+    seen_blocking_pairs: set[tuple[str, str]] = set()
+    global_exact_hash_groups = _build_hash_groups(valid_records, key_name="exact_hash")
+    global_phash_groups = _build_hash_groups(valid_records, key_name="phash_hex")
+    _register_cross_class_conflicts(
+        groups=global_exact_hash_groups,
+        conflict_reason="cross-class exact duplicate",
+        blocking_conflicts=blocking_conflicts,
+        seen_pairs=seen_blocking_pairs,
+    )
+    _register_cross_class_conflicts(
+        groups=global_phash_groups,
+        conflict_reason="cross-class identical perceptual hash",
+        blocking_conflicts=blocking_conflicts,
+        seen_pairs=seen_blocking_pairs,
+    )
+
+    uf, by_hash = _union_same_class_duplicates(valid_records)
+
+    class_dino_pairs_by_class = _encode_dino_neighbor_pairs(
+        class_to_records,
+        dino_model_id=dino_model_id,
+        device=device,
+        amp_dtype=amp_dtype,
+        effective_batch_size=effective_batch_size,
+        neighbors=neighbors,
+        progress_fn=progress_fn,
+    )
+
+    review_pairs = _refine_pairs_with_bioclip(
+        class_dino_pairs_by_class,
+        records_by_class_and_path,
+        uf=uf,
+        bioclip_model_id=bioclip_model_id,
+        device=device,
+        amp_dtype=amp_dtype,
+        effective_batch_size=effective_batch_size,
+        progress_fn=progress_fn,
+    )
+
+    record_lookup = {record.relative_path: record for record in valid_records}
+    review_pairs_total = len(review_pairs)
+    review_pairs, review_clusters, auto_resolved_review_clusters = _triage_review_clusters(
+        review_pairs=review_pairs,
+        record_lookup=record_lookup,
+        uf=uf,
+    )
+    high_risk_review_clusters = [row for row in review_clusters if row.resolution != "auto_resolve"]
+    label_risk_by_path, label_review_candidates, label_risk_summary = _build_label_risk_audit(
+        records=valid_records,
+        review_pairs=review_pairs,
+        auto_resolved_review_clusters=auto_resolved_review_clusters,
+        blocking_conflicts=blocking_conflicts,
+    )
+
+    review_pairs = sorted(
+        review_pairs,
+        key=lambda item: (
+            item.class_a,
+            item.review_rank,
+            -max(float(item.dino_cosine), float(item.bioclip_cosine)),
+            item.phash_distance,
+            item.path_a,
+            item.path_b,
+        ),
+    )
+
+    families: Dict[tuple[str, str], List[ImageRecord]] = defaultdict(list)
+    for record in valid_records:
+        root_id = uf.find(record.relative_path)
+        families[(record.normalized_class_name, root_id)].append(record)
+
+    family_details, review_excluded_paths = _build_family_details(
+        families,
+        review_pairs=review_pairs,
+        label_risk_by_path=label_risk_by_path,
+    )
+
+    split_plan = _assign_family_splits(
+        families,
+        family_details,
+        valid_records=valid_records,
+        label_risk_by_path=label_risk_by_path,
+        under_min_eval_policy=normalized_under_min_eval_policy,
+    )
+    class_health = split_plan.class_health
+    blocking_issues = split_plan.blocking_issues
+    skipped_classes = split_plan.skipped_classes
+    skipped_class_names = split_plan.skipped_class_names
+    included_class_names = split_plan.included_class_names
+
+    manifest_rows = _build_family_manifest_rows(
+        families,
+        family_details,
+        family_assignments=split_plan.family_assignments,
+        skipped_class_names=skipped_class_names,
+        label_risk_by_path=label_risk_by_path,
+    )
 
     summary = {
         "schema_version": "v1_grouped_data_prep",
