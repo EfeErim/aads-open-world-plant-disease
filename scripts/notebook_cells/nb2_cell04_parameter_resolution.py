@@ -264,7 +264,8 @@ AUTO_DISCONNECT_RUNTIME = True
 AUTO_DISCONNECT_GRACE_SECONDS = 20
 
 # AUTO_PUSH_TO_GITHUB: after the final exports, commits and pushes runs/<crop>/<part>/<RUN_ID>/ to the repo.
-AUTO_PUSH_TO_GITHUB = True
+# Off by default: it force-adds the gitignored runs/ directory and pushes with a token.
+AUTO_PUSH_TO_GITHUB = False
 
 # AUTO_PUSH_REMOTE_NAME: git remote used when auto-push is on.
 AUTO_PUSH_REMOTE_NAME = "origin"
