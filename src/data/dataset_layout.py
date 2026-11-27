@@ -18,7 +18,6 @@ from src.shared.string_utils import normalize_class_name
 logger = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-MATERIALIZATION_STRATEGIES = {"auto", "copy", "symlink", "hardlink"}
 REPO_LOCAL_DATASET_PARENT_NAMES = {
     "class_root_dataset",
     "ood_dataset",

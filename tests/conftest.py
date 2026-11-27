@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from pathlib import Path
 
@@ -10,8 +9,6 @@ import pytest
 
 RUNTIME_TMP_ROOT = (Path(__file__).resolve().parents[1] / ".runtime_tmp").resolve()
 RUNTIME_TMP_ROOT.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault("WANDB_MODE", "disabled")
-os.environ.setdefault("WANDB_DIR", str(RUNTIME_TMP_ROOT / "wandb"))
 
 def pytest_configure(config):
     if not getattr(config.option, "basetemp", None):

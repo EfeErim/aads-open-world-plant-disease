@@ -13,14 +13,6 @@ from src.shared.contracts import (
 )
 
 
-def best_detection_from_analysis(analysis: Any) -> Dict[str, Any]:
-    """Return the runtime-selected primary detection from an analysis payload."""
-    router_analysis = normalize_router_analysis(analysis)
-    if router_analysis.primary_detection is None:
-        return {}
-    return router_analysis.primary_detection.to_dict()
-
-
 def normalize_ood_analysis(payload: Any) -> Optional[OODAnalysis]:
     if isinstance(payload, OODAnalysis):
         return payload

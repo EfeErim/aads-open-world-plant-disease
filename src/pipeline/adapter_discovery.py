@@ -44,7 +44,7 @@ def discover_fallback_adapter_dir(search_root: Path, crop_name: str, part_name: 
         try:
             meta = read_json_dict(meta_path)
         except Exception as exc:
-            _logger.debug(f"Failed to read adapter metadata from {meta_path}; skipping", exc_info=exc)
+            _logger.warning(f"Failed to read adapter metadata from {meta_path}; skipping", exc_info=exc)
             continue
         path_crop, path_part = _infer_path_metadata(adapter_bundle_dir)
         meta_crop = normalize_adapter_name(meta.get("crop_name"), default="") if meta.get("crop_name") else ""
