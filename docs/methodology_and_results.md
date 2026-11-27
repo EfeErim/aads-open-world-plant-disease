@@ -31,9 +31,16 @@ The backbone is `facebook/dinov3-vitl16-pretrain-lvd1689m`, kept frozen. Feature
 11 are projected to 768 dimensions and combined with a learned softmax gate. Self-supervised pretraining matters here
 because each crop/part dataset is small compared with the backbone's pretraining corpus.
 
+That layer spacing suits a 12-block ViT-B, but ViT-L/16 has 24 blocks (`depth=24` in `vit_large`,
+[`dinov3/models/vision_transformer.py`](https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/dinov3/models/vision_transformer.py)).
+Every fused feature therefore comes from the first 11 blocks. Blocks 12–24 still run in the forward pass, but their
+output never reaches the classifier, and the LoRA weights on them receive no gradient. All eight released adapters
+were trained this way, and the choice was not ablated against later layers.
+
 Each crop/part target gets a LoRA adapter: the frozen weight \(W\) is updated as \(W' = W + \frac{\alpha}{r}BA\) with
 trainable low-rank \(A, B\). The checked-in configuration ([`config/base.json`](../config/base.json)) applies LoRA to
-all transformer linear modules with \(r=24\), \(\alpha=24\) and dropout `0.1`. An adapter bundle holds the LoRA
+all transformer linear modules with \(r=24\), \(\alpha=24\) and dropout `0.1`; the released adapters set their
+own rank ([released adapter settings](#released-adapter-settings)). An adapter bundle holds the LoRA
 weights, classifier, fusion state and OOD calibration. LoRA shrinks what is trained and distributed per target; the
 backbone is still needed at inference time.
 
@@ -68,10 +75,11 @@ apparent accuracy is worse than a conservative one with lower coverage.
 
 ## Training and data roles
 
-Defaults in `config/base.json`: 16 epochs, batch size 8 with gradient accumulation 4, learning rate `1.5e-4`, weight
-decay `0.01`, cosine schedule with 10% warmup, seed 42, LogitNorm loss, RandAugment (2 operations, magnitude 7) and
+Base-configuration defaults in `config/base.json`: 16 epochs, batch size 8 with gradient accumulation 4, learning
+rate `1.5e-4`, weight decay `0.01`, cosine schedule with 10% warmup, seed 42, LogitNorm loss, RandAugment (2 operations, magnitude 7) and
 early stopping on validation loss. [`config/colab.json`](../config/colab.json) overrides these to 12 epochs, batch size
-96 without accumulation, learning rate `2e-4`, bf16 and non-deterministic kernels.
+96 without accumulation, learning rate `2e-4`, bf16 and non-deterministic kernels. The released adapters were
+trained with per-target recipes that override both; see [released adapter settings](#released-adapter-settings).
 
 LogitNorm was chosen because overconfident logits hurt a system that needs a review path; it was not ablated against
 cross-entropy.
@@ -95,10 +103,30 @@ score families are maintained:
 `primary_score_method: "auto"` compares candidates on development evidence only, never on the locked OOD test slice.
 The OOD development target false-positive rate is `0.05`.
 
-Outlier Exposure is enabled with weight `0.5` and a uniform target. RAPS conformal prediction is enabled with
-\(\alpha=0.05\), \(\lambda=0.2\) and `k_reg=1`; it reports set-valued uncertainty and coverage, but does not replace
-testing on unknown diseases. BER regularization, ReAct clipping, the classifier rebalance stage and the plantness
-input guard exist in code but are disabled, and nothing here claims they helped.
+In `config/base.json`, Outlier Exposure has weight `0.5` and a uniform target, and BER regularization, ReAct
+clipping, the classifier rebalance stage and the plantness input guard are disabled. The released adapters differ:
+ReAct is on for 7 of 8, the classifier rebalance stage for 6 of 8, and the Outlier Exposure weight is 0.12–0.3
+([released adapter settings](#released-adapter-settings)). None of these was ablated, and nothing here claims they
+helped. RAPS conformal prediction is enabled with \(\alpha=0.05\), \(\lambda=0.2\) and `k_reg=1`; it reports
+set-valued uncertainty and coverage, but does not replace testing on unknown diseases.
+
+### Released adapter settings
+
+Read from the `adapter_meta.json` of each bundle in release
+[`aads-public-demo-v1.1.2`](https://github.com/EfeErim/aads-open-world-plant-disease/releases/tag/aads-public-demo-v1.1.2)
+(`gh release download aads-public-demo-v1.1.2 -p '*adapter_meta.json'`). Epochs are the configured maximum; early
+stopping on validation loss was on for every target.
+
+| Target | LoRA r / alpha | Epochs | LR | Batch | Label smoothing | OE weight | ReAct | Classifier rebalance | OOD threshold factor | Primary OOD score | Fusion layers |
+|---|---|---:|---:|---:|---:|---:|---|---|---:|---|---|
+| apricot/fruit | 20/20 | 36 | 0.0001 | 40 | 0.12 | 0.3 | on (0.985) | on (3 ep) | 4.5 | ensemble | 2/5/8/11 |
+| apricot/leaf | 20/24 | 24 | 0.00012 | 52 | 0.1 | 0.3 | on (0.985) | on (3 ep) | 4.0 | ensemble | 2/5/8/11 |
+| grape/fruit | 24/24 | 32 | 0.0001 | 48 | 0.1 | 0.24 | on (0.985) | on (3 ep) | 3.0 | ensemble | 2/5/8/11 |
+| grape/leaf | 24/24 | 30 | 0.0001 | 56 | 0.1 | 0.24 | on (0.985) | on (3 ep) | 3.5 | ensemble | 2/5/8/11 |
+| strawberry/fruit | 20/26 | 38 | 5e-05 | 40 | 0.05 | 0.12 | off | off | 2.0 | ensemble | 2/5/8/11 |
+| strawberry/leaf | 24/24 | 24 | 0.00012 | 88 | 0.1 | 0.3 | on (0.99) | off | 4.0 | ensemble | 2/5/8/11 |
+| tomato/fruit | 24/24 | 30 | 6e-05 | 64 | 0.1 | 0.25 | on (0.985) | on (3 ep) | 3.0 | ensemble | 2/5/8/11 |
+| tomato/leaf | 32/24 | 26 | 0.00011 | 88 | 0.1 | 0.25 | on (0.985) | on (3 ep) | 3.5 | ensemble | 2/5/8/11 |
 
 The pipeline is an engineering synthesis of the cited methods, not a paper-faithful reproduction of any one of them.
 Selective classification is implemented as post-hoc gates, not a trained SelectiveNet head.
@@ -136,7 +164,8 @@ Source: [`evidence/controlled_demo_summary.json`](../evidence/controlled_demo_su
 Each adapter must reach accuracy ≥ 0.93, balanced accuracy ≥ 0.90, macro-F1 ≥ 0.90, at least 30 ID test samples, ID
 false-rejection rate ≤ 0.05, at least 30 same-crop unsupported-disease test samples, zero forced supported answers on
 that slice, and a same-crop OOD rejection rate of 1.00. Latest tracked artifact per target at source commit
-`539397bb72bde59e4b092ac1286b5415fe78dbac`:
+`539397bb72bde59e4b092ac1286b5415fe78dbac`, which is not in this repository's current history; the released bundles
+are pinned by the release tag `aads-public-demo-v1.1.2`:
 
 | Target | Accuracy | Balanced acc. | Macro-F1 | ID FRR | Same-crop OOD n | OOD rejection | Forced answers | Pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -203,7 +232,8 @@ manifest records `production_ready: false`. Source:
 - **OOD dev/test split is not family-grouped.** It is per-image random within each slice (`src/data/ood_splits.py`), so
   near-duplicates can sit on both sides.
 - **Single seed, no ablations.** Seed 42, no confidence intervals; LogitNorm, Outlier Exposure, multi-scale fusion and
-  LoRA rank were not ablated, and no linear-probe baseline is reported.
+  LoRA rank were not ablated. A linear-probe baseline script exists (Notebook 9,
+  `scripts/posthoc_linear_probe.py`), but no result from it is recorded here.
 - **Not reproducible from public data.** Training images are private and DINOv3 is gated; the evidence can be
   inspected and cross-checked but not regenerated from this repository alone.
 
