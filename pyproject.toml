@@ -14,6 +14,8 @@ dynamic = ["dependencies"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.2.0", "ruff==0.17.3"]
+# The router's BioCLIP stage; Colab installs it from requirements_colab.txt.
+inference = ["open-clip-torch~=3.3.0"]
 
 [project.urls]
 Repository = "https://github.com/EfeErim/aads-open-world-plant-disease"

@@ -35,6 +35,9 @@ Model-backed cells need a Hugging Face token with access to the gated DINOv3 bac
 | Train one crop/part adapter | [Notebook 2](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/2_train_continual_sd_lora_adapter.ipynb) |
 | Audit and split your own dataset | [Notebook 0](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/0_prepare_grouped_dataset_for_training.ipynb) |
 | Reload and validate an exported adapter | [Notebook 3](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/3_validate_exported_adapter_directly.ipynb) |
+| Run only the crop/part router on an image | [Notebook 1](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/1_identify_crop_part_with_router.ipynb) |
+| Train every crop/part adapter in one session | [Notebook 6](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/6_train_all_continual_sd_lora_adapters.ipynb) |
+| Post-hoc linear-probe baseline (no recorded result yet) | [Notebook 9](https://colab.research.google.com/github/EfeErim/aads-open-world-plant-disease/blob/main/colab_notebooks/9_posthoc_linear_probe_baseline.ipynb) |
 
 Notebook 8 downloads the public adapter bundles and checks them against a SHA-256 manifest. Notebook 2 can generate a
 deterministic synthetic sample to exercise the pipeline; that sample is marked `production_eligible: false` and
@@ -89,6 +92,8 @@ Local development (Python 3.11):
 pip install -e ".[dev]"
 ruff check src scripts tests && pytest --runintegration
 ```
+
+Local inference also needs the router's BioCLIP stage: `pip install -e ".[inference]"`.
 
 To fetch the eight released adapters (64 files, about 518 MB) into `models/adapters` and verify them against the
 release manifest without Colab:
